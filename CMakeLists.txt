@@ -2,7 +2,7 @@ project(rise)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_library(rise src/rendering.cpp)
+add_library(rise src/rendering.cpp "src/math.cpp")
 target_include_directories(rise INTERFACE src)
 
 add_executable(riseapp app/main.cpp)

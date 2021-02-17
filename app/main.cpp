@@ -18,9 +18,7 @@ int main(int argc, char *argv[]) {
     LLGL::CommandQueue *cmdQueue = renderer->GetCommandQueue();
     LLGL::CommandBuffer *cmdBuffer = renderer->CreateCommandBuffer();
 
-
-
-    auto resources = rise::createResources(renderer, pipeline)
+    auto resources = rise::createResources(renderer.get(), layout);
 
     while (window.ProcessEvents()) {
         cmdBuffer->Begin();

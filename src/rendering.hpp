@@ -1,20 +1,44 @@
 #pragma once
 #include <LLGL/LLGL.h>
+#include <glm/glm.hpp>
 
 namespace rise {
     std::unique_ptr<LLGL::RenderSystem> createRenderer();
 
-    LLGL::RenderContext *createContext(LLGL::RenderSystem *renderer, unsigned width,
-            unsigned height);
+    struct Context {
+      LLGL::Window* window;
+      LLGL::RenderContext* context;
+    };
 
-    std::pair<LLGL::Buffer *, LLGL::VertexFormat> createVertexBuffer(LLGL::RenderSystem *renderer);
+    Context createContext(LLGL::RenderSystem *renderer, unsigned width, unsigned height);
 
-    LLGL::ShaderProgram *createShaderProgram(LLGL::RenderSystem *renderer, std::string const &root,
-            LLGL::VertexFormat const& format);
+    struct VertexInput {
+      LLGL::Buffer* buffer;
+      LLGL::VertexFormat format;
+    };
 
-    std::pair<LLGL::PipelineState *, LLGL::PipelineLayout *> createPipeline(
-            LLGL::RenderSystem *renderer, LLGL::ShaderProgram *program);
+    VertexInput createVertexInput(LLGL::RenderSystem *renderer);
 
-    LLGL::ResourceHeap *createResources(LLGL::RenderSystem *renderer,
-            LLGL::PipelineLayout* layout);
+    struct UniformData {
+      LLGL::Buffer* uniformBuffer;
+      glm::mat4* mvp;
+    };
+
+    UniformData createUniformData(LLGL::RenderSystem *renderer);
+
+    struct ShaderResources {
+      VertexInput vertex;
+      UniformData uniform;
+    };
+
+    ShaderResources createShaderResources(LLGL::RenderSystem *renderer);
+
+    struct Pipeline {
+      LLGL::ResourceHeap* resourcesHeap;
+      LLGL::ShaderProgram* shader;
+      LLGL::PipelineState* state;
+      LLGL::PipelineLayout* layout;
+    };
+
+    Pipeline createPipeline(LLGL::RenderSystem *renderer, ShaderResources const& resources);
 }
