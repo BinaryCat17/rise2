@@ -5,32 +5,31 @@
 #include "rendering.hpp"
 
 int main(int argc, char *argv[]) {
-    std::string root = "/home/gaben/projects/rise";
-    unsigned width = 800;
-    unsigned height = 600;
+    try {
+        std::string root = "/home/gaben/projects/rise";
+        unsigned width = 800;
+        unsigned height = 600;
 
-    auto renderer = rise::createRenderer();
-    auto context = rise::createContext(renderer.get(), width, height);
-    auto [vertexBuffer, format] = rise::createVertexBuffer(renderer.get());
-    auto shader = rise::createShaderProgram(renderer.get(), root, format);
-    auto [pipeline, layout] = rise::createPipeline(renderer.get(), shader);
+        auto renderer = rise::createRenderer();
+        auto context = rise::createContext(renderer.get(), width, height);
+        auto resources = rise::createShaderResources(renderer.get());
+        auto pipeline = rise::createPipeline(renderer.get(), root, resources);
 
-    LLGL::CommandQueue *cmdQueue = renderer->GetCommandQueue();
-    LLGL::CommandBuffer *cmdBuffer = renderer->CreateCommandBuffer();
+        rise::Camera camera = {
+                width,
+                height,
+                {3, 4, 4}, // pos
+                {0, 0, 0} // origin
+        };
 
-    auto resources = rise::createResources(renderer.get(), layout);
+        rise::updateUniformData(renderer.get(), resources.camera, camera);
 
-    while (window.ProcessEvents()) {
-        cmdBuffer->Begin();
-        cmdBuffer->SetVertexBuffer(*vertexBuffer);
-        cmdBuffer->BeginRenderPass(*window);
-        cmdBuffer->SetViewport(context->GetResolution());
-        cmdBuffer->Clear(LLGL::ClearFlags::Color);
-        cmdBuffer->UpdateBuffer(*uniformBuffer, 0, &mvp, sizeof(glm::mat4));
-        cmdBuffer->Draw(3, 0);
-        cmdBuffer->EndRenderPass();
-        cmdBuffer->End();
-        cmdQueue->Submit(*cmdBuffer);
-        context->Present();
+        renderLoop(renderer.get(), context, [&](LLGL::CommandBuffer *cmd) {
+            rise::bindPipeline(cmd, pipeline);
+            rise::bindResources(cmd, resources);
+            rise::drawVertices(cmd, resources.vertex);
+        });
+    } catch (std::exception const &e) {
+        std::cerr << e.what() << std::endl;
     }
 }
