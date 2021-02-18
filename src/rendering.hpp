@@ -16,8 +16,6 @@ namespace rise {
     struct ShaderResources {
         LLGL::PipelineLayout *pipelineLayout = nullptr;
         LLGL::ResourceHeap *resourcesHeap = nullptr;
-        VertexInput vertex = {};
-        GlobalShaderData camera = {};
     };
 
     ShaderResources createShaderResources(LLGL::RenderSystem *renderer);
@@ -46,6 +44,7 @@ namespace rise {
             cmdBuffer->Clear(LLGL::ClearFlags::Color);
             f(cmdBuffer);
             cmdBuffer->EndRenderPass();
+            cmdBuffer->Resou
             cmdBuffer->End();
             cmdQueue->Submit(*cmdBuffer);
             context.context->Present();
