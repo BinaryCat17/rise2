@@ -1,7 +1,11 @@
 #include "resources.hpp"
 #include "shader.hpp"
+#include "scene.hpp"
+#include <glm/gtc/matrix_transform.hpp>
 
-namespace rise {
+namespace rise::resources {
+  using namespace rise;
+
     class Debugger : public LLGL::RenderingDebugger {
     public:
     protected:
@@ -52,17 +56,34 @@ namespace rise {
         return instance;
     }
 
+    void reCalc(entt::registry &r, entt::entity e) {
+        glm::mat4 mat(1);
+        auto &pos = r.get<scene::Position>(e);
+        mat = glm::translate(mat, pos);
+        if (auto rotation = r.try_get<scene::Rotation>(e)) {
+            mat = glm::rotate(mat, glm::radians(90.f), *rotation);
+        }
+        if (auto scale = r.try_get<scene::Scale>(e)) {
+            mat = glm::scale(mat, *scale);
+        }
+
+        auto &instance = r.ctx<resources::Instance>();
+        auto model = r.get<scene::ModelData>(e);
+        mapUniformBuffer<glm::mat4>(instance.renderer.get(), model.uniformBuffer, [&mat](glm::mat4 *m) {
+            *m = mat;
+        });
+    }
+
     void initRenderer(entt::registry &r, unsigned width, unsigned height, std::string const &root) {
         auto const &instance = r.set<Instance>(createInstance(width, height));
 
-        LLGL::GraphicsPipelineDescriptor pipelineDesc;
-        pipelineDesc.shaderProgram = shader::program(instance.renderer.get(), root);
-        pipelineDesc.pipelineLayout = shader::layout(instance.renderer.get());
-        pipelineDesc.rasterizer.multiSampleEnabled = true;
+        r.on_construct<scene::Position>().connect<&reCalc>();
+        r.on_update<scene::Position>().connect<&reCalc>();
 
-        auto pipeline = instance.renderer->CreatePipelineState(pipelineDesc);
+        r.on_construct<scene::Rotation>().connect<&reCalc>();
+        r.on_update<scene::Rotation>().connect<&reCalc>();
 
-
-        return Pipeline{shaderProgram, pipeline};
+        r.on_construct<scene::Scale>().connect<&reCalc>();
+        r.on_update<scene::Scale>().connect<&reCalc>();
     }
 }

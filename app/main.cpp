@@ -3,33 +3,26 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include "rendering.hpp"
+#include <entt/entt.hpp>
 
-int main(int argc, char *argv[]) {
-    try {
-        std::string root = "/home/gaben/projects/rise";
-        unsigned width = 800;
-        unsigned height = 600;
+int main(int argc, char* argv[]) {
+	using namespace rise;
 
-        auto renderer = rise::createRenderer();
-        auto context = rise::createContext(renderer.get(), width, height);
-        auto resources = rise::createShaderResources(renderer.get());
-        auto pipeline = rise::createPipeline(renderer.get(), root, resources);
+	try {
+		entt::registry registry;
+		Instance instance = makeInstance("/home/gaben/projects/rise", 800, 600);
 
-        rise::Camera camera = {
-                width,
-                height,
-                {3, 4, 4}, // pos
-                {0, 0, 0} // origin
-        };
+		init(registry, &instance);
 
-        rise::updateUniformData(renderer.get(), resources.camera, camera);
+		Mesh mesh = loadMesh(registry, "/meshes/cube.obj");
 
-        renderLoop(renderer.get(), context, [&](LLGL::CommandBuffer *cmd) {
-            rise::bindPipeline(cmd, pipeline);
-            rise::bindResources(cmd, resources);
-            rise::drawVertices(cmd, resources.vertex);
-        });
-    } catch (std::exception const &e) {
-        std::cerr << e.what() << std::endl;
-    }
+		entt::entity cube = registry.create();
+		registry.emplace<Mesh>(cube, &mesh);
+		registry.emplace<Position>(mesh, glm::vec3(0, 0, 0));
+
+		renderLoop(registry);
+	}
+	catch (std::exception const& e) {
+		std::cerr << e.what() << std::endl;
+	}
 }

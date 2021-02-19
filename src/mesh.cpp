@@ -1,5 +1,6 @@
 #include "mesh.hpp"
 #include <tiny_obj_loader.h>
+#include "shader.hpp"
 
 namespace rise {
     std::pair<std::vector<Vertex>, std::vector<uint32_t>> loadMesh(
@@ -39,15 +40,6 @@ namespace rise {
         }
 
         return {vertices, indices};
-    }
-
-    LLGL::VertexFormat getVertexFormat() {
-        LLGL::VertexFormat vertexFormat;
-        vertexFormat.AppendAttribute({"position", LLGL::Format::RGB32Float});
-        vertexFormat.AppendAttribute({"normal", LLGL::Format::RGB32Float});
-        vertexFormat.AppendAttribute({"texCoord", LLGL::Format::RG32Float});
-        vertexFormat.AppendAttribute({"color", LLGL::Format::RGB32Float});
-        return vertexFormat;
     }
 
     Mesh loadMesh(LLGL::RenderSystem *renderer, std::string const &path) {

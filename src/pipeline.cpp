@@ -1,6 +1,6 @@
-#include "shader.hpp"
+#include "pipeline.hpp"
 
-namespace rise::shader {
+namespace rise {
     LLGL::VertexFormat Vertex::format() {
         LLGL::VertexFormat fmt;
         fmt.AppendAttribute({"position", LLGL::Format::RGB32Float});
@@ -9,7 +9,7 @@ namespace rise::shader {
         return fmt;
     }
 
-    LLGL::PipelineLayout *layout(LLGL::RenderSystem *renderer) {
+    LLGL::PipelineLayout *makeLayout(LLGL::RenderSystem *renderer) {
         unsigned const CameraBinding = 0;
         unsigned const MeshDataBinding = 1;
 
@@ -30,7 +30,7 @@ namespace rise::shader {
         return renderer->CreatePipelineLayout(layoutDesc);
     }
 
-    LLGL::ShaderProgram* program(LLGL::RenderSystem *renderer, std::string const& root) {
+    LLGL::ShaderProgram* makeProgram(LLGL::RenderSystem *renderer, std::string const& root) {
         std::string vertPath = root + "/shader.vert";
         std::string fragPath = root + "/shader.frag";
 
@@ -52,6 +52,16 @@ namespace rise::shader {
         }
 
         return renderer->CreateShaderProgram(programDesc);
+    }
+
+    LLGL::PipelineState* makePipeline(LLGL::RenderSystem* renderer, LLGL::PipelineLayout* layout,
+      LLGL::ShaderProgram* program) {
+              LLGL::GraphicsPipelineDescriptor pipelineDesc;
+        pipelineDesc.shaderProgram = program;
+        pipelineDesc.pipelineLayout = layout;
+        pipelineDesc.rasterizer.multiSampleEnabled = true;
+
+        return renderer->CreatePipelineState(pipelineDesc);
     }
 }
 
