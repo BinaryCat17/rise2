@@ -7,6 +7,7 @@ add_library(rise
         src/mesh.cpp
         src/resources.cpp
         src/camera.cpp
+        src/shader.cpp
         src/scene.cpp)
 target_include_directories(rise INTERFACE src)
 

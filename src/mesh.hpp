@@ -11,12 +11,7 @@ namespace rise {
         uint32_t numIndices = 0;
     };
 
-    struct Vertex {
-        glm::vec3 pos;
-        glm::vec3 normal;
-        glm::vec2 texCoord;
-        glm::vec3 color;
-    };
+    LLGL::VertexFormat getVertexFormat();
 
     Mesh loadMesh(LLGL::RenderSystem *renderer, std::string const &path);
 

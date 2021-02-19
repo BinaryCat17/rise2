@@ -25,12 +25,13 @@ namespace rise {
     struct Pipeline {
         LLGL::ShaderProgram *shaders = nullptr;
         LLGL::PipelineState *state = nullptr;
+        LLGL::PipelineLayout *layout = nullptr;
     };
 
     Pipeline createPipeline(LLGL::RenderSystem *renderer, std::string const &root,
             ShaderResources const &resources);
 
-    void bindPipeline(LLGL::CommandBuffer *cmdBuf, Pipeline& pipeline);
+    void bindPipeline(LLGL::CommandBuffer *cmdBuf, Pipeline &pipeline);
 
     template<typename FnT>
     void renderLoop(LLGL::RenderSystem *renderer, Context context, FnT &&f) {
@@ -44,7 +45,6 @@ namespace rise {
             cmdBuffer->Clear(LLGL::ClearFlags::Color);
             f(cmdBuffer);
             cmdBuffer->EndRenderPass();
-            cmdBuffer->Resou
             cmdBuffer->End();
             cmdQueue->Submit(*cmdBuffer);
             context.context->Present();

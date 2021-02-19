@@ -1,5 +1,6 @@
 #include "rendering.hpp"
 #include <iostream>
+#include "mesh.hpp"
 
 namespace rise {
     class Debugger : public LLGL::RenderingDebugger {
@@ -41,79 +42,6 @@ namespace rise {
         return Context{ &window, context };
     }
 
-    VertexInput createVertexInput(LLGL::RenderSystem *renderer) {
-        LLGL::VertexFormat vertexFormat;
-        vertexFormat.AppendAttribute({"position", LLGL::Format::RGB32Float});
-
-        LLGL::BufferDescriptor VBufferDesc;
-        VBufferDesc.size = sizeof(cube);            // Size (in bytes) of the buffer
-        VBufferDesc.bindFlags = LLGL::BindFlags::VertexBuffer; // Use for vertex buffer binding
-        VBufferDesc.vertexAttribs = vertexFormat.attributes;     // Vertex buffer attributes
-        return {renderer->CreateBuffer(VBufferDesc, cube), std::move(vertexFormat)};
-    }
-
-    void drawVertices(LLGL::CommandBuffer *cmdBuf, VertexInput &vertexInput) {
-        cmdBuf->SetVertexBuffer(*vertexInput.buffer);
-        cmdBuf->Draw(12 * 3, 0);
-    }
-
-    GlobalShaderData createUniformData(LLGL::RenderSystem *renderer) {
-        LLGL::BufferDescriptor uniformBufferDesc;
-        uniformBufferDesc.size = sizeof(glm::mat4);
-        uniformBufferDesc.bindFlags = LLGL::BindFlags::ConstantBuffer; // Use for vertex buffer binding
-        uniformBufferDesc.cpuAccessFlags = LLGL::CPUAccessFlags::ReadWrite;
-        uniformBufferDesc.miscFlags = LLGL::MiscFlags::DynamicUsage;
-        LLGL::Buffer *uniformBuffer = renderer->CreateBuffer(uniformBufferDesc);
-        return UniformData{uniformBuffer};
-    }
-
-    void updateUniformData(LLGL::RenderSystem *renderer, GlobalShaderData &uniformData,
-            Camera const &camera) {
-        glm::mat4 model(1);
-
-        glm::mat4 projection = glm::perspective(glm::radians(45.0f),
-                (float) camera.width / (float) camera.height, 0.1f, 100.0f);
-
-        glm::mat4 view = glm::lookAt(
-                camera.position,
-                camera.origin,
-                glm::vec3(0, 1, 0)
-        );
-        void *pData = renderer->MapBuffer(*uniformData.buffer, LLGL::CPUAccess::ReadWrite);
-        auto mvp = reinterpret_cast<glm::mat4 *>(pData);
-        *mvp = projection * view * model;
-        renderer->UnmapBuffer(*uniformData.buffer);
-    }
-
-    ShaderResources createShaderResources(LLGL::RenderSystem *renderer) {
-        VertexInput vertexInput = createVertexInput(renderer);
-        GlobalShaderData uniformData = createUniformData(renderer);
-
-        LLGL::PipelineLayoutDescriptor layoutDesc;
-        layoutDesc.bindings = {LLGL::BindingDescriptor{
-                LLGL::ResourceType::Buffer,
-                LLGL::BindFlags::ConstantBuffer,
-                LLGL::StageFlags::VertexStage, 0},
-        };
-        auto layout = renderer->CreatePipelineLayout(layoutDesc);
-
-        LLGL::ResourceHeapDescriptor resourceHeapDesc;
-        resourceHeapDesc.pipelineLayout = layout;
-        resourceHeapDesc.resourceViews.emplace_back(uniformData.buffer);
-        auto heap = renderer->CreateResourceHeap(resourceHeapDesc);
-
-        return ShaderResources{
-                layout,
-                heap,
-                vertexInput,
-                uniformData,
-        };
-    }
-
-    void bindResources(LLGL::CommandBuffer *cmdBuf, ShaderResources &resources) {
-        cmdBuf->SetResourceHeap(*resources.resourcesHeap);
-    }
-
     Pipeline createPipeline(LLGL::RenderSystem *renderer, std::string const &root,
             ShaderResources const &resources) {
         std::string vertPath = root + "/shaders/shader.vert";
@@ -123,7 +51,7 @@ namespace rise {
         VSDesc = {LLGL::ShaderType::Vertex, vertPath.data()};
         FSDesc = {LLGL::ShaderType::Fragment, fragPath.data()};
 
-        VSDesc.vertex.inputAttribs = resources.vertex.format.attributes;
+        VSDesc.vertex.inputAttribs = getVertexFormat().attributes;
 
         LLGL::ShaderProgramDescriptor programDesc;
         programDesc.vertexShader = renderer->CreateShader(VSDesc);
@@ -150,9 +78,5 @@ namespace rise {
         auto pipeline = renderer->CreatePipelineState(pipelineDesc);
 
         return Pipeline{shaderProgram, pipeline};
-    }
-
-    void bindPipeline(LLGL::CommandBuffer *cmdBuf, Pipeline &pipeline) {
-        cmdBuf->SetPipelineState(*pipeline.state);
     }
 }

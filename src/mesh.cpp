@@ -41,6 +41,15 @@ namespace rise {
         return {vertices, indices};
     }
 
+    LLGL::VertexFormat getVertexFormat() {
+        LLGL::VertexFormat vertexFormat;
+        vertexFormat.AppendAttribute({"position", LLGL::Format::RGB32Float});
+        vertexFormat.AppendAttribute({"normal", LLGL::Format::RGB32Float});
+        vertexFormat.AppendAttribute({"texCoord", LLGL::Format::RG32Float});
+        vertexFormat.AppendAttribute({"color", LLGL::Format::RGB32Float});
+        return vertexFormat;
+    }
+
     Mesh loadMesh(LLGL::RenderSystem *renderer, std::string const &path) {
         tinyobj::ObjReaderConfig readerConfig;
         readerConfig.triangulate = true;
@@ -60,12 +69,7 @@ namespace rise {
 
         auto[vertices, indices] = loadMesh(reader.GetAttrib(), reader.GetShapes());
 
-        LLGL::VertexFormat vertexFormat;
-        vertexFormat.AppendAttribute({"position", LLGL::Format::RGB32Float});
-        vertexFormat.AppendAttribute({"normal", LLGL::Format::RGB32Float});
-        vertexFormat.AppendAttribute({"texCoord", LLGL::Format::RG32Float});
-        vertexFormat.AppendAttribute({"color", LLGL::Format::RGB32Float});
-
+        LLGL::VertexFormat vertexFormat = getVertexFormat();
         LLGL::BufferDescriptor VBufferDesc;
         VBufferDesc.size = sizeof(Vertex) * vertices.size();
         VBufferDesc.bindFlags = LLGL::BindFlags::VertexBuffer;
