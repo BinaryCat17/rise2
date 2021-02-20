@@ -1,4 +1,6 @@
 #include "pipeline.hpp"
+#define LLGL_ENABLE_UTILITY
+#include <LLGL/Utility.h>
 
 namespace rise {
     LLGL::VertexFormat Vertex::format() {
@@ -10,20 +12,17 @@ namespace rise {
     }
 
     LLGL::PipelineLayout *makeLayout(LLGL::RenderSystem *renderer) {
-        unsigned const CameraBinding = 0;
-        unsigned const MeshDataBinding = 1;
-
         LLGL::PipelineLayoutDescriptor layoutDesc;
         layoutDesc.bindings = {LLGL::BindingDescriptor{
                 LLGL::ResourceType::Buffer,
                 LLGL::BindFlags::ConstantBuffer,
                 LLGL::StageFlags::VertexStage,
-                CameraBinding,
+                0,
         }, {LLGL::BindingDescriptor{
                 LLGL::ResourceType::Buffer,
                 LLGL::BindFlags::ConstantBuffer,
                 LLGL::StageFlags::VertexStage,
-                MeshDataBinding,
+                1,
         }}
         };
 
@@ -31,12 +30,12 @@ namespace rise {
     }
 
     LLGL::ShaderProgram* makeProgram(LLGL::RenderSystem *renderer, std::string const& root) {
-        std::string vertPath = root + "/shader.vert";
-        std::string fragPath = root + "/shader.frag";
+        std::string vertPath = root + "/shader.vert.spv";
+        std::string fragPath = root + "/shader.frag.spv";
 
         LLGL::ShaderDescriptor VSDesc, FSDesc;
-        VSDesc = {LLGL::ShaderType::Vertex, vertPath.data()};
-        FSDesc = {LLGL::ShaderType::Fragment, fragPath.data()};
+        VSDesc = LLGL::ShaderDescFromFile(LLGL::ShaderType::Vertex, vertPath.data());
+        FSDesc = LLGL::ShaderDescFromFile(LLGL::ShaderType::Fragment, fragPath.data());
 
         VSDesc.vertex.inputAttribs = Vertex::format().attributes;
 
@@ -51,6 +50,7 @@ namespace rise {
             }
         }
 
+
         return renderer->CreateShaderProgram(programDesc);
     }
 
@@ -59,7 +59,12 @@ namespace rise {
               LLGL::GraphicsPipelineDescriptor pipelineDesc;
         pipelineDesc.shaderProgram = program;
         pipelineDesc.pipelineLayout = layout;
+        pipelineDesc.primitiveTopology = LLGL::PrimitiveTopology::TriangleList;
         pipelineDesc.rasterizer.multiSampleEnabled = true;
+        pipelineDesc.rasterizer.cullMode            = LLGL::CullMode::Front;
+        pipelineDesc.depth.compareOp = LLGL::CompareOp::LessEqual;
+        pipelineDesc.depth.testEnabled = true;
+        pipelineDesc.depth.writeEnabled = true;
 
         return renderer->CreatePipelineState(pipelineDesc);
     }

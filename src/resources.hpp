@@ -1,8 +1,6 @@
 #pragma once
 
 #include <LLGL/LLGL.h>
-#include <entt/entt.hpp>
-#include "mesh.hpp"
 
 namespace rise {
 	template<typename T>

@@ -5,130 +5,73 @@
 #include <entt/entt.hpp>
 
 namespace rise {
-	namespace impl {
-		struct MeshRes {
-			LLGL::VertexFormat format = {};
-			LLGL::Buffer* vertices = nullptr;
-			LLGL::Buffer* indices = nullptr;
-			unsigned numIndices = 0;
-		};
+    namespace impl {
+        struct MeshRes {
+            LLGL::Buffer *vertices = nullptr;
+            LLGL::Buffer *indices = nullptr;
+            unsigned numIndices = 0;
+        };
 
-		struct ModelData {
-			LLGL::Buffer* uniformBuffer;
-			LLGL::ResourceHeap* heap;
-		};
+        struct ModelRes {
+            LLGL::Buffer *uniformBuffer;
+            LLGL::ResourceHeap *heap;
+        };
 
-		struct Resources {
-			std::vector<MeshRes> meshes;
-			std::vector<ModelData> models;
-		};
-	}
+        struct Resources {
+            std::vector<MeshRes> meshes;
+        };
 
-	struct Mesh {
-		size_t id;
-	};
+        struct GlobalShaderData {
+            alignas(16) glm::mat4 view;
+            alignas(16) glm::mat4 projection;
+        };
 
-	struct Position : glm::vec3 {};
+        struct ModelData {
+            alignas(16) glm::mat4 transofrm;
+        };
+    }
 
-	struct Instance {
-		std::unique_ptr<LLGL::RenderSystem> renderer;
-		LLGL::RenderContext* context;
-		LLGL::Window* window;
-		LLGL::PipelineState* pipeline;
-		LLGL::PipelineLayout* layout;
-		LLGL::ShaderProgram* program;
-		impl::Resources resources;
-	};
+    struct Mesh {
+        size_t id;
+    };
 
-	Instance makeInstance(std::string const& root, unsigned width, unsigned height);
+    struct Position : glm::vec3 {};
 
-	void init(entt::registry& r, Instance* instance);
+    struct Rotation : glm::vec3 {};
 
-	Mesh makeMesh(entt::registry& r, std::string const& path);
+    enum class Shading {
+        Diffuse,
+    };
 
-	void renderLoop(entt::registry& r);
+    enum class CameraMode {
+        FullControl
+    };
 
+    struct Drawable {
+        Shading shadingType;
+    };
 
+    struct Instance {
+        std::unique_ptr<LLGL::RenderSystem> renderer;
+        LLGL::RenderContext *context;
+        LLGL::Window *window;
+        LLGL::PipelineState *pipeline;
+        LLGL::PipelineLayout *layout;
+        LLGL::ShaderProgram *program;
+        impl::Resources resources;
+        LLGL::Buffer *globalShaderData;
+        std::string root;
+    };
 
+    Instance makeInstance(std::string const &root, unsigned width, unsigned height);
 
+    void init(entt::registry &r, Instance *instance);
 
+    void setCameraView(entt::registry &r, glm::vec3 pos, glm::vec3 origin);
 
+    Mesh loadMesh(entt::registry &r, std::string const &path);
 
+    void setActiveCamera(entt::registry& r, entt::entity e, CameraMode mode);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	std::unique_ptr<LLGL::RenderSystem> createRenderer();
-
-	struct Context {
-		LLGL::Window* window = nullptr;
-		LLGL::RenderContext* context = nullptr;
-	};
-
-	Context createContext(LLGL::RenderSystem* renderer, unsigned width, unsigned height);
-
-	struct ShaderResources {
-		LLGL::PipelineLayout* pipelineLayout = nullptr;
-		LLGL::ResourceHeap* resourcesHeap = nullptr;
-	};
-
-	ShaderResources createShaderResources(LLGL::RenderSystem* renderer);
-
-	void bindResources(LLGL::CommandBuffer* cmdBuf, ShaderResources& resources);
-
-	struct Pipeline {
-		LLGL::ShaderProgram* shaders = nullptr;
-		LLGL::PipelineState* state = nullptr;
-		LLGL::PipelineLayout* layout = nullptr;
-	};
-
-	Pipeline createPipeline(LLGL::RenderSystem* renderer, std::string const& root,
-		ShaderResources const& resources);
-
-	void bindPipeline(LLGL::CommandBuffer* cmdBuf, Pipeline& pipeline);
-
-	template<typename FnT>
-	void renderLoop(LLGL::RenderSystem* renderer, Context context, FnT&& f) {
-		LLGL::CommandQueue* cmdQueue = renderer->GetCommandQueue();
-		LLGL::CommandBuffer* cmdBuffer = renderer->CreateCommandBuffer();
-
-		while (context.window->ProcessEvents()) {
-			cmdBuffer->Begin();
-			cmdBuffer->BeginRenderPass(*context.context);
-			cmdBuffer->SetViewport(context.context->GetResolution());
-			cmdBuffer->Clear(LLGL::ClearFlags::Color);
-			f(cmdBuffer);
-			cmdBuffer->EndRenderPass();
-			cmdBuffer->End();
-			cmdQueue->Submit(*cmdBuffer);
-			context.context->Present();
-		}
-	}
+    void renderLoop(entt::registry &r);
 }
