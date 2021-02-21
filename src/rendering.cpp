@@ -2,19 +2,24 @@
 #include <iostream>
 #include "pipeline.hpp"
 #include "resources.hpp"
+
+#define STB_IMAGE_IMPLEMENTATION
+
+#include "stb_image.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <tiny_obj_loader.h>
 #include <chrono>
 
 namespace rise {
     LLGL::RenderContext *
-    makeContext(LLGL::RenderSystem *renderer, unsigned width, unsigned height) {
+    makeContext(LLGL::RenderSystem *renderer, SDL_Window *window, unsigned width, unsigned height) {
         LLGL::RenderContextDescriptor contextDesc;
         contextDesc.videoMode.resolution = {width, height};
         contextDesc.videoMode.fullscreen = false;
         contextDesc.vsync.enabled = true;
         contextDesc.samples = 8;
-        LLGL::RenderContext *context = renderer->CreateRenderContext(contextDesc);
+        LLGL::RenderContext *context = renderer->CreateRenderContext(contextDesc,
+                std::make_shared<Surface>(window));
 
         const auto &info = renderer->GetRendererInfo();
 
@@ -24,6 +29,33 @@ namespace rise {
         std::cout << "Shading Language: " << info.shadingLanguageName << std::endl;
 
         return context;
+    }
+
+    LLGL::Texture *createTexture(Instance *instance, std::string path) {
+        path = instance->root + "/textures/" + path;
+        int texWidth = 0, texHeight = 0, texComponents = 0;
+
+        unsigned char *imageBuffer = stbi_load(path.c_str(),
+                &texWidth, &texHeight, &texComponents, 0);
+        if (!imageBuffer)
+            throw std::runtime_error("failed to load image from file: " + path);
+
+        LLGL::SrcImageDescriptor imageDesc;
+        imageDesc.format = (texComponents == 4 ? LLGL::ImageFormat::RGBA : LLGL::ImageFormat::RGB);
+        imageDesc.dataType = LLGL::DataType::UInt8;
+        imageDesc.data = imageBuffer;
+        imageDesc.dataSize = texWidth * texHeight * texComponents;
+
+        LLGL::TextureDescriptor texDesc;
+        texDesc.type = LLGL::TextureType::Texture2D;
+        texDesc.format = LLGL::Format::BGRA8UNorm;
+        texDesc.extent = {static_cast<std::uint32_t>(texWidth),
+                static_cast<std::uint32_t>(texHeight), 1u};
+        texDesc.miscFlags = LLGL::MiscFlags::GenerateMips;
+
+        auto texture = instance->renderer->CreateTexture(texDesc, &imageDesc);
+        stbi_image_free(imageBuffer);
+        return texture;
     }
 
     class Debugger : public LLGL::RenderingDebugger {
@@ -48,13 +80,10 @@ namespace rise {
         Instance instance;
 
         instance.renderer = createRenderer();
-        instance.context = makeContext(instance.renderer.get(), width, height);
+        auto window = createGameWindow("minecraft 2", width, height);
+        instance.context = makeContext(instance.renderer.get(), window, width, height);
 
-        auto &window = LLGL::CastTo<LLGL::Window>(instance.context->GetSurface());
-        window.SetTitle(L"Rise!");
-        window.Show();
-
-        instance.window = &window;
+        instance.window = window;
 
         instance.layout = makeLayout(instance.renderer.get());
         instance.program = makeProgram(instance.renderer.get(), root + "/shaders");
@@ -65,21 +94,31 @@ namespace rise {
         instance.globalShaderData = createUniformBuffer(instance.renderer.get(), data);
 
         instance.root = root;
+        LLGL::SamplerDescriptor samplerDesc;
+        instance.sampler = instance.renderer->CreateSampler(samplerDesc);
+        instance.defaultTexture = createTexture(&instance, "default.jpg");
+        instance.lightCount = 0;
 
         return instance;
     }
 
     void updateTransform(entt::registry &r, entt::entity e) {
         auto instance = r.ctx<Instance *>();
-        auto &pos = r.get<Position>(e);
         if (auto model = r.try_get<impl::ModelRes>(e)) {
             glm::mat4 mat(1);
+            auto &pos = r.get<Position>(e);
             mat = glm::translate(mat, pos);
+            if (auto rotation = r.try_get<Rotation>(e)) {
+                mat = glm::rotate(mat, glm::radians(90.f), *rotation / 90.f);
+            }
+            if (auto scale = r.try_get<Scale>(e)) {
+                mat = glm::scale(mat, *scale);
+            }
             updateUniformBuffer(instance->renderer.get(), model->uniformBuffer, mat);
         }
     }
 
-    void updateModel(entt::registry &r, entt::entity e) {
+    void initModel(entt::registry &r, entt::entity e) {
         if (r.try_get<impl::ModelRes>(e) ||
                 !r.try_get<Drawable>(e) ||
                 !r.try_get<Mesh>(e)) {
@@ -95,169 +134,177 @@ namespace rise {
         resourceHeapDesc.pipelineLayout = instance->layout;
         resourceHeapDesc.resourceViews.emplace_back(instance->globalShaderData);
         resourceHeapDesc.resourceViews.emplace_back(resource.uniformBuffer);
+
+        if (auto texture = r.try_get<Texture>(e)) {
+            resourceHeapDesc.resourceViews.emplace_back(instance->sampler);
+            resourceHeapDesc.resourceViews.emplace_back(instance->resources.textures[texture->id]);
+        } else {
+            resourceHeapDesc.resourceViews.emplace_back(instance->sampler);
+            resourceHeapDesc.resourceViews.emplace_back(instance->defaultTexture);
+        }
         resource.heap = instance->renderer->CreateResourceHeap(resourceHeapDesc);
 
         r.emplace<impl::ModelRes>(e, resource);
         updateTransform(r, e);
     }
 
-
-    struct WindowListener : public LLGL::Window::EventListener {
-    public:
-        void OnKeyDown(LLGL::Window &sender, LLGL::Key keyCode) override {
-            if (keyCode == LLGL::Key::W) {
-                isMoveFront = true;
-            }
-            if (keyCode == LLGL::Key::S) {
-                isMoveBack = true;
-            }
-            if (keyCode == LLGL::Key::A) {
-                isMoveLeft = true;
-            }
-            if (keyCode == LLGL::Key::D) {
-                isMoveRight = true;
-            }
-            if (keyCode == LLGL::Key::Q) {
-                isMoveUp = true;
-            }
-            if (keyCode == LLGL::Key::E) {
-                isMoveDown = true;
-            }
+    void updateTexture(entt::registry &r, entt::entity e) {
+        auto resource = r.try_get<impl::ModelRes>(e);
+        if (!resource || !r.try_get<Drawable>(e) || !r.try_get<Mesh>(e)) {
+            return;
         }
 
-        void OnKeyUp(LLGL::Window &sender, LLGL::Key keyCode) override {
-            if (keyCode == LLGL::Key::W) {
-                isMoveFront = false;
-            }
-            if (keyCode == LLGL::Key::S) {
-                isMoveBack = false;
-            }
-            if (keyCode == LLGL::Key::A) {
-                isMoveLeft = false;
-            }
-            if (keyCode == LLGL::Key::D) {
-                isMoveRight = false;
-            }
-            if (keyCode == LLGL::Key::Q) {
-                isMoveUp = false;
-            }
-            if (keyCode == LLGL::Key::E) {
-                isMoveDown = false;
-            }
+        auto instance = r.ctx<Instance *>();
+
+        LLGL::ResourceHeapDescriptor resourceHeapDesc;
+        resourceHeapDesc.pipelineLayout = instance->layout;
+        resourceHeapDesc.resourceViews.emplace_back(instance->globalShaderData);
+        resourceHeapDesc.resourceViews.emplace_back(resource->uniformBuffer);
+
+        auto texture = r.get<Texture>(e);
+        resourceHeapDesc.resourceViews.emplace_back(instance->sampler);
+        resourceHeapDesc.resourceViews.emplace_back(instance->resources.textures[texture.id]);
+        resource->heap = instance->renderer->CreateResourceHeap(resourceHeapDesc);
+    }
+
+    void move(glm::vec3 &position, glm::vec3 direction, float speed) {
+        auto time = static_cast<float>(events::pullTime().count());
+        position += speed * direction * (time / 17.f);
+    }
+
+    glm::vec3 calcOrigin(glm::vec3 position, glm::vec3 rotation) {
+        glm::vec3 direction;
+        direction.x = cos(glm::radians(rotation.x)) * cos(glm::radians(rotation.z));
+        direction.y = sin(glm::radians(rotation.z));
+        direction.z = sin(glm::radians(rotation.x)) * cos(glm::radians(rotation.z));
+        glm::vec3 cameraFront = glm::normalize(direction);
+        return position + direction * 3.f;
+    }
+
+    void processKeyboard(Instance *instance, glm::vec3 &position, glm::vec3 rotation) {
+        glm::vec3 origin = calcOrigin(position, rotation);
+        glm::vec3 direction = glm::normalize(position - origin);
+
+        glm::vec3 right = glm::normalize(glm::cross({0.0f, 1.0f, 0.0f}, direction));
+        glm::vec3 up = glm::cross(direction, right);
+        glm::vec3 front = glm::cross(up, right);
+
+        float const speed = 0.05f;
+
+        if (events::isDown(SDLK_f)) {
+            instance->camera.relative = !instance->camera.relative;
+            events::relativeMode(instance->camera.relative);
         }
 
-        void OnLocalMotion(LLGL::Window &sender, const LLGL::Offset2D &position) override {
-            float xOffset = static_cast<float>(position.x) - lastMouse.x;
-            float yOffset = static_cast<float>(position.y) - lastMouse.y;
-            lastMouse = { position.x, position.y };
-
-            xOffset *= sensitivity;
-            yOffset *= sensitivity;
-
-            yaw   += xOffset;
-            pitch += yOffset;
-
-            if(pitch > 89.0f)
-                pitch = 89.0f;
-            if(pitch < -89.0f)
-                pitch = -89.0f;
-
-            glm::vec3 direction;
-            direction.x = static_cast<float>(cos(glm::radians(yaw)) * cos(glm::radians(pitch)));
-            direction.y = static_cast<float>(sin(glm::radians(pitch)));
-            direction.z = static_cast<float>(sin(glm::radians(yaw)) * cos(glm::radians(pitch)));
-
-            auto &rotation = registry->get<Rotation>(camera);
-            static_cast<glm::vec3&>(rotation) = glm::normalize(direction) / 90.f;
+        if (events::isPressed(SDLK_d)) {
+            move(position, right, speed);
         }
 
-        void OnProcessEvents(LLGL::Window &sender) override {
-            if (registry == nullptr) {
-                return;
-            }
-
-            using namespace std::chrono;
-            auto now = high_resolution_clock::now();
-            auto elapsed = static_cast<float>(duration_cast<milliseconds>(now - lastTime).count());
-            lastTime = now;
-
-            auto instance = registry->ctx<Instance *>();
-            auto &position = registry->get<Position>(camera);
-            auto &rotation = registry->get<Rotation>(camera);
-
-            glm::vec3 origin;
-            if(rotation.x == 0 && rotation.y == 0 && rotation.z == 0) {
-                 origin = position + glm::vec3(-1, 0, 0);
-            } else {
-                origin = position + (rotation / 90.f);
-            }
-            glm::vec3 direction = glm::normalize(position - origin);
-
-            glm::vec3 right = glm::normalize(glm::cross({0.0f, 1.0f, 0.0f}, direction));
-            glm::vec3 up = glm::cross(direction, right);
-            glm::vec3 front = glm::cross(up, right);
-
-            mapUniformBuffer<impl::GlobalShaderData>(instance->renderer.get(),
-                    instance->globalShaderData, [=](impl::GlobalShaderData *data) {
-                        data->view = glm::lookAt(position, origin, up);
-                        auto windowSize = instance->context->GetResolution();
-                        data->projection = glm::perspective(glm::radians(45.0f),
-                                static_cast<float>(windowSize.width) /
-                                        static_cast<float>(windowSize.height), 0.1f, 100.0f);
-                    });
-
-            if (isMoveRight) {
-                position += speed * right * (elapsed / 17.f);
-            }
-
-            if (isMoveLeft) {
-                position -= speed * right * (elapsed / 17.f);
-            }
-
-            if (isMoveFront) {
-                position += speed * front * (elapsed / 17.f);
-            }
-
-            if (isMoveBack) {
-                position -= speed * front * (elapsed / 17.f);
-            }
-
-            if (isMoveUp) {
-                position += speed * up * (elapsed / 17.f);
-            }
-
-            if (isMoveDown) {
-                position -= speed * up * (elapsed / 17.f);
-            }
+        if (events::isPressed(SDLK_a)) {
+            move(position, -right, speed);
         }
 
-        entt::registry *registry = nullptr;
-        entt::entity camera{entt::null};
-        std::chrono::high_resolution_clock::time_point lastTime;
-        bool isMoveFront = false;
-        bool isMoveBack = false;
-        bool isMoveRight = false;
-        bool isMoveLeft = false;
-        bool isMoveUp = false;
-        bool isMoveDown = false;
-        glm::vec2 lastMouse;
-        float yaw = -90.f;
-        float pitch = 0.f;
-        float speed = 0.05f;
-        float sensitivity = 0.1f;
-    };
+        if (events::isPressed(SDLK_w)) {
+            move(position, front, speed);
+        }
+
+        if (events::isPressed(SDLK_s)) {
+            move(position, -front, speed);
+        }
+
+        if (events::isPressed(SDLK_e)) {
+            move(position, up, speed);
+        }
+
+        if (events::isPressed(SDLK_q)) {
+            move(position, -up, speed);
+        }
+    }
+
+    void processMouse(Instance *instance, glm::vec3 &rotation) {
+        if (instance->camera.relative) {
+            float const speed = 0.5f;
+            auto offset = events::mouseOffset() * speed;
+            rotation.x += offset.x;
+            rotation.z -= offset.y;
+        }
+    }
+
+    void processEvents(entt::registry &r, entt::entity camera) {
+        auto instance = r.ctx<Instance *>();
+        auto &position = r.get<Position>(camera);
+        glm::vec3 *rotation = r.try_get<Rotation>(camera);
+        if (!rotation) {
+            rotation = &r.emplace<Rotation>(camera, glm::vec3(0, 0, 0));
+        }
+
+        glm::vec3 origin = calcOrigin(position, r.get<Rotation>(camera));
+
+        mapUniformBuffer<impl::GlobalShaderData>(instance->renderer.get(),
+                instance->globalShaderData, [=](impl::GlobalShaderData *data) {
+                    data->view = glm::lookAt(position, origin, glm::vec3(0, 1, 0));
+                    auto windowSize = instance->context->GetResolution();
+                    data->projection = glm::perspective(glm::radians(45.0f),
+                            static_cast<float>(windowSize.width) /
+                                    static_cast<float>(windowSize.height), 0.1f, 100.0f);
+                });
+
+        processKeyboard(instance, position, *rotation);
+        processMouse(instance, *rotation);
+    }
+
+    void updatePointLight(entt::registry &r, entt::entity e) {
+        auto instance = r.ctx<Instance *>();
+
+        auto position = r.try_get<Position>(e);
+        auto light = r.try_get<PointLight>(e);
+
+        if(!position || !light) {
+            return;
+        }
+
+        size_t id = instance->lightCount;
+        if (auto pId = r.try_get<impl::LightId>(e)) {
+            id = pId->id;
+        } else {
+            if (id >= maxLightCount) {
+                throw std::runtime_error("too many point lights");
+            }
+            r.emplace<impl::LightId>(e, id);
+        }
+
+        mapUniformBuffer<impl::GlobalShaderData>(instance->renderer.get(),
+                instance->globalShaderData, [=, &r](impl::GlobalShaderData *data) {
+                    data->pointLights[id].position = *position;
+                    data->pointLights[id].diffuse = *position;
+                    data->pointLights[id].constant = light->constant;
+                    data->pointLights[id].linear = light->linear;
+                    data->pointLights[id].quadratic = light->quadratic;
+                    if (auto color = r.try_get<DiffuseColor>(e)) {
+                        data->pointLights->diffuse = *color;
+                    } else {
+                        data->pointLights->diffuse = glm::vec3(1);
+                    }
+                });
+    }
 
     void init(entt::registry &r, Instance *instance) {
         r.set<Instance *>(instance);
-        auto& listener = r.set<std::shared_ptr<WindowListener>>(std::make_shared<WindowListener>());
-        instance->window->AddEventListener(listener);
 
-        r.on_construct<Mesh>().connect<&updateModel>();
-        r.on_construct<Drawable>().connect<&updateModel>();
+        r.on_construct<Mesh>().connect<&initModel>();
+        r.on_construct<Drawable>().connect<&initModel>();
         r.on_construct<Position>().connect<&updateTransform>();
         r.on_update<Position>().connect<&updateTransform>();
-    }
+        r.on_construct<Rotation>().connect<&updateTransform>();
+        r.on_update<Rotation>().connect<&updateTransform>();
+        r.on_construct<Scale>().connect<&updateTransform>();
+        r.on_update<Scale>().connect<&updateTransform>();
+        r.on_update<Texture>().connect<&updateTexture>();
 
+        r.on_construct<PointLight>().connect<&updatePointLight>();
+        r.on_construct<Position>().connect<&updatePointLight>();
+        r.on_construct<DiffuseColor>().connect<&updatePointLight>();
+    }
 
     std::pair<std::vector<Vertex>, std::vector<uint32_t>> loadMesh(
             tinyobj::attrib_t const &attrib, std::vector<tinyobj::shape_t> const &shapes) {
@@ -335,10 +382,16 @@ namespace rise {
         return Mesh{instance->resources.meshes.size() - 1};
     }
 
-    void setActiveCamera(entt::registry &r, entt::entity e, CameraMode mode) {
-        auto& listener = r.ctx<std::shared_ptr<WindowListener>>();
-        listener->registry = &r;
-        listener->camera = e;
+    Texture loadTexture(entt::registry &r, std::string const &path) {
+        auto instance = r.ctx<Instance *>();
+        instance->resources.textures.push_back(createTexture(instance, path));
+        return {instance->resources.textures.size() - 1};
+    }
+
+
+    void setActiveCamera(entt::registry &r, entt::entity e, CameraMode) {
+        auto instance = r.ctx<Instance *>();
+        instance->camera.camera = e;
     }
 
     void renderLoop(entt::registry &r) {
@@ -346,12 +399,16 @@ namespace rise {
         LLGL::CommandQueue *cmdQueue = instance->renderer->GetCommandQueue();
         LLGL::CommandBuffer *cmdBuffer = instance->renderer->CreateCommandBuffer();
 
-        while (instance->window->ProcessEvents()) {
+        while (events::pull()) {
             cmdBuffer->Begin();
             cmdBuffer->BeginRenderPass(*instance->context);
             cmdBuffer->Clear(LLGL::ClearFlags::ColorDepth);
             cmdBuffer->SetPipelineState(*instance->pipeline);
             cmdBuffer->SetViewport(instance->context->GetResolution());
+
+            if (instance->camera.camera != entt::null) {
+                processEvents(r, instance->camera.camera);
+            }
 
             r.view<Drawable, Mesh, impl::ModelRes>().each(
                     [=](entt::entity, Drawable, Mesh meshId, impl::ModelRes res) {
@@ -369,4 +426,5 @@ namespace rise {
             instance->context->Present();
         }
     }
+
 }

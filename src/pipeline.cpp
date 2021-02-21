@@ -1,5 +1,7 @@
 #include "pipeline.hpp"
+
 #define LLGL_ENABLE_UTILITY
+
 #include <LLGL/Utility.h>
 
 namespace rise {
@@ -16,20 +18,29 @@ namespace rise {
         layoutDesc.bindings = {LLGL::BindingDescriptor{
                 LLGL::ResourceType::Buffer,
                 LLGL::BindFlags::ConstantBuffer,
-                LLGL::StageFlags::VertexStage,
+                LLGL::StageFlags::VertexStage | LLGL::StageFlags::FragmentStage,
                 0,
-        }, {LLGL::BindingDescriptor{
+        }, LLGL::BindingDescriptor{
                 LLGL::ResourceType::Buffer,
                 LLGL::BindFlags::ConstantBuffer,
                 LLGL::StageFlags::VertexStage,
                 1,
-        }}
+        }, LLGL::BindingDescriptor{
+                LLGL::ResourceType::Sampler,
+                0,
+                LLGL::StageFlags::FragmentStage,
+                2
+        }, LLGL::BindingDescriptor{
+                LLGL::ResourceType::Texture,
+                LLGL::BindFlags::Sampled,
+                LLGL::StageFlags::FragmentStage,
+                3},
         };
 
         return renderer->CreatePipelineLayout(layoutDesc);
     }
 
-    LLGL::ShaderProgram* makeProgram(LLGL::RenderSystem *renderer, std::string const& root) {
+    LLGL::ShaderProgram *makeProgram(LLGL::RenderSystem *renderer, std::string const &root) {
         std::string vertPath = root + "/shader.vert.spv";
         std::string fragPath = root + "/shader.frag.spv";
 
@@ -50,18 +61,17 @@ namespace rise {
             }
         }
 
-
         return renderer->CreateShaderProgram(programDesc);
     }
 
-    LLGL::PipelineState* makePipeline(LLGL::RenderSystem* renderer, LLGL::PipelineLayout* layout,
-      LLGL::ShaderProgram* program) {
-              LLGL::GraphicsPipelineDescriptor pipelineDesc;
+    LLGL::PipelineState *makePipeline(LLGL::RenderSystem *renderer, LLGL::PipelineLayout *layout,
+            LLGL::ShaderProgram *program) {
+        LLGL::GraphicsPipelineDescriptor pipelineDesc;
         pipelineDesc.shaderProgram = program;
         pipelineDesc.pipelineLayout = layout;
         pipelineDesc.primitiveTopology = LLGL::PrimitiveTopology::TriangleList;
         pipelineDesc.rasterizer.multiSampleEnabled = true;
-        pipelineDesc.rasterizer.cullMode            = LLGL::CullMode::Front;
+        pipelineDesc.rasterizer.cullMode = LLGL::CullMode::Front;
         pipelineDesc.depth.compareOp = LLGL::CompareOp::LessEqual;
         pipelineDesc.depth.testEnabled = true;
         pipelineDesc.depth.writeEnabled = true;

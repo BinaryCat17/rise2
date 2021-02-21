@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 add_library(rise
         src/rendering.cpp
         src/resources.cpp
+        src/platform.cpp
         src/pipeline.cpp)
 target_include_directories(rise INTERFACE src)
 
