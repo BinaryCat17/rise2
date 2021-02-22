@@ -62,7 +62,7 @@ namespace rise {
         return renderer->CreatePipelineLayout(layoutDesc);
     }
 
-    LLGL::ShaderProgram *makeProgram(LLGL::RenderSystem *renderer, std::string const &root) {
+    LLGL::ShaderProgram *makeProgram(LLGL::RenderSystem *renderer, std::string const &root, LLGL::VertexFormat const& format) {
         std::string vertPath = root + "/shader.vert.spv";
         std::string fragPath = root + "/shader.frag.spv";
 
@@ -70,7 +70,7 @@ namespace rise {
         VSDesc = LLGL::ShaderDescFromFile(LLGL::ShaderType::Vertex, vertPath.data());
         FSDesc = LLGL::ShaderDescFromFile(LLGL::ShaderType::Fragment, fragPath.data());
 
-        VSDesc.vertex.inputAttribs = Vertex::format().attributes;
+        VSDesc.vertex.inputAttribs = format.attributes;
 
         LLGL::ShaderProgramDescriptor programDesc;
         programDesc.vertexShader = renderer->CreateShader(VSDesc);

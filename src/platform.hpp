@@ -1,7 +1,7 @@
 #pragma once
 
 #include <LLGL/LLGL.h>
-#include <SDL2/SDL.h>
+#include <SDL.h>
 #include <glm/glm.hpp>
 #include <chrono>
 

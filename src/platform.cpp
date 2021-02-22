@@ -1,6 +1,6 @@
 #include "platform.hpp"
 #include <LLGL/Platform/NativeHandle.h>
-#include <SDL2/SDL_syswm.h>
+#include <SDL_syswm.h>
 #include <backends/imgui_impl_sdl.h>
 
 namespace rise {

@@ -26,6 +26,20 @@ namespace rise {
         alignas(8) glm::vec2 translate = glm::vec2(0.f, 0.f);
     };
 
+    LLGL::VertexFormat imguiVertexFormat() {
+        LLGL::VertexFormat format;
+        format.AppendAttribute(LLGL::VertexAttribute{
+                "inPos", LLGL::Format::RG32Float,
+        });
+        format.AppendAttribute(LLGL::VertexAttribute{
+                "inUV", LLGL::Format::RG32Float,
+        });
+        format.AppendAttribute(LLGL::VertexAttribute{
+                "inColor", LLGL::Format::RGBA8UNorm,
+        });
+        return format;
+    }
+
     void initGui(entt::registry &r) {
         auto instance = r.ctx<Instance *>();
 
@@ -52,9 +66,9 @@ namespace rise {
                 LLGL::ImageFormat::RGBA, fontData, texWidth, texHeight);
         resources.sampler = makeSampler(instance->renderer.get());
         resources.layout = makeGuiLayout(instance->renderer.get());
-        resources.program = makeProgram(instance->renderer.get(), instance->root + "/shaders/gui");
-        resources.pipeline = makePipeline(instance->renderer.get(), instance->layout,
-                instance->program);
+        resources.program = makeProgram(instance->renderer.get(), instance->root + "/shaders/gui", imguiVertexFormat());
+        resources.pipeline = makePipeline(instance->renderer.get(), resources.layout,
+                resources.program);
 
         resources.parameters = createUniformBuffer(instance->renderer.get(), Parameters{});
 
@@ -64,20 +78,6 @@ namespace rise {
         resourceHeapDesc.resourceViews.emplace_back(resources.sampler);
         resourceHeapDesc.resourceViews.emplace_back(resources.fontTexture);
         resources.heap = instance->renderer->CreateResourceHeap(resourceHeapDesc);
-    }
-
-    LLGL::VertexFormat imguiVertexFormat() {
-        LLGL::VertexFormat format;
-        format.AppendAttribute(LLGL::VertexAttribute{
-                "inPos", LLGL::Format::RG32Float,
-        });
-        format.AppendAttribute(LLGL::VertexAttribute{
-                "inUV", LLGL::Format::RG32Float,
-        });
-        format.AppendAttribute(LLGL::VertexAttribute{
-                "inColor", LLGL::Format::RGBA8UNorm,
-        });
-        return format;
     }
 
     void updateResources(LLGL::RenderSystem *renderer, GuiResources *resources) {

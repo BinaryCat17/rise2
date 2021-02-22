@@ -81,7 +81,7 @@ namespace rise {
         instance.window = window;
 
         instance.layout = makeLayout(instance.renderer.get());
-        instance.program = makeProgram(instance.renderer.get(), root + "/shaders/diffuse");
+        instance.program = makeProgram(instance.renderer.get(), root + "/shaders/diffuse", Vertex::format());
         instance.pipeline = makePipeline(instance.renderer.get(), instance.layout,
                 instance.program);
 
