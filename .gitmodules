@@ -10,12 +10,12 @@
 [submodule "submodules/tinyobjloader"]
 	path = submodules/tinyobjloader
 	url = https://github.com/tinyobjloader/tinyobjloader.git
-[submodule "submodules/LLGL"]
-	path = submodules/LLGL
-	url = https://github.com/LukasBanana/LLGL.git
 [submodule "submodules/imgui"]
 	path = submodules/imgui
 	url = https://github.com/ocornut/imgui.git
 [submodule "submodules/SDL2"]
 	path = submodules/SDL2
 	url = https://github.com/SDL-mirror/SDL.git
+[submodule "submodules/LLGL"]
+	path = submodules/LLGL
+	url = https://github.com/LukasBanana/LLGL.git
