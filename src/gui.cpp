@@ -114,6 +114,9 @@ namespace rise {
             }
             resources->vertexCount = imDrawData->TotalVtxCount;
             resources->vertices = createVertexBuffer(renderer, imguiVertexFormat(), vertices);
+        } else {
+            renderer->WriteBuffer(*resources->vertices, 0, vertices.data(),
+                    vertices.size() * sizeof(ImDrawVert));
         }
 
         if (resources->indexCount != imDrawData->TotalIdxCount) {
@@ -122,7 +125,21 @@ namespace rise {
             }
             resources->indexCount = imDrawData->TotalIdxCount;
             resources->indices = createIndexBuffer(renderer, indices);
+        } else {
+            renderer->WriteBuffer(*resources->indices, 0, indices.data(),
+                    indices.size() * sizeof(ImDrawIdx));
         }
+    }
+
+    void recordImgui(entt::registry &r) {
+        ImGui::Begin("entity review");
+        ImGui::TextColored(ImVec4(1,1,0,1), "Drawable objects: ");
+        ImGui::BeginChild("Scrolling");
+        for(auto e : r.view<Drawable>()) {
+
+        }
+        ImGui::EndChild();
+        ImGui::End();
     }
 
     void renderGui(entt::registry &r, LLGL::CommandBuffer *cmdBuf) {
@@ -131,7 +148,7 @@ namespace rise {
 
         ImGui_ImplSDL2_NewFrame(instance->window);
         ImGui::NewFrame();
-        ImGui::ShowDemoWindow();
+        recordImgui(r);
         ImGui::Render();
 
         updateResources(instance->renderer.get(), &resources);
@@ -140,6 +157,10 @@ namespace rise {
         cmdBuf->SetResourceHeap(*resources.heap);
 
         ImDrawData *imDrawData = ImGui::GetDrawData();
+        float fb_width = (imDrawData->DisplaySize.x * imDrawData->FramebufferScale.x);
+        float fb_height = (imDrawData->DisplaySize.y * imDrawData->FramebufferScale.y);
+        ImVec2 clip_off = imDrawData->DisplayPos;
+        ImVec2 clip_scale = imDrawData->FramebufferScale;
         int32_t vertexOffset = 0;
         int32_t indexOffset = 0;
 
@@ -151,16 +172,27 @@ namespace rise {
                 const ImDrawList *cmd_list = imDrawData->CmdLists[i];
                 for (int32_t j = 0; j < cmd_list->CmdBuffer.Size; j++) {
                     const ImDrawCmd *pCmd = &cmd_list->CmdBuffer[j];
-                    LLGL::Scissor scissor;
-                    scissor.x = std::max((int32_t) (pCmd->ClipRect.x), 0);
-                    scissor.y = std::max((int32_t) (pCmd->ClipRect.y), 0);
-                    scissor.width = static_cast<int32_t>((pCmd->ClipRect.z - pCmd->ClipRect.x));
-                    scissor.height = static_cast<int32_t>((pCmd->ClipRect.w - pCmd->ClipRect.y));
-                    cmdBuf->SetScissor(scissor);
-                    cmdBuf->DrawIndexed(pCmd->ElemCount, indexOffset);
-                    indexOffset += static_cast<int32_t>(pCmd->ElemCount);
+                    ImVec4 clip_rect;
+                    clip_rect.x = (pCmd->ClipRect.x - clip_off.x) * clip_scale.x;
+                    clip_rect.y = (pCmd->ClipRect.y - clip_off.y) * clip_scale.y;
+                    clip_rect.z = (pCmd->ClipRect.z - clip_off.x) * clip_scale.x;
+                    clip_rect.w = (pCmd->ClipRect.w - clip_off.y) * clip_scale.y;
+
+                    if (clip_rect.x < fb_width && clip_rect.y < fb_height && clip_rect.z >= 0.0f &&
+                            clip_rect.w >= 0.0f) {
+                        LLGL::Scissor scissor;
+                        scissor.x = std::max((int32_t) (clip_rect.x), 0);
+                        scissor.y = std::max((int32_t) (clip_rect.y), 0);
+                        scissor.width = static_cast<int32_t>(clip_rect.z - clip_rect.x);
+                        scissor.height = static_cast<int32_t>(clip_rect.w - clip_rect.y);
+
+                        cmdBuf->SetScissor(scissor);
+                        cmdBuf->DrawIndexed(pCmd->ElemCount, indexOffset + pCmd->IdxOffset,
+                                vertexOffset + static_cast<int32_t>(pCmd->VtxOffset));
+                    }
                 }
                 vertexOffset += cmd_list->VtxBuffer.Size;
+                indexOffset += cmd_list->IdxBuffer.Size;
             }
         }
     }
