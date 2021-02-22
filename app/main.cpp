@@ -16,8 +16,8 @@ entt::entity addModel(entt::registry &r, Mesh mesh, Texture texture, glm::vec3 p
 
 int main() {
     entt::registry registry;
-    //Instance instance = makeInstance("/home/gaben/projects/rise", 1600, 1000);
-    Instance instance = makeInstance("C:/Users/smirn/source/repos/rise2", 800, 600);
+    Instance instance = makeInstance("/home/gaben/projects/rise", 1600, 1000);
+    //Instance instance = makeInstance("C:/Users/smirn/source/repos/rise2", 800, 600);
     init(registry, &instance);
 
     Mesh cube = loadMesh(registry, "cube.obj");
@@ -29,7 +29,7 @@ int main() {
     addModel(registry, cube, texture, glm::vec3(-2, 1, 0));
 
     auto camera = registry.create();
-    registry.emplace<Position>(camera, glm::vec3(2, 2, 0));
+    registry.emplace<Position>(camera, glm::vec3(3, 3, 0));
 
     auto light = registry.create();
     registry.emplace<Position>(light, glm::vec3(3, 3, 4));

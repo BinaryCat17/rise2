@@ -66,8 +66,9 @@ namespace rise {
                 LLGL::ImageFormat::RGBA, fontData, texWidth, texHeight);
         resources.sampler = makeSampler(instance->renderer.get());
         resources.layout = makeGuiLayout(instance->renderer.get());
-        resources.program = makeProgram(instance->renderer.get(), instance->root + "/shaders/gui", imguiVertexFormat());
-        resources.pipeline = makePipeline(instance->renderer.get(), resources.layout,
+        resources.program = makeProgram(instance->renderer.get(), instance->root + "/shaders/gui",
+                imguiVertexFormat());
+        resources.pipeline = makeGuiPipeline(instance->renderer.get(), resources.layout,
                 resources.program);
 
         resources.parameters = createUniformBuffer(instance->renderer.get(), Parameters{});
@@ -81,7 +82,15 @@ namespace rise {
     }
 
     void updateResources(LLGL::RenderSystem *renderer, GuiResources *resources) {
+        ImGuiIO &io = ImGui::GetIO();
+        Parameters parameters = {};
         ImDrawData *imDrawData = ImGui::GetDrawData();
+        parameters.scale = glm::vec2(2.0f / io.DisplaySize.x, 2.0f / io.DisplaySize.y);
+        parameters.translate.x = -1.0f - imDrawData->DisplayPos.x * parameters.scale.x;
+        parameters.translate.y = -1.0f - imDrawData->DisplayPos.y * parameters.scale.y;
+
+        updateUniformBuffer(renderer, resources->parameters, parameters);
+
 
         if ((imDrawData->TotalVtxCount == 0) || (imDrawData->TotalIdxCount == 0)) {
             return;
@@ -98,9 +107,6 @@ namespace rise {
             indices.insert(indices.end(), cmd_list->IdxBuffer.Data,
                     cmd_list->IdxBuffer.Data + cmd_list->IdxBuffer.Size);
         }
-
-        std::cout << "Total vertices: " << vertices.size() << std::endl;
-        std::cout << "Total indices: " << indices.size() << std::endl;
 
         if (resources->vertexCount != imDrawData->TotalVtxCount) {
             if (resources->vertices) {

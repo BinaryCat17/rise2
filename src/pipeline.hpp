@@ -40,6 +40,9 @@ namespace rise {
 
     LLGL::PipelineState *makePipeline(LLGL::RenderSystem *renderer, LLGL::PipelineLayout *layout,
             LLGL::ShaderProgram *program);
+
+    LLGL::PipelineState *makeGuiPipeline(LLGL::RenderSystem *renderer, LLGL::PipelineLayout *layout,
+            LLGL::ShaderProgram *program);
 }
 
 namespace std {

@@ -100,6 +100,21 @@ namespace rise {
 
         return renderer->CreatePipelineState(pipelineDesc);
     }
+
+    LLGL::PipelineState *makeGuiPipeline(LLGL::RenderSystem *renderer, LLGL::PipelineLayout *layout,
+            LLGL::ShaderProgram *program) {
+        LLGL::GraphicsPipelineDescriptor pipelineDesc;
+        pipelineDesc.shaderProgram = program;
+        pipelineDesc.pipelineLayout = layout;
+        pipelineDesc.primitiveTopology = LLGL::PrimitiveTopology::TriangleList;
+        pipelineDesc.rasterizer.multiSampleEnabled = true;
+        pipelineDesc.rasterizer.cullMode = LLGL::CullMode::Back;
+        pipelineDesc.depth.compareOp = LLGL::CompareOp::LessEqual;
+        pipelineDesc.depth.testEnabled = true;
+        pipelineDesc.depth.writeEnabled = true;
+
+        return renderer->CreatePipelineState(pipelineDesc);
+    }
 }
 
 

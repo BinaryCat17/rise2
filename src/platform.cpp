@@ -1,5 +1,8 @@
 #include "platform.hpp"
 #include <LLGL/Platform/NativeHandle.h>
+#ifdef __LINUX__
+#include <SDL/SDL_config.h>
+#endif
 #include <SDL_syswm.h>
 #include <backends/imgui_impl_sdl.h>
 

@@ -21,5 +21,6 @@ void main()
 {
     outUV = inUV;
     outColor = inColor;
-    gl_Position = vec4(inPos * parameters.scale + parameters.translate, 0.0, 1.0);
+    vec2 pos = vec2(inPos.x , inPos.y);
+    gl_Position = vec4(pos * parameters.scale + parameters.translate, 0.0, 1.0);
 }

@@ -389,10 +389,17 @@ namespace rise {
             cmdBuffer->Begin();
             cmdBuffer->BeginRenderPass(*instance->context);
             cmdBuffer->Clear(LLGL::ClearFlags::ColorDepth);
-            cmdBuffer->SetViewport(instance->context->GetResolution());
+            auto resolution = instance->context->GetResolution();
+            LLGL::Viewport viewport;
+            viewport.width = static_cast<float>(resolution.width);
+            viewport.height = -static_cast<float>(resolution.height);
+            viewport.x = 0;
+            viewport.y = static_cast<float>(resolution.height);
+            cmdBuffer->SetViewport(viewport);
 
             renderGui(r, cmdBuffer);
 
+            cmdBuffer->SetViewport(resolution);
             cmdBuffer->SetPipelineState(*instance->pipeline);
 
             if (instance->camera.camera != entt::null) {
