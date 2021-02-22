@@ -34,6 +34,8 @@ namespace rise {
 
     LLGL::PipelineLayout *makeLayout(LLGL::RenderSystem *renderer);
 
+    LLGL::PipelineLayout *makeGuiLayout(LLGL::RenderSystem *renderer);
+
     LLGL::ShaderProgram *makeProgram(LLGL::RenderSystem *renderer, std::string const &root);
 
     LLGL::PipelineState *makePipeline(LLGL::RenderSystem *renderer, LLGL::PipelineLayout *layout,

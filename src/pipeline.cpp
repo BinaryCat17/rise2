@@ -40,6 +40,28 @@ namespace rise {
         return renderer->CreatePipelineLayout(layoutDesc);
     }
 
+    LLGL::PipelineLayout *makeGuiLayout(LLGL::RenderSystem *renderer) {
+        LLGL::PipelineLayoutDescriptor layoutDesc;
+        layoutDesc.bindings = { LLGL::BindingDescriptor{
+                LLGL::ResourceType::Buffer,
+                LLGL::BindFlags::ConstantBuffer,
+                LLGL::StageFlags::VertexStage,
+                0,
+        }, LLGL::BindingDescriptor{
+                LLGL::ResourceType::Sampler,
+                0,
+                LLGL::StageFlags::FragmentStage,
+                1
+        }, LLGL::BindingDescriptor{
+                LLGL::ResourceType::Texture,
+                LLGL::BindFlags::Sampled,
+                LLGL::StageFlags::FragmentStage,
+                2},
+        };
+
+        return renderer->CreatePipelineLayout(layoutDesc);
+    }
+
     LLGL::ShaderProgram *makeProgram(LLGL::RenderSystem *renderer, std::string const &root) {
         std::string vertPath = root + "/shader.vert.spv";
         std::string fragPath = root + "/shader.frag.spv";

@@ -1,6 +1,7 @@
 #include "platform.hpp"
 #include <LLGL/Platform/NativeHandle.h>
 #include <SDL2/SDL_syswm.h>
+#include <backends/imgui_impl_sdl.h>
 
 namespace rise {
 
@@ -76,7 +77,7 @@ namespace rise {
             return elapsedTime;
         }
 
-        bool pullEvents() {
+        bool pullEvents(SDL_Window* window) {
             SDL_Event event;
 
             offset.x = 0;
@@ -87,6 +88,7 @@ namespace rise {
             }
 
             while (SDL_PollEvent(&event)) {
+                ImGui_ImplSDL2_ProcessEvent(&event);
                 switch (event.type) {
                     case SDL_KEYUP:
                         keys[event.key.keysym.sym].isUp = true;
@@ -126,6 +128,8 @@ namespace rise {
             auto now = std::chrono::high_resolution_clock::now();
             elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastTime);
             lastTime = now;
+
+            ImGui_ImplSDL2_NewFrame(window);
 
             return true;
         }
@@ -168,6 +172,7 @@ namespace rise {
         if (!window) {
             throw std::runtime_error("fail to create window");
         }
+        ImGui_ImplSDL2_InitForVulkan(window);
         return window;
     }
 
@@ -192,8 +197,8 @@ namespace rise {
             return eventListener().pullEventsTime();
         }
 
-        bool pull() {
-            return eventListener().pullEvents();
+        bool pull(SDL_Window* window) {
+            return eventListener().pullEvents(window);
         }
 
         void relativeMode(bool enabled) {

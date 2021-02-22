@@ -3,7 +3,8 @@
 #include <LLGL/LLGL.h>
 #include <glm/glm.hpp>
 #include <entt/entt.hpp>
-#include "platform.hpp"
+
+struct SDL_Window;
 
 namespace rise {
     const size_t maxLightCount = 32;

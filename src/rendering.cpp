@@ -1,7 +1,9 @@
 #include "rendering.hpp"
-#include <iostream>
 #include "pipeline.hpp"
+#include "platform.hpp"
 #include "resources.hpp"
+#include "gui.hpp"
+#include <iostream>
 
 #define STB_IMAGE_IMPLEMENTATION
 
@@ -9,6 +11,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <tiny_obj_loader.h>
 #include <chrono>
+#include <imgui.h>
 
 namespace rise {
     LLGL::RenderContext *
@@ -40,21 +43,12 @@ namespace rise {
         if (!imageBuffer)
             throw std::runtime_error("failed to load image from file: " + path);
 
-        LLGL::SrcImageDescriptor imageDesc;
-        imageDesc.format = (texComponents == 4 ? LLGL::ImageFormat::RGBA : LLGL::ImageFormat::RGB);
-        imageDesc.dataType = LLGL::DataType::UInt8;
-        imageDesc.data = imageBuffer;
-        imageDesc.dataSize = texWidth * texHeight * texComponents;
+        auto texture = makeTextureFromData(instance->renderer.get(),
+                (texComponents == 4 ? LLGL::ImageFormat::RGBA : LLGL::ImageFormat::RGB),
+                imageBuffer, texWidth, texHeight);
 
-        LLGL::TextureDescriptor texDesc;
-        texDesc.type = LLGL::TextureType::Texture2D;
-        texDesc.format = LLGL::Format::BGRA8UNorm;
-        texDesc.extent = {static_cast<std::uint32_t>(texWidth),
-                static_cast<std::uint32_t>(texHeight), 1u};
-        texDesc.miscFlags = LLGL::MiscFlags::GenerateMips;
-
-        auto texture = instance->renderer->CreateTexture(texDesc, &imageDesc);
         stbi_image_free(imageBuffer);
+
         return texture;
     }
 
@@ -77,6 +71,7 @@ namespace rise {
     }
 
     Instance makeInstance(std::string const &root, unsigned width, unsigned height) {
+        ImGui::CreateContext();
         Instance instance;
 
         instance.renderer = createRenderer();
@@ -86,7 +81,7 @@ namespace rise {
         instance.window = window;
 
         instance.layout = makeLayout(instance.renderer.get());
-        instance.program = makeProgram(instance.renderer.get(), root + "/shaders");
+        instance.program = makeProgram(instance.renderer.get(), root + "/shaders/diffuse");
         instance.pipeline = makePipeline(instance.renderer.get(), instance.layout,
                 instance.program);
 
@@ -94,8 +89,7 @@ namespace rise {
         instance.globalShaderData = createUniformBuffer(instance.renderer.get(), data);
 
         instance.root = root;
-        LLGL::SamplerDescriptor samplerDesc;
-        instance.sampler = instance.renderer->CreateSampler(samplerDesc);
+        instance.sampler = makeSampler(instance.renderer.get());
         instance.defaultTexture = createTexture(&instance, "default.jpg");
         instance.lightCount = 0;
 
@@ -259,7 +253,7 @@ namespace rise {
         auto position = r.try_get<Position>(e);
         auto light = r.try_get<PointLight>(e);
 
-        if(!position || !light) {
+        if (!position || !light) {
             return;
         }
 
@@ -304,6 +298,8 @@ namespace rise {
         r.on_construct<PointLight>().connect<&updatePointLight>();
         r.on_construct<Position>().connect<&updatePointLight>();
         r.on_construct<DiffuseColor>().connect<&updatePointLight>();
+
+        initGui(r);
     }
 
     std::pair<std::vector<Vertex>, std::vector<uint32_t>> loadMesh(
@@ -362,20 +358,10 @@ namespace rise {
 
         auto[vertices, indices] = loadMesh(reader.GetAttrib(), reader.GetShapes());
 
-        LLGL::VertexFormat vertexFormat = Vertex::format();
-        LLGL::BufferDescriptor VBufferDesc;
-        VBufferDesc.size = sizeof(Vertex) * vertices.size();
-        VBufferDesc.bindFlags = LLGL::BindFlags::VertexBuffer;
-        VBufferDesc.vertexAttribs = vertexFormat.attributes;
+        auto vertexBuffer = createVertexBuffer(instance->renderer.get(), Vertex::format(),
+                vertices);
 
-        auto vertexBuffer = instance->renderer->CreateBuffer(VBufferDesc, vertices.data());
-
-        LLGL::BufferDescriptor IBufferDesc;
-        IBufferDesc.size = sizeof(uint32_t) * indices.size();
-        IBufferDesc.bindFlags = LLGL::BindFlags::IndexBuffer;
-        IBufferDesc.format = LLGL::Format::R32UInt;
-
-        auto indexBuffer = instance->renderer->CreateBuffer(IBufferDesc, indices.data());
+        auto indexBuffer = createIndexBuffer(instance->renderer.get(), indices);
 
         impl::MeshRes res{vertexBuffer, indexBuffer, static_cast<uint32_t>(indices.size())};
         instance->resources.meshes.push_back(res);
@@ -399,12 +385,15 @@ namespace rise {
         LLGL::CommandQueue *cmdQueue = instance->renderer->GetCommandQueue();
         LLGL::CommandBuffer *cmdBuffer = instance->renderer->CreateCommandBuffer();
 
-        while (events::pull()) {
+        while (events::pull(instance->window)) {
             cmdBuffer->Begin();
             cmdBuffer->BeginRenderPass(*instance->context);
             cmdBuffer->Clear(LLGL::ClearFlags::ColorDepth);
-            cmdBuffer->SetPipelineState(*instance->pipeline);
             cmdBuffer->SetViewport(instance->context->GetResolution());
+
+            renderGui(r, cmdBuffer);
+
+            cmdBuffer->SetPipelineState(*instance->pipeline);
 
             if (instance->camera.camera != entt::null) {
                 processEvents(r, instance->camera.camera);

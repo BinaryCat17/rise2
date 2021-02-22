@@ -13,3 +13,6 @@
 [submodule "submodules/LLGL"]
 	path = submodules/LLGL
 	url = https://github.com/LukasBanana/LLGL.git
+[submodule "submodules/imgui"]
+	path = submodules/imgui
+	url = https://github.com/ocornut/imgui.git

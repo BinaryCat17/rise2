@@ -41,6 +41,6 @@ namespace rise {
 
         std::chrono::milliseconds pullTime();
 
-        bool pull();
+        bool pull(SDL_Window* window);
     }
 }
