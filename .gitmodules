@@ -16,3 +16,6 @@
 [submodule "submodules/imgui"]
 	path = submodules/imgui
 	url = https://github.com/ocornut/imgui.git
+[submodule "submodules/SDL2"]
+	path = submodules/SDL2
+	url = https://github.com/SDL-mirror/SDL.git
