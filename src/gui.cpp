@@ -131,14 +131,65 @@ namespace rise {
         }
     }
 
-    void recordImgui(entt::registry &r) {
-        ImGui::Begin("entity review");
-        ImGui::TextColored(ImVec4(1,1,0,1), "Drawable objects: ");
-        ImGui::BeginChild("Scrolling");
-        for(auto e : r.view<Drawable>()) {
-
+    template<typename T>
+    void menuEntityFloat3(entt::registry &r, entt::entity e, std::string const &name) {
+        if (auto position = r.try_get<T>(e)) {
+            T inputPos = *position;
+            if (ImGui::DragFloat3(name.c_str(), &inputPos.x)) {
+                r.replace<T>(e, inputPos);
+            }
         }
-        ImGui::EndChild();
+    }
+
+    template<typename T, typename FnT>
+    void writeChapter(entt::registry &r, std::string const &title, FnT &&f) {
+        if(ImGui::TreeNode(title.c_str())) {
+            for (auto e : r.view<T>()) {
+                if (auto name = r.try_get<Name>(e)) {
+                    if (ImGui::TreeNode(name->c_str())) {
+                        f(r, e);
+                        ImGui::TreePop();
+                    }
+                }
+            }
+            ImGui::TreePop();
+        }
+    }
+
+    void recordImgui(entt::registry &r) {
+        auto instance = r.ctx<Instance*>();
+        ImGui::SetNextWindowSize({500, 800});
+        ImGui::Begin("entity review");
+
+        if(ImGui::TreeNode("Camera")) {
+            menuEntityFloat3<Position>(r, instance->camera.camera, "position");
+            menuEntityFloat3<Rotation>(r, instance->camera.camera, "rotation");
+            ImGui::TreePop();
+        }
+
+        writeChapter<Drawable>(r, "Drawable objects: ", [](entt::registry &r, entt::entity e) {
+            menuEntityFloat3<Position>(r, e, "position");
+            menuEntityFloat3<Rotation>(r, e, "rotation");
+            menuEntityFloat3<Scale>(r, e, "scale");
+        });
+        writeChapter<PointLight>(r, "Light objects: ", [](entt::registry &r, entt::entity e) {
+            menuEntityFloat3<Position>(r, e, "position");
+
+            if (auto pColor = r.try_get<DiffuseColor>(e)) {
+                DiffuseColor color = *pColor;
+                if (ImGui::ColorEdit3("diffuse color", &color.x, ImGuiColorEditFlags_DisplayRGB)) {
+                    r.replace<DiffuseColor>(e, color);
+                }
+            }
+
+            if (auto pLight = r.try_get<PointLight>(e)) {
+                PointLight light = *pLight;
+                if (ImGui::DragFloat("distance", &light.distance) ||
+                        ImGui::DragFloat("intensity", &light.intensity)) {
+                    r.replace<PointLight>(e, light);
+                }
+            }
+        });
         ImGui::End();
     }
 

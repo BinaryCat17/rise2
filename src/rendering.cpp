@@ -56,11 +56,11 @@ namespace rise {
     public:
     protected:
         void OnError(LLGL::ErrorType type, Message &message) override {
-            std::cerr << "error: " << message.GetText() << std::endl;
+            //std::cerr << "error: " << message.GetText() << std::endl;
         }
 
         void OnWarning(LLGL::WarningType type, Message &message) override {
-            std::cerr << "warning: " << message.GetText() << std::endl;
+            //std::cerr << "warning: " << message.GetText() << std::endl;
         }
     };
 
@@ -81,7 +81,8 @@ namespace rise {
         instance.window = window;
 
         instance.layout = makeLayout(instance.renderer.get());
-        instance.program = makeProgram(instance.renderer.get(), root + "/shaders/diffuse", Vertex::format());
+        instance.program = makeProgram(instance.renderer.get(), root + "/shaders/diffuse",
+                Vertex::format());
         instance.pipeline = makePipeline(instance.renderer.get(), instance.layout,
                 instance.program);
 
@@ -103,7 +104,10 @@ namespace rise {
             auto &pos = r.get<Position>(e);
             mat = glm::translate(mat, pos);
             if (auto rotation = r.try_get<Rotation>(e)) {
-                mat = glm::rotate(mat, glm::radians(90.f), *rotation / 90.f);
+                if (*rotation != glm::vec3(0)) {
+                    float angle = std::max({rotation->x, rotation->y, rotation->z});
+                    mat = glm::rotate(mat, glm::radians(angle), glm::normalize(*rotation));
+                }
             }
             if (auto scale = r.try_get<Scale>(e)) {
                 mat = glm::scale(mat, *scale);
@@ -245,6 +249,9 @@ namespace rise {
 
         processKeyboard(instance, position, *rotation);
         processMouse(instance, *rotation);
+
+        r.patch<Position>(camera, [](auto...){});
+        r.patch<Rotation>(camera, [](auto...){});
     }
 
     void updatePointLight(entt::registry &r, entt::entity e) {
@@ -265,19 +272,18 @@ namespace rise {
                 throw std::runtime_error("too many point lights");
             }
             r.emplace<impl::LightId>(e, id);
+            ++instance->lightCount;
         }
 
         mapUniformBuffer<impl::GlobalShaderData>(instance->renderer.get(),
                 instance->globalShaderData, [=, &r](impl::GlobalShaderData *data) {
                     data->pointLights[id].position = *position;
-                    data->pointLights[id].diffuse = *position;
-                    data->pointLights[id].constant = light->constant;
-                    data->pointLights[id].linear = light->linear;
-                    data->pointLights[id].quadratic = light->quadratic;
+                    data->pointLights[id].intensity = light->intensity;
+                    data->pointLights[id].distance = light->distance;
                     if (auto color = r.try_get<DiffuseColor>(e)) {
-                        data->pointLights->diffuse = *color;
+                        data->pointLights[id].diffuse = *color;
                     } else {
-                        data->pointLights->diffuse = glm::vec3(1);
+                        data->pointLights[id].diffuse = glm::vec3(1);
                     }
                 });
     }
@@ -298,6 +304,10 @@ namespace rise {
         r.on_construct<PointLight>().connect<&updatePointLight>();
         r.on_construct<Position>().connect<&updatePointLight>();
         r.on_construct<DiffuseColor>().connect<&updatePointLight>();
+
+        r.on_update<PointLight>().connect<&updatePointLight>();
+        r.on_update<Position>().connect<&updatePointLight>();
+        r.on_update<DiffuseColor>().connect<&updatePointLight>();
 
         initGui(r);
     }
@@ -374,7 +384,6 @@ namespace rise {
         return {instance->resources.textures.size() - 1};
     }
 
-
     void setActiveCamera(entt::registry &r, entt::entity e, CameraMode) {
         auto instance = r.ctx<Instance *>();
         instance->camera.camera = e;
@@ -390,14 +399,6 @@ namespace rise {
             cmdBuffer->BeginRenderPass(*instance->context);
             cmdBuffer->Clear(LLGL::ClearFlags::ColorDepth);
             auto resolution = instance->context->GetResolution();
-            LLGL::Viewport viewport;
-            viewport.width = static_cast<float>(resolution.width);
-            viewport.height = -static_cast<float>(resolution.height);
-            viewport.x = 0;
-            viewport.y = static_cast<float>(resolution.height);
-            cmdBuffer->SetViewport(viewport);
-
-            renderGui(r, cmdBuffer);
 
             cmdBuffer->SetViewport(resolution);
             cmdBuffer->SetPipelineState(*instance->pipeline);
@@ -415,6 +416,15 @@ namespace rise {
                         cmdBuffer->SetIndexBuffer(*mesh.indices);
                         cmdBuffer->DrawIndexed(mesh.numIndices, 0);
                     });
+
+            LLGL::Viewport viewport;
+            viewport.width = static_cast<float>(resolution.width);
+            viewport.height = -static_cast<float>(resolution.height);
+            viewport.x = 0;
+            viewport.y = static_cast<float>(resolution.height);
+            cmdBuffer->SetViewport(viewport);
+
+            renderGui(r, cmdBuffer);
 
             cmdBuffer->EndRenderPass();
             cmdBuffer->End();
