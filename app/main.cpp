@@ -16,8 +16,8 @@ entt::entity addModel(entt::registry &r, Mesh mesh, Texture texture, glm::vec3 p
 
 int main() {
     entt::registry registry;
-    Instance instance = makeInstance("/home/gaben/projects/rise", 1600, 1000);
-    //Instance instance = makeInstance("C:/Users/smirn/source/repos/rise2", 800, 600);
+    //Instance instance = makeInstance("/home/gaben/projects/rise", 1600, 1000);
+    Instance instance = makeInstance("C:/Users/smirn/source/repos/rise2", 800, 600);
     init(registry, &instance);
 
     Mesh cube = loadMesh(registry, "cube.obj");
