@@ -23,6 +23,12 @@ namespace rise {
     }
 
     template<typename T>
+    T* mapUniformBuffer(LLGL::RenderSystem *renderer, LLGL::Buffer *buffer) {
+        void *pData = renderer->MapBuffer(*buffer, LLGL::CPUAccess::ReadWrite);
+        return reinterpret_cast<T *>(pData);
+    }
+
+    template<typename T>
     void updateUniformBuffer(LLGL::RenderSystem *renderer, LLGL::Buffer *buffer, T const &v) {
         void *pData = renderer->MapBuffer(*buffer, LLGL::CPUAccess::ReadWrite);
         auto uniformData = reinterpret_cast<T *>(pData);

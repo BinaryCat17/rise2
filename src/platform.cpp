@@ -169,7 +169,7 @@ namespace rise {
 
     SDL_Window *createGameWindow(std::string const &title, unsigned width, unsigned height) {
         eventListener();
-        auto window = SDL_CreateWindow(title.c_str(), 400, 0,
+        auto window = SDL_CreateWindow(title.c_str(), 0, 0,
                 static_cast<int>(width), static_cast<int>(height),
                 SDL_WINDOW_VULKAN);
         if (!window) {
