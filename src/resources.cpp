@@ -26,6 +26,13 @@ namespace rise {
 
     LLGL::Sampler *makeSampler(LLGL::RenderSystem *renderer) {
         LLGL::SamplerDescriptor samplerInfo = {};
+        samplerInfo.magFilter = LLGL::SamplerFilter::Linear;
+        samplerInfo.minFilter = LLGL::SamplerFilter::Linear;
+        samplerInfo.mipMapFilter = LLGL::SamplerFilter::Linear;
+        samplerInfo.addressModeU = LLGL::SamplerAddressMode::Clamp;
+        samplerInfo.addressModeV = LLGL::SamplerAddressMode::Clamp;
+        samplerInfo.addressModeW = LLGL::SamplerAddressMode::Clamp;
+        samplerInfo.borderColor = {1, 1, 1, 1};
         return renderer->CreateSampler(samplerInfo);
     }
 

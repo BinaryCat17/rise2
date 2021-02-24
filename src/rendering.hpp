@@ -33,9 +33,8 @@ namespace rise {
         struct PointLight {
             alignas(16) glm::vec3 position = {};
             alignas(16) glm::vec3 diffuse = {};
-            alignas(4) float constant = 0;
-            alignas(4) float linear = 0;
-            alignas(4) float quadratic = 0;
+            alignas(4) float distance = 0;
+            alignas(4) float intensity = 1.0f;
         };
 
         struct GlobalShaderData {
@@ -70,6 +69,8 @@ namespace rise {
 
     struct DiffuseColor : glm::vec3 {};
 
+    struct Name : std::string {};
+
     enum class Shading {
         Diffuse,
     };
@@ -83,9 +84,8 @@ namespace rise {
     };
 
     struct PointLight {
-        float constant = 1.0f;
-        float linear = 0.09f;
-        float quadratic = 0.032f;
+        float distance;
+        float intensity;
     };
 
     struct Instance {

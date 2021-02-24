@@ -15,9 +15,8 @@ layout(location = 2) out vec2 outTexCoord;
 struct PointLight {
 	vec3 position;
 	vec3 diffuse;
-	float constant;
-	float linear;
-	float quadratic;
+	float distance;
+	float intensity;
 };
 
 layout(binding = 0) uniform Global {
