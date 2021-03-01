@@ -22,3 +22,6 @@
 [submodule "submodules/ImGuizmo"]
 	path = submodules/ImGuizmo
 	url = https://github.com/CedricGuillemet/ImGuizmo.git
+[submodule "submodules/reactphysics3d"]
+	path = submodules/reactphysics3d
+	url = https://github.com/DanielChappuis/reactphysics3d.git

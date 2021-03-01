@@ -2,3 +2,7 @@
 cmake-build-debug
 .vs
 out
+shaders/scene/shader.vert.spv
+shaders/scene/shader.frag.spv
+shaders/gui/shader.vert.spv
+shaders/gui/shader.frag.spv

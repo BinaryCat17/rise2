@@ -1,40 +1,38 @@
 #include "pipeline.hpp"
+#include "resources.hpp"
 
 #define LLGL_ENABLE_UTILITY
 
 #include <LLGL/Utility.h>
 
 namespace rise {
-    LLGL::VertexFormat Vertex::format() {
-        LLGL::VertexFormat fmt;
-        fmt.AppendAttribute({"position", LLGL::Format::RGB32Float});
-        fmt.AppendAttribute({"normal", LLGL::Format::RGB32Float});
-        fmt.AppendAttribute({"texCoord", LLGL::Format::RG32Float});
-        return fmt;
-    }
-
-    LLGL::PipelineLayout *makeLayout(LLGL::RenderSystem *renderer) {
+    LLGL::PipelineLayout *makeSceneLayout(LLGL::RenderSystem *renderer) {
         LLGL::PipelineLayoutDescriptor layoutDesc;
-        layoutDesc.bindings = {LLGL::BindingDescriptor{
+        layoutDesc.bindings = {LLGL::BindingDescriptor{ // global
                 LLGL::ResourceType::Buffer,
                 LLGL::BindFlags::ConstantBuffer,
                 LLGL::StageFlags::VertexStage | LLGL::StageFlags::FragmentStage,
                 0,
-        }, LLGL::BindingDescriptor{
+        }, LLGL::BindingDescriptor{ // material
                 LLGL::ResourceType::Buffer,
                 LLGL::BindFlags::ConstantBuffer,
-                LLGL::StageFlags::VertexStage,
+                LLGL::StageFlags::VertexStage | LLGL::StageFlags::FragmentStage,
                 1,
+        }, LLGL::BindingDescriptor{ // draw
+                LLGL::ResourceType::Buffer,
+                LLGL::BindFlags::ConstantBuffer,
+                LLGL::StageFlags::VertexStage | LLGL::StageFlags::FragmentStage,
+                2,
         }, LLGL::BindingDescriptor{
                 LLGL::ResourceType::Sampler,
                 0,
                 LLGL::StageFlags::FragmentStage,
-                2
+                3
         }, LLGL::BindingDescriptor{
                 LLGL::ResourceType::Texture,
                 LLGL::BindFlags::Sampled,
                 LLGL::StageFlags::FragmentStage,
-                3},
+                4},
         };
 
         return renderer->CreatePipelineLayout(layoutDesc);
@@ -87,8 +85,8 @@ namespace rise {
         return renderer->CreateShaderProgram(programDesc);
     }
 
-    LLGL::PipelineState *makePipeline(LLGL::RenderSystem *renderer, LLGL::PipelineLayout *layout,
-            LLGL::ShaderProgram *program) {
+    LLGL::PipelineState *makeScenePipeline(LLGL::RenderSystem *renderer,
+            LLGL::PipelineLayout *layout, LLGL::ShaderProgram *program) {
         LLGL::GraphicsPipelineDescriptor pipelineDesc;
         pipelineDesc.shaderProgram = program;
         pipelineDesc.pipelineLayout = layout;
@@ -102,8 +100,8 @@ namespace rise {
         return renderer->CreatePipelineState(pipelineDesc);
     }
 
-    LLGL::PipelineState *makeGuiPipeline(LLGL::RenderSystem *renderer, LLGL::PipelineLayout *layout,
-            LLGL::ShaderProgram *program) {
+    LLGL::PipelineState *makeGuiPipeline(LLGL::RenderSystem *renderer,
+            LLGL::PipelineLayout *layout, LLGL::ShaderProgram *program) {
         LLGL::GraphicsPipelineDescriptor pipelineDesc;
         pipelineDesc.shaderProgram = program;
         pipelineDesc.pipelineLayout = layout;
@@ -124,6 +122,30 @@ namespace rise {
 
         return renderer->CreatePipelineState(pipelineDesc);
     }
+
+    PipelineData scenePipeline::make(LLGL::RenderSystem *renderer, std::string const &root) {
+        PipelineData data;
+        data.format.AppendAttribute({"position", LLGL::Format::RGB32Float});
+        data.format.AppendAttribute({"normal", LLGL::Format::RGB32Float});
+        data.format.AppendAttribute({"texCoord", LLGL::Format::RG32Float});
+
+        data.layout = makeSceneLayout(renderer);
+        data.program = makeProgram(renderer, root + "/shaders/scene", data.format);
+        data.pipeline = makeScenePipeline(renderer, data.layout, data.program);
+
+        return data;
+    }
+
+    PipelineData guiPipeline::make(LLGL::RenderSystem *renderer, std::string const &root) {
+        PipelineData data;
+        data.format.AppendAttribute(LLGL::VertexAttribute{"inPos", LLGL::Format::RG32Float});
+        data.format.AppendAttribute(LLGL::VertexAttribute{"inUV", LLGL::Format::RG32Float});
+        data.format.AppendAttribute(LLGL::VertexAttribute{"inColor", LLGL::Format::RGBA8UNorm});
+
+        data.layout = makeGuiLayout(renderer);
+        data.program = makeProgram(renderer, root + "/shaders/gui", data.format);
+        data.pipeline = makeGuiPipeline(renderer, data.layout, data.program);
+
+        return data;
+    }
 }
-
-

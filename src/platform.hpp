@@ -6,7 +6,8 @@
 #include <chrono>
 
 namespace rise {
-    SDL_Window* createGameWindow(std::string const& title, unsigned width, unsigned height);
+    SDL_Window* createGameWindow(std::string const& title, unsigned width, unsigned height,
+            unsigned x, unsigned y);
 
     class Surface : public LLGL::Surface {
     public:
@@ -37,7 +38,7 @@ namespace rise {
 
         void relativeMode(bool enabled);
 
-        glm::vec2 mouseOffset() ;
+        glm::vec2 mouseOffset();
 
         std::chrono::milliseconds pullTime();
 

@@ -25,9 +25,9 @@ layout(binding = 0) uniform Global {
     PointLight pointLights[32];
 } global;
 
-layout(binding = 1) uniform Model {
+layout(binding = 2) uniform Object {
 	mat4 transform;
-} model;
+} object;
 
 out gl_PerVertex
 {
@@ -36,8 +36,8 @@ out gl_PerVertex
 
 void main()
 {
-	gl_Position = global.projection * global.view * model.transform * vec4(position, 1);
-	outPosition = vec3(model.transform * vec4(position, 1.0));
+	gl_Position = global.projection * global.view * object.transform * vec4(position, 1);
+	outPosition = vec3(object.transform * vec4(position, 1.0));
 	outNormal = normal;
 	outTexCoord = texCoord;
 }

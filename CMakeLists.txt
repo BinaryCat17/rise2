@@ -3,12 +3,12 @@ project(rise)
 
 set(CMAKE_CXX_STANDARD 17)
 
-
 add_subdirectory(submodules/LLGL)
 add_subdirectory(submodules/entt)
 add_subdirectory(submodules/glm)
 add_subdirectory(submodules/tinyobjloader)
 add_subdirectory(submodules/SDL2)
+add_subdirectory(submodules/reactphysics3d)
 
 add_library(imgui
         submodules/imgui/imgui.cpp
@@ -30,15 +30,19 @@ target_include_directories(imgui PUBLIC submodules/ImGuizmo)
 add_library(rise
         src/rendering.cpp
         src/resources.cpp
+        src/renderGui.cpp
         src/gui.cpp
+        src/physic.cpp
+        src/input.cpp
         src/platform.cpp
+        src/math.cpp
         src/pipeline.cpp)
 target_include_directories(rise INTERFACE src)
 
 add_executable(riseapp app/main.cpp)
 add_executable(entt_test app/entt_test.cpp)
 
-target_link_libraries(rise PUBLIC imgui LLGL EnTT glm::glm tinyobjloader SDL2)
+target_link_libraries(rise PUBLIC imgui LLGL EnTT glm::glm tinyobjloader SDL2 reactphysics3d)
 target_link_libraries(riseapp PRIVATE rise)
 
-target_link_libraries(entt_test EnTT)
+target_link_libraries(entt_test PRIVATE rise)

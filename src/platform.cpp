@@ -167,15 +167,16 @@ namespace rise {
         return listener;
     }
 
-    SDL_Window *createGameWindow(std::string const &title, unsigned width, unsigned height) {
+    SDL_Window *createGameWindow(std::string const &title, unsigned width, unsigned height,
+            unsigned x, unsigned y) {
         eventListener();
-        auto window = SDL_CreateWindow(title.c_str(), 0, 0,
+        auto window = SDL_CreateWindow(title.c_str(),
+                static_cast<int>(x), static_cast<int>(y),
                 static_cast<int>(width), static_cast<int>(height),
                 SDL_WINDOW_VULKAN);
         if (!window) {
             throw std::runtime_error("fail to create window");
         }
-        ImGui_ImplSDL2_InitForVulkan(window);
         return window;
     }
 

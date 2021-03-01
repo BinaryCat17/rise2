@@ -1,4 +1,4 @@
-#include "gui.hpp"
+#pragma once
 
 namespace rise {
 

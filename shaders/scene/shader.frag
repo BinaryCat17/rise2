@@ -25,8 +25,12 @@ layout(binding = 0) uniform Global {
     PointLight pointLights[maxLightCount];
 } global;
 
-layout(binding = 2) uniform sampler modelSampler;
-layout(binding = 3) uniform texture2D modelTexture;
+layout(binding = 1) uniform Material {
+    vec3 diffuseColor;
+} material;
+
+layout(binding = 3) uniform sampler modelSampler;
+layout(binding = 4) uniform texture2D modelTexture;
 
 const vec3 lightPos = vec3(3, 3, 4);
 const vec3 lightColor = vec3(1, 1, 1);
@@ -58,6 +62,7 @@ void main()
     }
 
     resultColor *= diffuseTex;
+    resultColor *= material.diffuseColor;
 
     fragColor = vec4(resultColor, 1);
 }

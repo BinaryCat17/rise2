@@ -1,40 +1,35 @@
-#include <entt/entt.hpp>
 #include <iostream>
+#include "system.hpp"
 
-struct position {
-    float x;
-    float y;
+using namespace rise;
+
+struct MyVisitor : Visitor<MyVisitor> {
+    using Visitor::visit;
+
+    static void visit(entt::registry&, entt::entity, float v) {
+        std::cout << v << " ";
+    }
+
+    template<typename T>
+    static void visit(entt::registry&, entt::entity, NestedBegin<T>) {
+        std::cout << "{ ";
+    }
+
+    template<typename T>
+    static void visit(entt::registry&, entt::entity, NestedEnd<T>) {
+        std::cout << "}" << std::endl;
+    }
 };
-
-struct velocity {
-    float x;
-    float y;
-};
-
-std::ostream &operator<<(std::ostream &os, const velocity &velocity) {
-    os << "x: " << velocity.x << " y: " << velocity.y;
-    return os;
-}
-
-void print(entt::registry & r, entt::entity e) {
-    std::cout << r.get<velocity>(e) << std::endl;
-}
 
 int main() {
     entt::registry registry;
-    registry.on_construct<velocity>().connect<&print>();
-    registry.on_update<velocity>().connect<&print>();
-
-    auto entity = registry.create();
     auto entity1 = registry.create();
-    registry.emplace<position>(entity, 10.f, 2.f);
-    registry.emplace<velocity>(entity, 10.f, 2.f);
-    registry.emplace<velocity>(entity1, 5.f, 5.f);
+    auto entity2 = registry.create();
 
-    registry.view<velocity>().each([](auto entity, auto& vel) {
-       std::cout << vel << std::endl;
-    });
+    registry.emplace<Position>(entity1, glm::vec3(10.f, 2.f, 0.0f));
+    registry.emplace<Scale>(entity1, glm::vec3(70.f, 2.f, 0.0f));
+    registry.emplace<Position>(entity2, glm::vec3(5.f, 5.f, 0.0f));
 
-    registry.remove<position>(entity);
-    registry.destroy(entity);
+    visit<MyVisitor>(registry, entity1);
+    visit<MyVisitor>(registry, entity2);
 }
