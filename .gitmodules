@@ -25,3 +25,6 @@
 [submodule "submodules/reactphysics3d"]
 	path = submodules/reactphysics3d
 	url = https://github.com/DanielChappuis/reactphysics3d.git
+[submodule "submodules/flecs"]
+	path = submodules/flecs
+	url = https://github.com/SanderMertens/flecs.git

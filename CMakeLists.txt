@@ -9,6 +9,7 @@ add_subdirectory(submodules/glm)
 add_subdirectory(submodules/tinyobjloader)
 add_subdirectory(submodules/SDL2)
 add_subdirectory(submodules/reactphysics3d)
+add_subdirectory(submodules/flecs)
 
 add_library(imgui
         submodules/imgui/imgui.cpp
@@ -41,8 +42,9 @@ target_include_directories(rise INTERFACE src)
 
 add_executable(riseapp app/main.cpp)
 add_executable(entt_test app/entt_test.cpp)
+add_executable(flecs_test app/flecs_test.cpp)
 
 target_link_libraries(rise PUBLIC imgui LLGL EnTT glm::glm tinyobjloader SDL2 reactphysics3d)
 target_link_libraries(riseapp PRIVATE rise)
 
-target_link_libraries(entt_test PRIVATE rise)
+target_link_libraries(flecs_test PRIVATE flecs_static)
