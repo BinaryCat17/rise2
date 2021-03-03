@@ -36,7 +36,7 @@ add_library(rise
         src/physic.cpp
         src/input.cpp
         src/platform.cpp
-        src/math.cpp
+        src/utils.cpp
         src/pipeline.cpp)
 target_include_directories(rise INTERFACE src)
 

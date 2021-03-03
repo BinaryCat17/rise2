@@ -4,41 +4,59 @@
 #include <flecs.h>
 
 namespace rise {
-    struct RootDirectory {
-        std::string root;
-    };
+	struct RootDirectory {
+		std::string val;
+	};
 
-    struct Title {
-        std::string title;
-    };
+	struct Title {
+		std::string val;
+	};
 
-    struct WindowSize {
-        glm::vec2 size;
-    };
+	struct WindowSize {
+		glm::vec2 val;
+	};
 
-    struct WindowPosition {
-        glm::vec2 position;
-    };
+	struct WindowPosition {
+		glm::vec2 val;
+	};
 
-    struct CameraPosition {
-        glm::vec3 position;
-    };
+	struct CameraPosition {
+		glm::vec3 val;
+	};
 
-    struct CameraRotation {
-        glm::vec3 rotation;
-    };
+	struct CameraRotation {
+		glm::vec3 val;
+	};
 
-    struct RenderModule {
-        explicit RenderModule(flecs::world &ecs) {
-            ecs.module<RenderModule>();
-            ecs.set<CameraPosition>({glm::vec3{}});
-            ecs.set<CameraRotation>({glm::vec3{}});
-        }
+	struct WorldPosition {
+		glm::vec3 val;
+	};
 
-        static void loadTexture(flecs::world &ecs, std::string const &path);
+	struct Position {
+		glm::vec3 val;
+	};
 
-        static void loadMesh(flecs::world &ecs, std::string const &path);
+	struct Color {
+		glm::vec3 val;
+	};
 
-        static void addImgui(std::function<void(flecs::world &ecs)> callback);
-    };
+	struct Distance {
+		float val;
+	};
+
+	struct Intensity {
+		float val;
+	};
+
+	struct PointLight {};
+
+	struct RenderModule {
+		explicit RenderModule(flecs::world& ecs);
+
+		static void loadTexture(flecs::world& ecs, std::string const& path);
+
+		static void loadMesh(flecs::world& ecs, std::string const& path);
+
+		static void addImgui(std::function<void(flecs::world& ecs)> callback);
+	};
 }
