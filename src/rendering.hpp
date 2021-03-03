@@ -1,31 +1,44 @@
 #pragma once
 
 #include <glm/glm.hpp>
-#include <entt/entt.hpp>
+#include <flecs.h>
 
 namespace rise {
-    struct Parameters {
-        std::string root = ".";
-        std::string title = "minecraft 2";
-        glm::vec2 windowSize = {1600, 1200};
-        glm::vec2 windowPos = {400, 0};
+    struct RootDirectory {
+        std::string root;
     };
 
-    struct RenderSystem {
-        static void init(entt::registry &r);
+    struct Title {
+        std::string title;
+    };
 
-        static bool update(entt::registry &r);
+    struct WindowSize {
+        glm::vec2 size;
+    };
 
-        static void destroy(entt::registry &r);
+    struct WindowPosition {
+        glm::vec2 position;
+    };
 
-        static void setActiveCamera(entt::registry &r, entt::entity camera);
+    struct CameraPosition {
+        glm::vec3 position;
+    };
 
-        static entt::entity getActiveCamera(entt::registry &r);
+    struct CameraRotation {
+        glm::vec3 rotation;
+    };
 
-        static void loadTexture(entt::registry &r, entt::entity e, std::string const &path);
+    struct RenderModule {
+        explicit RenderModule(flecs::world &ecs) {
+            ecs.module<RenderModule>();
+            ecs.set<CameraPosition>({glm::vec3{}});
+            ecs.set<CameraRotation>({glm::vec3{}});
+        }
 
-        static void loadMesh(entt::registry &r, entt::entity e, std::string const &path);
+        static void loadTexture(flecs::world &ecs, std::string const &path);
 
-        static entt::delegate<void(entt::registry &r)> &imguiCallback(entt::registry &r);
+        static void loadMesh(flecs::world &ecs, std::string const &path);
+
+        static void addImgui(std::function<void(flecs::world &ecs)> callback);
     };
 }

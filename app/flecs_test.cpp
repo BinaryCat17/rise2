@@ -1,6 +1,7 @@
 #include <flecs.h>
 #include <iostream>
 
+
 struct Position {
     float x;
     float y;
@@ -20,13 +21,13 @@ void Move(flecs::entity e, Position const p, Velocity const &v) {
     e.set<Position>({p.x + v.x, p.y + v.y});
 }
 
-void OnWorldPosUpdate(flecs::entity e, WorldPosition const &p) {
-    std::cout << "New " << e.name() << " position is: " << p.x << " " << p.y << std::endl;
+void OnWorldPosUpdate(flecs::entity e, WorldPosition const &wp) {
+    std::cout << "New " << e.name() << " position is: " << wp.x << " " << wp.y << std::endl;
     for (auto child : e.children()) {
-        for (size_t i = 0; i != child.count(); ++i) {
-            auto ch = child.entity(i);
-            auto localPosition = ch.get<Position>();
-            ch.set<WorldPosition>({localPosition->x + p.x, localPosition->y + p.y});
+        auto p = child.table_column<Position>();
+        for(auto row : child) {
+            auto ch = child.entity(row);
+            ch.set<WorldPosition>({p[row].x + wp.x, p[row].y + wp.y});
         }
     }
 }
@@ -50,8 +51,7 @@ int main() {
 
     auto Root = ecs.entity("Root")
             .add<WorldPosition>()
-            .set<Position>({0, 0})
-            .set<Velocity>({1, 2});
+            .set<Position>({0, 0});
 
     ecs.entity("Root2")
             .add<WorldPosition>()
@@ -70,7 +70,8 @@ int main() {
     auto Child2 = ecs.entity("Child2")
             .add_childof(Root)
             .add<WorldPosition>()
-            .set<Position>({200, 200});
+            .set<Position>({200, 200})
+            .set<Velocity>({1, 2});
 
     ecs.entity("GChild2")
             .add_childof(Child2)
@@ -78,6 +79,10 @@ int main() {
             .set<Position>({2000, 2000});
 
     ecs.set_target_fps(1);
+
+    auto s = ecs.snapshot();
+    s.take();
+
     while (ecs.progress()) {
         std::cout << "----" << std::endl;
     }

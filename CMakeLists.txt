@@ -44,7 +44,7 @@ add_executable(riseapp app/main.cpp)
 add_executable(entt_test app/entt_test.cpp)
 add_executable(flecs_test app/flecs_test.cpp)
 
-target_link_libraries(rise PUBLIC imgui LLGL EnTT glm::glm tinyobjloader SDL2 reactphysics3d)
+target_link_libraries(rise PUBLIC imgui LLGL flecs_static glm::glm tinyobjloader SDL2 reactphysics3d)
 target_link_libraries(riseapp PRIVATE rise)
 
 target_link_libraries(flecs_test PRIVATE flecs_static)
