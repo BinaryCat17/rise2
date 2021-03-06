@@ -20,14 +20,21 @@ struct PointLight {
 };
 
 layout(binding = 0) uniform Global {
-	mat4 view;
-	mat4 projection;
     PointLight pointLights[32];
 } global;
 
-layout(binding = 2) uniform Object {
+layout(binding = 1) uniform Camera {
+	mat4 view;
+	mat4 projection;
+} camera;
+
+layout(binding = 2) uniform Material {
+	vec4 diffuseColor;
+} material;
+
+layout(binding = 3) uniform Model {
 	mat4 transform;
-} object;
+} model;
 
 out gl_PerVertex
 {
@@ -36,8 +43,8 @@ out gl_PerVertex
 
 void main()
 {
-	gl_Position = global.projection * global.view * object.transform * vec4(position, 1);
-	outPosition = vec3(object.transform * vec4(position, 1.0));
+	gl_Position = camera.projection * camera.view * model.transform * vec4(position, 1);
+	outPosition = vec3(model.transform * vec4(position, 1.0));
 	outNormal = normal;
 	outTexCoord = texCoord;
 }

@@ -40,18 +40,22 @@ namespace rise {
         static const size_t maxLightCount = 32;
 
         struct Global {
+            alignas(16) PointLight pointLights[maxLightCount] = {};
+        };
+
+        struct PerCamera {
             alignas(16) glm::mat4 view = {};
             alignas(16) glm::mat4 projection = {};
-            alignas(16) PointLight pointLights[maxLightCount] = {};
+        };
+
+        struct PerMaterial {
+            alignas(16) glm::vec4 diffuseColor = {};
         };
 
         struct PerObject {
             alignas(16) glm::mat4 transform = {};
         };
 
-        struct PerMaterial {
-            alignas(16) glm::vec3 diffuseColor = {};
-        };
 
         PipelineData make(LLGL::RenderSystem* renderer, std::string const& root);
     };

@@ -28,3 +28,6 @@
 [submodule "submodules/flecs"]
 	path = submodules/flecs
 	url = https://github.com/SanderMertens/flecs.git
+[submodule "submodules/flecs-meta"]
+	path = submodules/flecs-meta
+	url = https://github.com/flecs-hub/flecs-meta.git

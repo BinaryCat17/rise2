@@ -1,89 +1,187 @@
 #include <flecs.h>
+#include <flecs_meta.h>
 #include <iostream>
+//
+//ECS_STRUCT(Position, {
+//    float x;
+//    float y;
+//});
+//
+//ECS_STRUCT(WorldPosition, {
+//    float x;
+//    float y;
+//});
+//
+//ECS_STRUCT(Velocity, {
+//    float x;
+//    float y;
+//});
+//
+//void Move(flecs::iter it, WorldPosition *p, Velocity const *v) {
+//    std::cout << "Move called" << std::endl;
+//    for (auto i : it) {
+//        p[i] = {p[i].x + v[i].x, p[i].y + v[i].y};
+//    }
+//}
+//
+//struct OpHeader {};
+//
+//struct OpPush {};
+//
+//struct OpPop {};
+//
+//template<typename F>
+//void visitPrimitive(ecs_primitive_kind_t type, void *data, F &&f) {
+//
+//    auto bytes = static_cast<uint8_t *>(data);
+//    switch (type) {
+//        case EcsBool:
+//            f(reinterpret_cast<bool *>(bytes));
+//            break;
+//        case EcsChar:
+//            f(reinterpret_cast<char *>(bytes));
+//            break;
+//        case EcsByte:
+//            f(reinterpret_cast<flecs::byte *>(bytes));
+//            break;
+//        case EcsU8:
+//            f(reinterpret_cast<uint8_t *>(bytes));
+//            break;
+//        case EcsU16:
+//            f(reinterpret_cast<uint16_t *>(bytes));
+//            break;
+//        case EcsU32:
+//            f(reinterpret_cast<uint32_t *>(bytes));
+//            break;
+//        case EcsU64:
+//            f(reinterpret_cast<uint64_t *>(bytes));
+//            break;
+//        case EcsI8:
+//            f(reinterpret_cast<int8_t *>(bytes));
+//            break;
+//        case EcsI16:
+//            f(reinterpret_cast<int16_t *>(bytes));
+//            break;
+//        case EcsI32:
+//            f(reinterpret_cast<int32_t *>(bytes));
+//            break;
+//        case EcsI64:
+//            f(reinterpret_cast<int64_t *>(bytes));
+//            break;
+//        case EcsF32:
+//            f(reinterpret_cast<float *>(bytes));
+//            break;
+//        case EcsF64:
+//            f(reinterpret_cast<double *>(bytes));
+//            break;
+//        case EcsUPtr: // what is it?
+//            assert(0);
+//            break;
+//        case EcsIPtr: // what is it?
+//            assert(0);
+//            break;
+//        case EcsString:
+//            f(reinterpret_cast<flecs::string>(bytes));
+//            break;
+//        case EcsEntity:
+//            f(reinterpret_cast<flecs::entity_t *>(bytes));
+//            break;
+//    }
+//}
+//
+//template<typename F>
+//void visitStruct(EcsMetaTypeSerializer serializer, void *data, F &&f) {
+//    auto bytes = static_cast<uint8_t *>(data);
+//    auto *ops = (ecs_type_op_t *) ecs_vector_first(serializer.ops, ecs_type_op_t);
+//    size_t count = ecs_vector_count(serializer.ops);
+//
+//    static OpHeader pop;
+//    static OpHeader push;
+//    static OpHeader header;
+//
+//    for (size_t i = 0; i != count; ++i) {
+//        ecs_type_op_t *op = &ops[i];
+//
+//        switch (op->kind) {
+//            case EcsOpHeader:
+//                //f(&header);
+//                break;
+//            case EcsOpPush:
+//                //f(&push);
+//                break;
+//            case EcsOpPop:
+//                //f(&pop);
+//                break;
+//            case EcsOpPrimitive:
+//                visitPrimitive(op->is.primitive, bytes + op->offset, f);
+//                break;
+//            default:
+//                assert(0 && "not implemented");
+//
+//        }
+//    }
+//}
+//
+//int main() {
+//    flecs::world ecs;
+//    flecs::import<flecs::components::meta>(ecs);
+//
+//    flecs::meta<WorldPosition>(ecs);
+//    flecs::meta<Position>(ecs);
+//    flecs::meta<Velocity>(ecs);
+//
+//    auto v = ecs.entity().set<WorldPosition>({4, -5});
+//    ecs.entity().add_instanceof(v).set<Velocity>({-4, 3});
+//    ecs.entity().add_instanceof(v).set<Velocity>({-2, 1});
+//    v.set<Position>({10, 3});
+//
+//    WorldPosition wp{1, 3};
+//    std::cout << flecs::pretty_print(ecs, wp) << std::endl;
+//
+//    for (auto type : v.type().vector()) {
+//        auto e = ecs.entity(type);
+//        auto meta = e.get<EcsMetaType>();
+//        auto serializer = e.get<EcsMetaTypeSerializer>();
+//
+//        std::cout << e.name() << meta->descriptor;
+//        switch (meta->kind) {
+//            case EcsStructType:
+//                visitStruct(*serializer, v.get_mut(type),
+//                        [](auto *v) {
+//                            std::cout << *v << std::endl;
+//                        });
+//                break;
+//            default:
+//                assert(0 && "not implemented");
+//        }
+//    }
+//}
 
+ECS_STRUCT(Point, {
+    int32_t x;
+    int32_t y;
+});
 
-struct Position {
-    float x;
-    float y;
-};
+ECS_STRUCT(Line, {
+    Point start;
+    Point stop;
+});
 
-struct WorldPosition {
-    float x;
-    float y;
-};
+int main(int argc, char *argv[]) {
+    flecs::world world(argc, argv);
 
-struct Velocity {
-    float x;
-    float y;
-};
+    /* Import meta module */
+    flecs::import<flecs::components::meta>(world);
 
-void Move(flecs::entity e, Position const p, Velocity const &v) {
-    e.set<Position>({p.x + v.x, p.y + v.y});
-}
+    /* Insert the meta definitions for Position. This will also register the
+     * Position type as a component */
+    flecs::meta<Point>(world);
+    flecs::meta<Line>(world);
 
-void OnWorldPosUpdate(flecs::entity e, WorldPosition const &wp) {
-    std::cout << "New " << e.name() << " position is: " << wp.x << " " << wp.y << std::endl;
-    for (auto child : e.children()) {
-        auto p = child.table_column<Position>();
-        for(auto row : child) {
-            auto ch = child.entity(row);
-            ch.set<WorldPosition>({p[row].x + wp.x, p[row].y + wp.y});
-        }
-    }
-}
+    /* Create an instance of the Position type */
+    Line l = {{10, 20},
+              {30, 40}};
 
-void OnLocalPosUpdate(flecs::entity e, Position const &p) {
-    if(auto wpe = e.get_parent<WorldPosition>()) {
-        auto wp = wpe.get<WorldPosition>();
-        e.set<WorldPosition>({p.x + wp->x, p.y + wp->y});
-    } else {
-        e.set<WorldPosition>({p.x, p.y});
-    }
-}
-
-int main() {
-    flecs::world ecs;
-    ecs.component<WorldPosition>();
-
-    ecs.system<Position, Velocity>().each(Move);
-    ecs.system<WorldPosition const>().kind(flecs::OnSet).each(OnWorldPosUpdate);
-    ecs.system<Position const>().kind(flecs::OnSet).each(OnLocalPosUpdate);
-
-    auto Root = ecs.entity("Root")
-            .add<WorldPosition>()
-            .set<Position>({0, 0});
-
-    ecs.entity("Root2")
-            .add<WorldPosition>()
-            .set<Position>({0, 0});
-
-    auto Child1 = ecs.entity("Child1")
-            .add_childof(Root)
-            .add<WorldPosition>()
-            .set<Position>({100, 100});
-
-    ecs.entity("GChild1")
-            .add_childof(Child1)
-            .add<WorldPosition>()
-            .set<Position>({1000, 1000});
-
-    auto Child2 = ecs.entity("Child2")
-            .add_childof(Root)
-            .add<WorldPosition>()
-            .set<Position>({200, 200})
-            .set<Velocity>({1, 2});
-
-    ecs.entity("GChild2")
-            .add_childof(Child2)
-            .add<WorldPosition>()
-            .set<Position>({2000, 2000});
-
-    ecs.set_target_fps(1);
-
-    auto s = ecs.snapshot();
-    s.take();
-
-    while (ecs.progress()) {
-        std::cout << "----" << std::endl;
-    }
+    /* Pretty print the value */
+    std::cout << flecs::pretty_print(world, l) << std::endl;
 }

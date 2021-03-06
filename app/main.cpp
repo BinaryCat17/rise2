@@ -1,39 +1,23 @@
-#include <rendering.hpp>
-#include <input.hpp>
-#include <system.hpp>
+#include <rise/rendering/module.hpp>
 
 using namespace rise;
 
-struct GameSystem {
-    static void init(entt::registry &r) {
-        auto cube = r.create();
-        RenderSystem::loadMesh(r, cube, "cube.obj");
-
-        auto texture = r.create();
-        RenderSystem::loadTexture(r, texture, "default.jpg");
-
-        auto model = r.create();
-        r.emplace<SubEntities>(model, SubEntities{ { cube, texture } });
-        r.emplace<DiffuseColor>(model, glm::vec3(0.6, 0.6, 0.f));
-        r.emplace<Drawable>(model);
-
-        auto camera = r.create();
-        r.emplace<Position>(camera, glm::vec3(0, 1, 0));
-        r.emplace<PointLight>(camera);
-
-        RenderSystem::setActiveCamera(r, camera);
-    }
-
-    static bool update(entt::registry &r) {
-        return true;
-    }
-
-    static void destroy(entt::registry &r) {}
-};
-
 int main() {
-    rise::Parameters params = {};
-    params.root = "/home/gaben/projects/rise";
+    flecs::world ecs;
+    RenderModule::setWorkDirectory(ecs, "/home/gaben/projects/rise");
+    ecs.import<RenderModule>();
 
-    rise::start<InputSystem, RenderSystem, GameSystem>(params);
+    auto cube = ecs.entity("Cube").set<WorldPosition>({glm::vec3(0, 0, 0)});
+
+    auto camera = ecs.entity("Camera")
+            .set<WorldPosition>({glm::vec3(0, 1, 0)})
+            .set<DiffuseColor>({glm::vec3(1, 1, 1)})
+            .set<Intensity>({1.f})
+            .set<Viewport>({{0, 0}, {800, 600}});
+
+    RenderModule::renderTo(ecs, cube, camera);
+
+    while (ecs.progress()) {
+
+    }
 }

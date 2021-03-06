@@ -13,26 +13,31 @@ namespace rise {
                 LLGL::BindFlags::ConstantBuffer,
                 LLGL::StageFlags::VertexStage | LLGL::StageFlags::FragmentStage,
                 0,
-        }, LLGL::BindingDescriptor{ // material
+        }, LLGL::BindingDescriptor{ // camera
                 LLGL::ResourceType::Buffer,
                 LLGL::BindFlags::ConstantBuffer,
                 LLGL::StageFlags::VertexStage | LLGL::StageFlags::FragmentStage,
                 1,
-        }, LLGL::BindingDescriptor{ // draw
+        }, LLGL::BindingDescriptor{ // material
                 LLGL::ResourceType::Buffer,
                 LLGL::BindFlags::ConstantBuffer,
                 LLGL::StageFlags::VertexStage | LLGL::StageFlags::FragmentStage,
                 2,
+        }, LLGL::BindingDescriptor{ // draw
+                LLGL::ResourceType::Buffer,
+                LLGL::BindFlags::ConstantBuffer,
+                LLGL::StageFlags::VertexStage | LLGL::StageFlags::FragmentStage,
+                3,
         }, LLGL::BindingDescriptor{
                 LLGL::ResourceType::Sampler,
                 0,
                 LLGL::StageFlags::FragmentStage,
-                3
+                4
         }, LLGL::BindingDescriptor{
                 LLGL::ResourceType::Texture,
                 LLGL::BindFlags::Sampled,
                 LLGL::StageFlags::FragmentStage,
-                4},
+                5},
         };
 
         return renderer->CreatePipelineLayout(layoutDesc);

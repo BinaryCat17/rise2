@@ -9,7 +9,7 @@
 #include <chrono>
 #include "platform.hpp"
 #include "renderGui.hpp"
-#include "utils.hpp"
+#include "ecs.hpp"
 
 namespace rise {
 	struct ModelRes {
