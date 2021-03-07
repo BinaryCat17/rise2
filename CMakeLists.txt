@@ -23,9 +23,27 @@ add_library(imgui
         submodules/ImGuizmo/ImSequencer.cpp
         submodules/imgui/backends/imgui_impl_sdl.cpp)
 
-add_library(flecs_meta submodules/flecs-meta/flecs_meta.c)
-target_link_libraries(flecs_meta PRIVATE flecs_static)
-target_include_directories(flecs_meta PUBLIC submodules/flecs-meta)
+add_library(flecs_deps
+    submodules/flecs-meta/flecs_meta.c
+    submodules/flecs-components-http/flecs_components_http.c
+    submodules/flecs-json/flecs_json.c
+    submodules/flecs-monitor/flecs_monitor.c
+    submodules/flecs-rest/flecs_rest.c
+    submodules/flecs-player/flecs_player.c
+    submodules/flecs-dash/flecs_dash.c
+    submodules/flecs-systems-civetweb/flecs_systems_civetweb.c
+    )
+target_link_libraries(flecs_deps PRIVATE flecs_static)
+target_include_directories(flecs_deps PUBLIC
+    submodules/flecs-meta
+    submodules/flecs-components-http
+    submodules/flecs-json
+    submodules/flecs-player
+    submodules/flecs-monitor
+    submodules/flecs-rest
+    submodules/flecs-dash
+    submodules/flecs-systems-civetweb
+    )
 
 target_link_libraries(imgui PRIVATE SDL2)
 
@@ -37,6 +55,7 @@ add_library(rise
         src/rise/rendering/pipeline.cpp
         src/rise/rendering/platform.cpp
         src/rise/rendering/debug.cpp
+        src/rise/os/flecs_os.cpp
         src/rise/rendering/resources.cpp)
 
 target_include_directories(rise PUBLIC src)
@@ -50,11 +69,11 @@ target_link_libraries(rise PUBLIC
         imgui
         LLGL
         flecs_static
-        flecs_meta
+        flecs_deps
         glm::glm
         tinyobjloader
         SDL2
         reactphysics3d)
 target_link_libraries(riseapp PRIVATE rise)
 
-target_link_libraries(flecs_test PRIVATE flecs_static flecs_meta)
+target_link_libraries(flecs_test PRIVATE flecs_static flecs_deps)

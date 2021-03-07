@@ -19,20 +19,17 @@ struct PointLight {
 	float intensity;
 };
 
-layout(binding = 0) uniform Global {
-    PointLight pointLights[32];
-} global;
-
-layout(binding = 1) uniform Camera {
+layout(binding = 0) uniform Viewport {
 	mat4 view;
 	mat4 projection;
-} camera;
+    PointLight pointLights[32];
+} viewport;
 
-layout(binding = 2) uniform Material {
+layout(binding = 1) uniform Material {
 	vec4 diffuseColor;
 } material;
 
-layout(binding = 3) uniform Model {
+layout(binding = 2) uniform Model {
 	mat4 transform;
 } model;
 
@@ -43,7 +40,7 @@ out gl_PerVertex
 
 void main()
 {
-	gl_Position = camera.projection * camera.view * model.transform * vec4(position, 1);
+	gl_Position = viewport.projection * viewport.view * model.transform * vec4(position, 1);
 	outPosition = vec3(model.transform * vec4(position, 1.0));
 	outNormal = normal;
 	outTexCoord = texCoord;

@@ -39,13 +39,10 @@ namespace rise {
 
         static const size_t maxLightCount = 32;
 
-        struct Global {
-            alignas(16) PointLight pointLights[maxLightCount] = {};
-        };
-
-        struct PerCamera {
+        struct PerViewport {
             alignas(16) glm::mat4 view = {};
             alignas(16) glm::mat4 projection = {};
+            alignas(16) PointLight pointLights[maxLightCount] = {};
         };
 
         struct PerMaterial {

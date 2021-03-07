@@ -19,16 +19,22 @@ struct PointLight {
 
 const uint maxLightCount = 32;
 
-layout(binding = 0) uniform Global {
+layout(binding = 0) uniform Viewport {
+	mat4 view;
+	mat4 projection;
     PointLight pointLights[32];
-} global;
+} viewport;
 
-layout(binding = 2) uniform Material {
-    vec4 diffuseColor;
+layout(binding = 1) uniform Material {
+	vec4 diffuseColor;
 } material;
 
-layout(binding = 4) uniform sampler modelSampler;
-layout(binding = 5) uniform texture2D modelTexture;
+layout(binding = 2) uniform Model {
+	mat4 transform;
+} model;
+
+layout(binding = 3) uniform sampler modelSampler;
+layout(binding = 4) uniform texture2D modelTexture;
 
 const float constantFactor = 1.0f;
 const float linearFactor = 4.5;
@@ -41,7 +47,7 @@ void main()
     vec3 resultColor = vec3(0.0, 0.0, 0.0);
 
     for (int i = 0; i != maxLightCount; ++i) {
-        PointLight light = global.pointLights[i];
+        PointLight light = viewport.pointLights[i];
         vec3 lightDir = normalize(light.position - inPosition);
 
         float attenuation = 1.f;
