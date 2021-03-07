@@ -31,3 +31,24 @@
 [submodule "submodules/flecs-meta"]
 	path = submodules/flecs-meta
 	url = https://github.com/flecs-hub/flecs-meta.git
+[submodule "submodules/flecs-json"]
+	path = submodules/flecs-json
+	url = https://github.com/flecs-hub/flecs-json.git
+[submodule "submodules/flecs-rest"]
+	path = submodules/flecs-rest
+	url = https://github.com/flecs-hub/flecs-rest.git
+[submodule "submodules/flecs-monitor"]
+	path = submodules/flecs-monitor
+	url = https://github.com/flecs-hub/flecs-monitor.git
+[submodule "submodules/flecs-player"]
+	path = submodules/flecs-player
+	url = https://github.com/flecs-hub/flecs-player.git
+[submodule "submodules/flecs-components-http"]
+	path = submodules/flecs-components-http
+	url = https://github.com/flecs-hub/flecs-components-http.git
+[submodule "submodules/flecs-systems-civetweb"]
+	path = submodules/flecs-systems-civetweb
+	url = https://github.com/flecs-hub/flecs-systems-civetweb.git
+[submodule "submodules/flecs-dash"]
+	path = submodules/flecs-dash
+	url = https://github.com/flecs-hub/flecs-dash.git
