@@ -1,6 +1,8 @@
 #include <flecs.h>
 #include <flecs_meta.h>
 #include <iostream>
+#include "../src/rise/components/rendering.hpp"
+
 //
 //ECS_STRUCT(Position, {
 //    float x;
@@ -185,3 +187,4 @@ int main(int argc, char *argv[]) {
     /* Pretty print the value */
     std::cout << flecs::pretty_print(world, l) << std::endl;
 }
+

@@ -8,10 +8,10 @@ using namespace rise;
 int main() {
 	stdcpp_set_os_api();
 
-	flecs::world ecs;
-	//ecs.import<flecs::dash>();
-	//ecs.import<flecs::systems::civetweb>();
-	//ecs.import<flecs::components::meta>();
+    flecs::world ecs;
+    ecs.import<flecs::components::meta>();
+	ecs.import<flecs::dash>();
+	ecs.import<flecs::systems::civetweb>();
 	ecs.entity().set<flecs::dash::Server>({ 9090 });
 	ecs.import<RenderModule>();
 
@@ -26,7 +26,5 @@ int main() {
 	RenderModule::renderTo(ecs, cube, camera);
 
 	ecs.set_target_fps(60);
-	while (ecs.progress()) {
-
-	}
+	while (ecs.progress()) { }
 }

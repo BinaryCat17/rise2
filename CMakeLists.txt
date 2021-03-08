@@ -50,13 +50,31 @@ target_link_libraries(imgui PRIVATE SDL2)
 target_include_directories(imgui PUBLIC submodules/imgui)
 target_include_directories(imgui PUBLIC submodules/ImGuizmo)
 
+find_package(Threads REQUIRED)
+
 add_library(rise
-        src/rise/rendering/module.cpp
-        src/rise/rendering/pipeline.cpp
-        src/rise/rendering/platform.cpp
-        src/rise/rendering/debug.cpp
-        src/rise/os/flecs_os.cpp
-        src/rise/rendering/resources.cpp)
+        src/rise/components/rendering/module.cpp
+        src/rise/systems/rendering/module.cpp
+        src/rise/systems/rendering/rendering/state.cpp
+        src/rise/systems/rendering/rendering/system.cpp
+        src/rise/systems/rendering/rendering/sceneSystem.cpp
+        src/rise/systems/rendering/rendering/sceneState.cpp
+        src/rise/systems/rendering/rendering/guiSystem.cpp
+        src/rise/systems/rendering/rendering/guiState.cpp
+        src/rise/systems/rendering/pipeline/state.cpp
+        src/rise/systems/rendering/pipeline/scene.cpp
+        src/rise/systems/rendering/pipeline/gui.cpp
+        src/rise/systems/rendering/util/debug.cpp
+        src/rise/systems/rendering/util/resources.cpp
+        src/rise/systems/rendering/util/platform.cpp
+        src/rise/systems/rendering/resources/texture.cpp
+        src/rise/systems/rendering/resources/mesh.cpp
+        src/rise/systems/rendering/resources/application.cpp
+        src/rise/systems/rendering/resources/material.cpp
+        src/rise/systems/rendering/resources/viewport.cpp
+        src/rise/systems/rendering/resources/model.cpp
+        src/rise/systems/rendering/resources/presets.cpp
+        )
 
 target_include_directories(rise PUBLIC src)
 target_include_directories(rise PRIVATE src/rise)
@@ -66,6 +84,7 @@ add_executable(entt_test app/entt_test.cpp)
 add_executable(flecs_test app/flecs_test.cpp)
 
 target_link_libraries(rise PUBLIC
+        ${CMAKE_DL_LIBS}
         imgui
         LLGL
         flecs_static
