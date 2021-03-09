@@ -74,7 +74,7 @@ add_library(rise
         src/rise/systems/rendering/resources/viewport.cpp
         src/rise/systems/rendering/resources/model.cpp
         src/rise/systems/rendering/resources/presets.cpp
-        )
+        src/rise/components/rendering/glm.hpp)
 
 target_include_directories(rise PUBLIC src)
 target_include_directories(rise PRIVATE src/rise)

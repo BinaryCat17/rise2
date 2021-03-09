@@ -5,64 +5,64 @@
 ECS_STRUCT(RiseRenderingPosition2D, {
     float x;
     float y;
-});
+})
 
 ECS_STRUCT(RiseRenderingRotation2D, {
     float x;
     float y;
-});
+})
 
 ECS_STRUCT(RiseRenderingScale2D, {
     float x;
     float y;
-});
+})
 
 ECS_STRUCT(RiseRenderingExtent2D, {
     float width;
     float height;
-});
+})
 
 ECS_STRUCT(RiseRenderingPosition3D, {
     float x;
     float y;
     float z;
-});
+})
 
 ECS_STRUCT(RiseRenderingRotation3D, {
     float x;
     float y;
     float z;
-});
+})
 
 ECS_STRUCT(RiseRenderingScale3D, {
-    float width;
-    float height;
-    float depth;
-});
-
-ECS_STRUCT(RiseRenderingExtent3D, {
     float x;
     float y;
     float z;
-});
+})
+
+ECS_STRUCT(RiseRenderingExtent3D, {
+    float width;
+    float height;
+    float depth;
+})
 
 ECS_STRUCT(RiseRenderingDiffuseColor, {
     float r;
     float g;
     float b;
-});
+})
 
 ECS_STRUCT(RiseRenderingDistance, {
     float meters;
-});
+})
 
 ECS_STRUCT(RiseRenderingIntensity, {
     float factor;
-});
+})
 
 ECS_STRUCT(RiseRenderingPath, {
     flecs::string file;
-});
+})
 
 namespace rise::components {
     namespace rendering {

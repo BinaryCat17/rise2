@@ -1,11 +1,9 @@
 #pragma once
 
 #include "util/ecs.hpp"
-#include "state.hpp"
-#include "systems/rendering/resources/model.hpp"
-#include "systems/rendering/resources/mesh.hpp"
+#include "systems/rendering/resources/application.hpp"
 
 namespace rise::systems::rendering {
-    // PARENT:Viewport
-    void renderSceneSystem(flecs::iter it, ModelResource const* model, MeshResource const* mesh);
+    // PARENT:Application
+    void renderSceneSystem(flecs::entity e, ApplicationResource& app);
 }

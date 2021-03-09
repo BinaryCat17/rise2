@@ -1,6 +1,7 @@
 #pragma once
 #include <LLGL/LLGL.h>
 #include "systems/rendering/rendering/guiSystem.hpp"
+#include "application.hpp"
 
 namespace rise::systems::rendering {
     struct ModelResource {
@@ -13,7 +14,5 @@ namespace rise::systems::rendering {
         bool dirtyModel = true;
     };
 
-
-
-    void updateResourceHeap(RenderState& render, PipelineState& pipeline, ModelResource& model);
+    void updateModelSystem(flecs::entity, ApplicationResource& app, ModelResource& model);
 }

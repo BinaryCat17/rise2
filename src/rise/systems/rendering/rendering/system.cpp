@@ -1,21 +1,17 @@
 #include "system.hpp"
-#include "systems/rendering/resources/application.hpp"
 
 namespace rise::systems::rendering {
-    void prepareRenderSystem(flecs::iter it) {
-        auto &state = it.column<ApplicationResource>(1)->state;
-
-        auto cmd = state.cmdBuf;
+    void prepareRenderSystem(flecs::entity, ApplicationResource& app) {
+        auto cmd = app.state.cmdBuf;
         cmd->Begin();
-        cmd->BeginRenderPass(*state.context);
+        cmd->BeginRenderPass(*app.state.context);
         cmd->Clear(LLGL::ClearFlags::ColorDepth);
     }
 
-    void submitRenderSystem(flecs::iter it) {
-        auto &state = it.column<ApplicationResource>(1)->state;
-        state.cmdBuf->EndRenderPass();
-        state.cmdBuf->End();
-        state.queue->Submit(*state.cmdBuf);
-        state.context->Present();
+    void submitRenderSystem(flecs::entity, ApplicationResource& app) {
+        app.state.cmdBuf->EndRenderPass();
+        app.state.cmdBuf->End();
+        app.state.queue->Submit(*app.state.cmdBuf);
+        app.state.context->Present();
     }
 }

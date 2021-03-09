@@ -49,15 +49,6 @@ namespace rise::systems {
         model.heap = instance.renderer->CreateResourceHeap(resourceHeapDesc);
     }
 
-    glm::vec3 calcCameraOrigin(glm::vec3 position, glm::vec3 rotation) {
-        glm::vec3 direction;
-        direction.x = std::cos(glm::radians(rotation.x)) * std::cos(glm::radians(rotation.z));
-        direction.y = std::sin(glm::radians(rotation.z));
-        direction.z = std::sin(glm::radians(rotation.x)) * std::cos(glm::radians(rotation.z));
-        glm::vec3 cameraFront = glm::normalize(direction);
-        return position + direction * 3.f;
-    }
-
     // monitor resource changes
     void triggers(flecs::world &ecs, Instance &instance) {
         // makes resources dirty if they are updated

@@ -1,10 +1,11 @@
 #pragma once
 #include "util/ecs.hpp"
+#include "systems/rendering/resources/application.hpp"
 
 namespace rise::systems::rendering {
     // PARENT: ApplicationResource
-    void prepareRenderSystem(flecs::iter it);
+    void prepareRenderSystem(flecs::entity, ApplicationResource& app);
 
     // PARENT: ApplicationResource
-    void submitRenderSystem(flecs::iter it);
+    void submitRenderSystem(flecs::entity, ApplicationResource& app);
 }
