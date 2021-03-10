@@ -67,6 +67,7 @@ add_library(rise
         src/rise/systems/rendering/util/debug.cpp
         src/rise/systems/rendering/util/resources.cpp
         src/rise/systems/rendering/util/platform.cpp
+        src/rise/systems/rendering/util/dirty.cpp
         src/rise/systems/rendering/resources/texture.cpp
         src/rise/systems/rendering/resources/mesh.cpp
         src/rise/systems/rendering/resources/application.cpp

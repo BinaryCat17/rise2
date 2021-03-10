@@ -1,18 +1,22 @@
 #pragma once
 #include <LLGL/LLGL.h>
-#include "systems/rendering/rendering/guiSystem.hpp"
-#include "application.hpp"
+#include "components/rendering/module.hpp"
+#include "systems/rendering/resources/material.hpp"
+#include "systems/rendering/resources/texture.hpp"
+#include "systems/rendering/resources/viewport.hpp"
 
 namespace rise::systems::rendering {
     struct ModelResource {
-        LLGL::Buffer *viewportBuffer = nullptr;
-        LLGL::Buffer *materialBuffer = nullptr;
         LLGL::Buffer *objectBuffer = nullptr;
-        LLGL::Texture *texture = nullptr;
         LLGL::ResourceHeap *heap = nullptr;
         bool dirtyHeap = true;
         bool dirtyModel = true;
     };
 
-    void updateModelSystem(flecs::entity, ApplicationResource& app, ModelResource& model);
+    // PARENT: ApplicationResource
+    void updateModelHeapSystem(flecs::iter it,  ModelResource* model, TextureResource* textures,
+            MaterialResource* materials, ViewportResource* viewports);
+
+    // PARENT: ApplicationResource
+    void updateModelTransformSystem(flecs::iter it, ModelResource* model);
 }

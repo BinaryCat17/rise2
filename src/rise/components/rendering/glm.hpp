@@ -1,4 +1,6 @@
-#pragme once
+#pragma once
+#include "module.hpp"
+#include <glm/glm.hpp>
 
 namespace rise::components::rendering {
     inline glm::vec2 toGlm(Extent2D val) {
