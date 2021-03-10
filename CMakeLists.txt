@@ -54,28 +54,17 @@ find_package(Threads REQUIRED)
 
 add_library(rise
         src/rise/components/rendering/module.cpp
+        src/rise/components/rendering/glm.hpp
         src/rise/systems/rendering/module.cpp
-        src/rise/systems/rendering/rendering/state.cpp
-        src/rise/systems/rendering/rendering/system.cpp
-        src/rise/systems/rendering/rendering/sceneSystem.cpp
-        src/rise/systems/rendering/rendering/sceneState.cpp
-        src/rise/systems/rendering/rendering/guiSystem.cpp
-        src/rise/systems/rendering/rendering/guiState.cpp
-        src/rise/systems/rendering/pipeline/state.cpp
-        src/rise/systems/rendering/pipeline/scene.cpp
-        src/rise/systems/rendering/pipeline/gui.cpp
-        src/rise/systems/rendering/util/debug.cpp
-        src/rise/systems/rendering/util/resources.cpp
-        src/rise/systems/rendering/util/platform.cpp
-        src/rise/systems/rendering/util/dirty.cpp
-        src/rise/systems/rendering/resources/texture.cpp
-        src/rise/systems/rendering/resources/mesh.cpp
-        src/rise/systems/rendering/resources/application.cpp
-        src/rise/systems/rendering/resources/material.cpp
-        src/rise/systems/rendering/resources/viewport.cpp
-        src/rise/systems/rendering/resources/model.cpp
-        src/rise/systems/rendering/resources/presets.cpp
-        src/rise/components/rendering/glm.hpp)
+        src/rise/systems/rendering/core/systems.cpp
+        src/rise/systems/rendering/core/texture.cpp
+        src/rise/systems/rendering/core/platform.cpp
+        src/rise/systems/rendering/core/utils.cpp
+        src/rise/systems/rendering/gui/systems.cpp
+        src/rise/systems/rendering/gui/pipeline.cpp
+        src/rise/systems/rendering/scene/mesh.cpp
+        src/rise/systems/rendering/scene/pipeline.cpp
+        src/rise/systems/rendering/scene/systems.cpp)
 
 target_include_directories(rise PUBLIC src)
 target_include_directories(rise PRIVATE src/rise)
