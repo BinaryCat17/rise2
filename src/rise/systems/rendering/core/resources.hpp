@@ -20,5 +20,6 @@ namespace rise::systems::rendering {
         LLGL::Buffer *vertices = nullptr;
         LLGL::Buffer *indices = nullptr;
         unsigned numIndices = 0;
+        unsigned numVertices = 0;
     };
 }
