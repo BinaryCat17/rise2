@@ -22,4 +22,6 @@ namespace rise::systems::rendering {
         unsigned numIndices = 0;
         unsigned numVertices = 0;
     };
+
+    struct CoreTag {};
 }

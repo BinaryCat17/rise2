@@ -7,5 +7,5 @@ namespace rise::systems::rendering {
         LLGL::Buffer* val;
     };
 
-    using GuiContext = ImGuiContext*;
+    struct GuiTag {};
 }

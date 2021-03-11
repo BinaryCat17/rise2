@@ -2,7 +2,6 @@
 #include <LLGL/LLGL.h>
 
 namespace rise::systems::rendering {
-
     struct DiffuseTextureRes {
         flecs::entity e{};
     };
@@ -18,4 +17,6 @@ namespace rise::systems::rendering {
     struct TransformRes {
         LLGL::Buffer* val;
     };
+
+    struct SceneTag {};
 }

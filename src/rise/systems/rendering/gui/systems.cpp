@@ -1,17 +1,15 @@
 #include "systems.hpp"
-#include "../core/resources.hpp"
 #include "../core/utils.hpp"
 #include "pipeline.hpp"
 #include <backends/imgui_impl_sdl.h>
 
 namespace rise::systems::rendering {
-    using namespace components::rendering;
-
-    void initGui(flecs::entity, RenderSystem const &renderer, Window window, Path const &path,
-            Texture &fontTexture, GuiParameters &parameters, ResourceHeap &heap,
-            GuiContext &context, Sampler sampler, PipelineLayout layout) {
-        context = ImGui::CreateContext();
+    void initGui(flecs::entity e, RenderSystem const &renderer, Window window, Path const &path,
+            Sampler sampler, PipelineLayout layout) {
+        auto context = ImGui::CreateContext();
         ImGui::SetCurrentContext(context);
+        e.set(context);
+
         ImGui_ImplSDL2_InitForVulkan(window);
         ImGuiStyle &style = ImGui::GetStyle();
         style.Colors[ImGuiCol_TitleBg] = ImVec4(1.0f, 0.0f, 0.0f, 0.6f);
@@ -25,21 +23,23 @@ namespace rise::systems::rendering {
         ImGuiIO &io = ImGui::GetIO();
         io.Fonts->GetTexDataAsRGBA32(&fontData, &texWidth, &texHeight);
 
-        fontTexture = createTextureFromData(renderer.get(), LLGL::ImageFormat::RGBA,
+        auto fontTexture = createTextureFromData(renderer.get(), LLGL::ImageFormat::RGBA,
                 fontData, texWidth, texHeight);
+        e.set(fontTexture);
 
-        parameters.val = createUniformBuffer(renderer.get(), guiPipeline::Global{});
+        GuiParameters parameters = { createUniformBuffer(renderer.get(), guiPipeline::Global{}) };
+        e.set(parameters);
 
         LLGL::ResourceHeapDescriptor resourceHeapDesc;
         resourceHeapDesc.pipelineLayout = layout;
         resourceHeapDesc.resourceViews.emplace_back(parameters.val);
         resourceHeapDesc.resourceViews.emplace_back(sampler);
         resourceHeapDesc.resourceViews.emplace_back(fontTexture);
-        heap = renderer->CreateResourceHeap(resourceHeapDesc);
+        e.set(renderer->CreateResourceHeap(resourceHeapDesc));
     }
 
-    void updateResources(flecs::entity, GuiContext context, RenderSystem const &renderer,
-            GuiParameters shaderData, MeshRes &mesh, VertexFormat const &format) {
+    void updateResources(flecs::entity e, GuiContext context, RenderSystem const &renderer,
+            GuiParameters shaderData, VertexFormat const &format) {
         ImGui::SetCurrentContext(context);
         ImGuiIO &io = ImGui::GetIO();
         ImDrawData *imDrawData = ImGui::GetDrawData();
@@ -67,6 +67,7 @@ namespace rise::systems::rendering {
                     cmd_list->IdxBuffer.Data + cmd_list->IdxBuffer.Size);
         }
 
+        MeshRes mesh;
         if (mesh.numVertices != imDrawData->TotalVtxCount) {
             if (mesh.vertices) {
                 renderer->Release(*mesh.vertices);
@@ -88,6 +89,8 @@ namespace rise::systems::rendering {
             renderer->WriteBuffer(*mesh.indices, 0, indices.data(),
                     indices.size() * sizeof(ImDrawIdx));
         }
+
+        e.set(mesh);
     }
 
     void prepareImgui(flecs::entity, GuiContext context, Window window) {
@@ -104,33 +107,24 @@ namespace rise::systems::rendering {
         ImGui::NewFrame();
     }
 
-    void renderGui(flecs::world &ecs, LLGL::RenderSystem *renderer,
-            SDL_Window *window, LLGL::CommandBuffer *cmdBuf) {
-        int width, height;
-        SDL_GetWindowSize(window, &width, &height);
-
-        ImGuiIO &io = ImGui::GetIO();
-        io.DisplaySize = ImVec2(static_cast<float>(width), static_cast<float>(height));
-        io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
-
-        ImGui_ImplSDL2_NewFrame(window);
-        ImGui::NewFrame();
-        for (auto const &c : state->callbacks) {
-            c();
-        }
+    void processImGui(flecs::entity, GuiContext context) {
+        ImGui::SetCurrentContext(context);
         ImGui::Render();
+    }
 
-        updateResources(renderer, state);
+    void renderGui(flecs::entity, GuiContext context, Pipeline pipeline, Extent2D size,
+            RenderSystem const &renderer, CommandBuffer cmdBuf, MeshRes mesh, ResourceHeap heap) {
+        ImGui::SetCurrentContext(context);
 
         LLGL::Viewport viewport;
-        viewport.width = static_cast<float>(width);
-        viewport.height = -static_cast<float>(height);
+        viewport.width = static_cast<float>(size.width);
+        viewport.height = -static_cast<float>(size.height);
         viewport.x = 0;
-        viewport.y = static_cast<float>(height);
+        viewport.y = static_cast<float>(size.height);
         cmdBuf->SetViewport(viewport);
 
-        cmdBuf->SetPipelineState(*state->pipeline.pipeline);
-        cmdBuf->SetResourceHeap(*state->heap);
+        cmdBuf->SetPipelineState(*pipeline);
+        cmdBuf->SetResourceHeap(*heap);
 
         ImDrawData *imDrawData = ImGui::GetDrawData();
         float fb_width = (imDrawData->DisplaySize.x * imDrawData->FramebufferScale.x);
@@ -141,8 +135,8 @@ namespace rise::systems::rendering {
         int32_t indexOffset = 0;
 
         if (imDrawData->CmdListsCount > 0) {
-            cmdBuf->SetVertexBuffer(*state->vertices);
-            cmdBuf->SetIndexBuffer(*state->indices);
+            cmdBuf->SetVertexBuffer(*mesh.vertices);
+            cmdBuf->SetIndexBuffer(*mesh.indices);
 
             for (int32_t i = 0; i < imDrawData->CmdListsCount; i++) {
                 const ImDrawList *cmd_list = imDrawData->CmdLists[i];

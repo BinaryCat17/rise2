@@ -30,14 +30,14 @@ namespace rise::systems::rendering {
         return LLGL::RenderSystem::Load("Vulkan", nullptr, &debugger);
     }
 
-    void initCoreState(flecs::entity, RenderSystem& renderer, Window& window, Context& context,
-            Sampler& sampler, Queue& queue, CommandBuffer& cmdBuf, Path const &path,
-            flecs::Name const &title, Extent2D size) {
-        renderer = createRenderer();
-        window = createGameWindow(title.value, toGlm(size));
-        context = createRenderingContext(renderer.get(), window);
-        sampler = createSampler(renderer.get());
-        queue = renderer->GetCommandQueue();
-        cmdBuf = renderer->CreateCommandBuffer();
+    void initCoreState(flecs::entity e, Path const &path, flecs::Name const &title, Extent2D size) {
+        auto renderer = createRenderer();
+        auto window = createGameWindow(title.value, toGlm(size));
+        e.set(createRenderingContext(renderer.get(), window));
+        e.set(createSampler(renderer.get()));
+        e.set(renderer->GetCommandQueue());
+        e.set(renderer->CreateCommandBuffer());
+        e.set(window);
+        e.set(std::move(renderer));
     }
 }

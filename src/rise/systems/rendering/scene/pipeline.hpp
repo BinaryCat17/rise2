@@ -52,8 +52,7 @@ namespace rise::systems::rendering::scenePipeline {
 namespace rise::systems::rendering {
     using namespace components::rendering;
 
-    void initScenePipeline(flecs::entity, RenderSystem const& renderer, Path const& root,
-            VertexFormat& format, PipelineLayout& layout, Pipeline& pipeline);
+    void initScenePipeline(flecs::entity e, RenderSystem const& renderer, Path const& root);
 }
 
 namespace std {

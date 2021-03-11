@@ -49,15 +49,17 @@ namespace rise::systems::rendering::guiPipeline {
 }
 
 namespace rise::systems::rendering {
-    void initGuiPipeline(flecs::entity, RenderSystem const &renderer, Path const &root,
-            VertexFormat &format, PipelineLayout &layout, Pipeline &pipeline) {
+    void initGuiPipeline(flecs::entity e, RenderSystem const &renderer, Path const &root) {
+        VertexFormat format;
         format.AppendAttribute(LLGL::VertexAttribute{"inPos", LLGL::Format::RG32Float});
         format.AppendAttribute(LLGL::VertexAttribute{"inUV", LLGL::Format::RG32Float});
         format.AppendAttribute(LLGL::VertexAttribute{"inColor", LLGL::Format::RGBA8UNorm});
+        e.set(format);
 
-        layout = guiPipeline::createLayout(renderer.get());
+        auto layout = guiPipeline::createLayout(renderer.get());
+        e.set(layout);
         auto program = createShaderProgram(renderer.get(),
                 std::string(root.file) + "/shaders/gui", format);
-        pipeline = guiPipeline::createPipeline(renderer.get(), layout, program);
+        e.set(guiPipeline::createPipeline(renderer.get(), layout, program));
     }
 }

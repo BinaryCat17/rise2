@@ -1,12 +1,26 @@
 #pragma once
 
-#include <glm/glm.hpp>
+#include "components/rendering/module.hpp"
 #include "util/ecs.hpp"
 
-namespace rise::systems {
-    struct rendering {
-        explicit rendering(flecs::world &ecs);
+namespace rise::systems::rendering {
+    struct Rendering {
+        explicit Rendering(flecs::world &ecs);
 
-        static void imGuiModule(flecs::world &ecs, std::function<void()> const &callback);
+        void addApplication(flecs::entity e);
+
+        void addMesh(flecs::entity app, flecs::entity e);
+
+        void addTexture(flecs::entity app, flecs::entity e);
+
+        void addMaterial(flecs::entity app, flecs::entity e);
+
+        void addModel(flecs::entity app, flecs::entity e);
+
+        void addPointLight(flecs::entity app, flecs::entity e);
+
+        void addViewport(flecs::entity app, flecs::entity e);
+
+        void renderTo(flecs::entity viewport, flecs::entity e);
     };
 }

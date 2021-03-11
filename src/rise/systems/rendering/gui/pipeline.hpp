@@ -16,7 +16,6 @@ namespace rise::systems::rendering::guiPipeline {
 namespace rise::systems::rendering {
     using namespace components::rendering;
 
-    void initGuiPipeline(flecs::entity, RenderSystem const &renderer, Path const &root,
-            VertexFormat &format, PipelineLayout &layout, Pipeline &pipeline);
+    void initGuiPipeline(flecs::entity e, RenderSystem const &renderer, Path const &root);
 
 }
