@@ -39,8 +39,8 @@ namespace rise::systems::rendering {
         return {vertices, indices};
     }
 
-    void updateMesh(flecs::entity, RenderSystem const& renderer, VertexFormat const& format,
-            MeshRes &mesh,  Path const &path) {
+    void updateMesh(flecs::entity, RenderSystem & renderer, VertexFormat const& format,
+            Mesh &mesh,  Path const &path) {
         tinyobj::ObjReaderConfig readerConfig;
         readerConfig.triangulate = true;
         readerConfig.vertex_color = false;

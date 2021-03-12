@@ -7,7 +7,7 @@
 namespace rise::systems::rendering {
     using namespace components::rendering;
 
-    void updateMesh(flecs::entity, RenderSystem const& renderer, VertexFormat const& format,
-            MeshRes &mesh,  Path const &path);
+    void updateMesh(flecs::entity, RenderSystem & renderer, VertexFormat const& format,
+            Mesh &mesh,  Path const &path);
 }
 

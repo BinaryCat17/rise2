@@ -5,7 +5,7 @@ namespace rise::components {
     using namespace rendering;
 
     Rendering::Rendering(flecs::world &ecs) {
-        ecs.import<FlecsMeta>();
+        ecs.import<flecs::components::meta>();
         ecs.module<Rendering>("rise.components.rendering");
         ecs.component<Extent2D>("Extent2D");
         flecs::meta<Extent2D>(ecs);
@@ -31,19 +31,5 @@ namespace rise::components {
         flecs::meta<Intensity>(ecs);
         ecs.component<Path>("Path");
         flecs::meta<Path>(ecs);
-        ecs.component<Mesh>("Mesh");
-        flecs::meta<Mesh>(ecs);
-        ecs.component<Texture>("Texture");
-        flecs::meta<Texture>(ecs);
-        ecs.component<Material>("Material");
-        flecs::meta<Material>(ecs);
-        ecs.component<Model>("Model");
-        flecs::meta<Model>(ecs);
-        ecs.component<PointLight>("PointLight");
-        flecs::meta<PointLight>(ecs);
-        ecs.component<Viewport>("Viewport");
-        flecs::meta<Viewport>(ecs);
-        ecs.component<Application>("Application");
-        flecs::meta<Application>(ecs);
     }
 }

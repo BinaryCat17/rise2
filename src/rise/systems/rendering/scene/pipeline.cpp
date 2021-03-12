@@ -51,17 +51,18 @@ namespace rise::systems::rendering::scenePipeline {
 }
 
 namespace rise::systems::rendering {
-    void initScenePipeline(flecs::entity e, RenderSystem const &renderer, Path const &root) {
+    void initScenePipeline(flecs::entity e) {
+        auto& renderer = checkGet<RenderSystem>(e);
         VertexFormat format;
         format.AppendAttribute({"position", LLGL::Format::RGB32Float});
         format.AppendAttribute({"normal", LLGL::Format::RGB32Float});
         format.AppendAttribute({"texCoord", LLGL::Format::RG32Float});
-        e.set(format);
 
         auto layout = scenePipeline::createLayout(renderer.get());
-        e.set(layout);
+        e.set(PipelineLayout{layout});
         auto program = createShaderProgram(renderer.get(),
-                std::string(root.file) + "/shaders/scene", format);
-        e.set(scenePipeline::createPipeline(renderer.get(), layout, program));
+                std::string(checkGet<Path>(e).file) + "/shaders/scene", format);
+        e.set(std::move(format));
+        e.set(Pipeline{scenePipeline::createPipeline(renderer.get(), layout, program)});
     }
 }

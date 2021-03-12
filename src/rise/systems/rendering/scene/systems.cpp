@@ -5,25 +5,25 @@
 #include "pipeline.hpp"
 
 namespace rise::systems::rendering {
-    void updateResourceHeap(flecs::entity, RenderSystem const &renderer, PipelineLayout layout,
+    void updateResourceHeap(flecs::entity, RenderSystem &renderer, PipelineLayout layout,
             ResourceHeap &heap, DiffuseTextureRes diffuse, MaterialRes material,
             TransformRes transform, ViewportRes viewport, Sampler sampler) {
         LLGL::ResourceHeapDescriptor resourceHeapDesc;
-        resourceHeapDesc.pipelineLayout = layout;
+        resourceHeapDesc.pipelineLayout = layout.val;
         resourceHeapDesc.resourceViews.emplace_back(viewport.val);
         resourceHeapDesc.resourceViews.emplace_back(material.val);
         resourceHeapDesc.resourceViews.emplace_back(transform.val);
-        resourceHeapDesc.resourceViews.emplace_back(sampler);
-        resourceHeapDesc.resourceViews.emplace_back(*diffuse.e.get<Texture>());
+        resourceHeapDesc.resourceViews.emplace_back(sampler.val);
+        resourceHeapDesc.resourceViews.emplace_back(diffuse.e.get<Texture>()->val);
 
-        if (heap) {
-            renderer->Release(*heap);
+        if (heap.val) {
+            renderer->Release(*heap.val);
         }
 
-        heap = renderer->CreateResourceHeap(resourceHeapDesc);
+        heap.val = renderer->CreateResourceHeap(resourceHeapDesc);
     }
 
-    void updateTransform(flecs::entity, RenderSystem const &renderer, TransformRes transform,
+    void updateTransform(flecs::entity, RenderSystem &renderer, TransformRes transform,
             Position3D position, Rotation3D rotation, Scale3D scale) {
         glm::mat4 mat = glm::translate(glm::mat4(1), toGlm(position));
         float angle = std::max({rotation.x, rotation.y, rotation.z});
@@ -33,7 +33,7 @@ namespace rise::systems::rendering {
         updateUniformBuffer(renderer.get(), transform.val, scenePipeline::PerObject{mat});
     }
 
-    void updateMaterial(flecs::entity, RenderSystem const &renderer, MaterialRes material,
+    void updateMaterial(flecs::entity, RenderSystem &renderer, MaterialRes material,
             DiffuseColor color) {
         scenePipeline::PerMaterial data;
         data.diffuseColor = glm::vec4(color.r, color.g, color.b, 1);
@@ -49,7 +49,7 @@ namespace rise::systems::rendering {
         return {position.x + direction.x, position.y + direction.y, position.z + direction.z};
     }
 
-    void updateViewport(flecs::entity e, RenderSystem const &renderer, ViewportRes const &viewport,
+    void updateViewport(flecs::entity e, RenderSystem &renderer, ViewportRes &viewport,
             Extent2D size, Position3D position, Rotation3D rotation) {
         auto data = mapUniformBuffer<scenePipeline::PerViewport>(renderer.get(), viewport.val);
 
@@ -63,7 +63,7 @@ namespace rise::systems::rendering {
             for (auto row : child) {
                 if (i < scenePipeline::maxLightCount) {
                     auto light = child.entity(row);
-                    if (light.has<PointLight>()) {
+                    if (light.has<Intensity>()) {
                         data->pointLights[i].position = toGlm(*light.get<Position3D>());
                         data->pointLights[i].diffuse = toGlm(*light.get<DiffuseColor>());
                         data->pointLights[i].intensity = light.get<Intensity>()->factor;
@@ -101,7 +101,7 @@ namespace rise::systems::rendering {
             for (auto j : models) {
                 auto modelEntity = models.entity(j);
                 auto heap = modelEntity.get_mut<ResourceHeap>();
-                auto mesh = modelEntity.get_mut<MeshRes>();
+                auto mesh = modelEntity.get_mut<Mesh>();
                 if (mesh && heap) {
                     f(modelEntity, *heap, *mesh);
                 }
@@ -109,9 +109,9 @@ namespace rise::systems::rendering {
         }
     }
 
-    void renderScene(flecs::entity e, RenderSystem const &renderer, CommandBuffer cmdBuf,
+    void renderScene(flecs::entity e, RenderSystem &renderer, CommandBuffer cmdBuf,
             Pipeline pipeline, Extent2D resolution) {
-        cmdBuf->SetPipelineState(*pipeline);
+        cmdBuf.val->SetPipelineState(*pipeline.val);
 
         forViewports(e, [cmdBuf, resolution](flecs::entity ve,
                 Position2D pos, Extent2D extent) {
@@ -120,13 +120,13 @@ namespace rise::systems::rendering {
             assert(viewport.x + viewport.width <= resolution.width ||
                     viewport.y + viewport.height <= resolution.height);
 
-            cmdBuf->SetViewport(viewport);
+            cmdBuf.val->SetViewport(viewport);
 
-            forModels(ve, [cmdBuf](flecs::entity, ResourceHeap heap, MeshRes mesh) {
-                cmdBuf->SetResourceHeap(*heap);
-                cmdBuf->SetVertexBuffer(*mesh.vertices);
-                cmdBuf->SetIndexBuffer(*mesh.indices);
-                cmdBuf->DrawIndexed(mesh.numIndices, 0);
+            forModels(ve, [cmdBuf](flecs::entity, ResourceHeap heap, Mesh mesh) {
+                cmdBuf.val->SetResourceHeap(*heap.val);
+                cmdBuf.val->SetVertexBuffer(*mesh.vertices);
+                cmdBuf.val->SetIndexBuffer(*mesh.indices);
+                cmdBuf.val->DrawIndexed(mesh.numIndices, 0);
             });
         });
     }

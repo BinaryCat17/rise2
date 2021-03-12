@@ -2,5 +2,7 @@
 #include <imgui.h>
 
 namespace rise::systems::rendering {
-    using GuiContext = ImGuiContext*;
+    struct GuiContext {
+        ImGuiContext* context;
+    };
 }

@@ -1,26 +1,24 @@
 #pragma once
 
-#include "components/rendering/module.hpp"
-#include "util/ecs.hpp"
+#include "rise/components/rendering/module.hpp"
+#include "rise/util/ecs.hpp"
 
-namespace rise::systems::rendering {
+namespace rise::systems {
     struct Rendering {
         explicit Rendering(flecs::world &ecs);
 
-        void addApplication(flecs::entity e);
+        static void regApplication(flecs::entity e);
 
-        void addMesh(flecs::entity app, flecs::entity e);
+        static void regMesh(flecs::entity app, flecs::entity e);
 
-        void addTexture(flecs::entity app, flecs::entity e);
+        static void regTexture(flecs::entity app, flecs::entity e);
 
-        void addMaterial(flecs::entity app, flecs::entity e);
+        static void regMaterial(flecs::entity app, flecs::entity e);
 
-        void addModel(flecs::entity app, flecs::entity e);
+        static void regModel(flecs::entity app, flecs::entity e);
 
-        void addPointLight(flecs::entity app, flecs::entity e);
+        static void regPointLight(flecs::entity app, flecs::entity e);
 
-        void addViewport(flecs::entity app, flecs::entity e);
-
-        void renderTo(flecs::entity viewport, flecs::entity e);
+        static void regViewport(flecs::entity app, flecs::entity e);
     };
 }

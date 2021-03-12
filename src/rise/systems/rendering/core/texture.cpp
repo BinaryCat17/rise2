@@ -6,7 +6,7 @@
 #include "stb_image.h"
 
 namespace rise::systems::rendering {
-    void updateTexture(flecs::entity, RenderSystem const &renderer, Texture &texture,
+    void updateTexture(flecs::entity, RenderSystem &renderer, Texture &texture,
             Path const &path) {
         int texWidth = 0, texHeight = 0, texComponents = 0;
 
@@ -15,11 +15,11 @@ namespace rise::systems::rendering {
         if (!imageBuffer)
             throw std::runtime_error("failed to load image from file: " + std::string(path.file));
 
-        if (texture) {
-            renderer->Release(*texture);
+        if (texture.val) {
+            renderer->Release(*texture.val);
         }
 
-        texture = createTextureFromData(renderer.get(),
+        texture.val = createTextureFromData(renderer.get(),
                 (texComponents == 4 ? LLGL::ImageFormat::RGBA : LLGL::ImageFormat::RGB),
                 imageBuffer, texWidth, texHeight);
 

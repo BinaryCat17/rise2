@@ -32,7 +32,7 @@ namespace rise::components::rendering {
     }
 
     inline glm::vec3 toGlm(DiffuseColor val) {
-        return {val.x, val.y, val.z};
+        return {val.r, val.g, val.b};
     }
 
     inline glm::vec3 toGlm(Scale3D val) {

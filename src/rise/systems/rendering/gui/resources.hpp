@@ -4,7 +4,7 @@
 
 namespace rise::systems::rendering {
     struct GuiParameters {
-        LLGL::Buffer* val;
+        LLGL::Buffer* val = nullptr;
     };
 
     struct GuiTag {};

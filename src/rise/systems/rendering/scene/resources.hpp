@@ -1,5 +1,6 @@
 #pragma once
 #include <LLGL/LLGL.h>
+#include "util/ecs.hpp"
 
 namespace rise::systems::rendering {
     struct DiffuseTextureRes {
@@ -7,15 +8,15 @@ namespace rise::systems::rendering {
     };
 
     struct MaterialRes {
-        LLGL::Buffer* val;
+        LLGL::Buffer* val = nullptr;
     };
 
     struct ViewportRes {
-        LLGL::Buffer* val;
+        LLGL::Buffer* val = nullptr;
     };
 
     struct TransformRes {
-        LLGL::Buffer* val;
+        LLGL::Buffer* val = nullptr;
     };
 
     struct SceneTag {};

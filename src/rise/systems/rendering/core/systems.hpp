@@ -14,5 +14,5 @@ namespace rise::systems::rendering {
 
     void updateWindowSize(flecs::entity, Window window, Context context, Extent2D size);
 
-    void initCoreState(flecs::entity e, Path const &path, flecs::Name const &title, Extent2D size);
+    void initCoreState(flecs::entity e);
 }

@@ -7,6 +7,6 @@
 namespace rise::systems::rendering {
     using namespace components::rendering;
 
-    void updateTexture(flecs::entity e, RenderSystem const &renderer, Texture &texture,
+    void updateTexture(flecs::entity e, RenderSystem &renderer, Texture &texture,
             Path const &path);
 }

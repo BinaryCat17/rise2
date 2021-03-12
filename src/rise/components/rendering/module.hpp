@@ -1,6 +1,6 @@
 #pragma once
 
-#include "util/ecs.hpp"
+#include "rise/util/ecs.hpp"
 
 ECS_STRUCT(RiseRenderingPosition2D, {
     float x;
@@ -79,15 +79,6 @@ namespace rise::components {
         using Distance = RiseRenderingDistance;
         using Intensity = RiseRenderingIntensity;
         using Path = RiseRenderingPath;
-
-        // resources
-        struct Mesh {}; // depends on Path
-        struct Texture {}; // depends on Path
-        struct Material {}; // depends on DiffuseColor
-        struct Model {}; // depends on Mesh, Texture, Material, Position3D, Rotation3D, Scale3D
-        struct PointLight {}; // depends on Position3D, DiffuseColor, Distance, Intensity
-        struct Viewport {}; // depends on Position3D, Rotation3D, Extent2D, Position2D
-        struct Application {}; // depends on Position2D, Extent2D, Path, flecs::Name
     }
 
     struct Rendering {

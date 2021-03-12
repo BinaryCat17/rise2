@@ -4,19 +4,46 @@
 #include <SDL.h>
 
 namespace rise::systems::rendering {
-    using RenderSystem = std::unique_ptr<LLGL::RenderSystem>;
-    using Window = SDL_Window*;
-    using Context = LLGL::RenderContext*;
-    using CommandBuffer = LLGL::CommandBuffer*;
-    using Queue = LLGL::CommandQueue*;
-    using Sampler = LLGL::Sampler*;
-    using ResourceHeap = LLGL::ResourceHeap *;
-    using Texture = LLGL::Texture *;
-    using PipelineLayout = LLGL::PipelineLayout*;
-    using Pipeline = LLGL::PipelineState*;
+    using RenderSystem = std::shared_ptr<LLGL::RenderSystem>;
+    struct Window {
+        SDL_Window *window = nullptr;
+    };
+
+    struct Context {
+        LLGL::RenderContext *val = nullptr;
+    };
+
+    struct CommandBuffer {
+        LLGL::CommandBuffer *val = nullptr;
+    };
+
+    struct Queue {
+        LLGL::CommandQueue *val = nullptr;
+    };
+
+    struct Sampler {
+        LLGL::Sampler *val = nullptr;
+    };
+
+    struct ResourceHeap {
+        LLGL::ResourceHeap *val = nullptr;
+    };
+
+    struct Texture {
+        LLGL::Texture* val = nullptr;
+    };
+
+    struct PipelineLayout {
+        LLGL::PipelineLayout* val = nullptr;
+    };
+
+    struct Pipeline {
+        LLGL::PipelineState* val = nullptr;
+    };
+
     using VertexFormat = LLGL::VertexFormat;
 
-    struct MeshRes {
+    struct Mesh {
         LLGL::Buffer *vertices = nullptr;
         LLGL::Buffer *indices = nullptr;
         unsigned numIndices = 0;
