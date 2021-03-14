@@ -34,9 +34,6 @@
 [submodule "submodules/flecs-json"]
 	path = submodules/flecs-json
 	url = https://github.com/flecs-hub/flecs-json.git
-[submodule "submodules/flecs-rest"]
-	path = submodules/flecs-rest
-	url = https://github.com/flecs-hub/flecs-rest.git
 [submodule "submodules/flecs-monitor"]
 	path = submodules/flecs-monitor
 	url = https://github.com/flecs-hub/flecs-monitor.git
@@ -52,3 +49,6 @@
 [submodule "submodules/flecs-dash"]
 	path = submodules/flecs-dash
 	url = https://github.com/flecs-hub/flecs-dash.git
+[submodule "submodules/flecs-rest"]
+	path = submodules/flecs-rest
+	url = https://github.com/flecs-hub/flecs-rest.git
