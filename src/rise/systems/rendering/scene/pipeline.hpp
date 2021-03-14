@@ -1,10 +1,9 @@
 #pragma once
 #define GLM_ENABLE_EXPERIMENTAL
 
-#include "resources.hpp"
+#include <LLGL/LLGL.h>
 #include "components/rendering/module.hpp"
 #include "util/ecs.hpp"
-#include "../core/resources.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtx/hash.hpp>
 
@@ -47,12 +46,11 @@ namespace rise::systems::rendering::scenePipeline {
     struct PerObject {
         alignas(16) glm::mat4 transform = {};
     };
-}
 
-namespace rise::systems::rendering {
-    using namespace components::rendering;
+    LLGL::PipelineLayout *createLayout(LLGL::RenderSystem *renderer);
 
-    void initScenePipeline(flecs::entity e);
+    LLGL::PipelineState *createPipeline(LLGL::RenderSystem *renderer,
+            LLGL::PipelineLayout *layout, LLGL::ShaderProgram *program);
 }
 
 namespace std {

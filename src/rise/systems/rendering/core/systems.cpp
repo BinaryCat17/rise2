@@ -5,23 +5,23 @@
 #include "components/rendering/glm.hpp"
 
 namespace rise::systems::rendering {
-    void prepareRender(flecs::entity, CommandBuffer cmdBuf, Context context) {
-        cmdBuf.val->Begin();
-        cmdBuf.val->BeginRenderPass(*context.val);
-        cmdBuf.val->Clear(LLGL::ClearFlags::ColorDepth);
+    void prepareRender(flecs::entity, CoreState &core) {
+        core.cmdBuf->Begin();
+        core.cmdBuf->BeginRenderPass(*core.context);
+        core.cmdBuf->Clear(LLGL::ClearFlags::ColorDepth);
     }
 
-    void submitRender(flecs::entity, CommandBuffer cmdBuf, Queue queue, Context context) {
-        cmdBuf.val->EndRenderPass();
-        cmdBuf.val->End();
-        queue.val->Submit(*cmdBuf.val);
-        context.val->Present();
+    void submitRender(flecs::entity, CoreState &core) {
+        core.cmdBuf->EndRenderPass();
+        core.cmdBuf->End();
+        core.queue->Submit(*core.cmdBuf);
+        core.context->Present();
     }
 
-    void updateWindowSize(flecs::entity, Window window, Context context, Extent2D size) {
-        SDL_SetWindowSize(window.window, static_cast<int>(size.width),
+    void updateWindowSize(flecs::entity, CoreState &core, Extent2D size) {
+        SDL_SetWindowSize(core.window, static_cast<int>(size.width),
                 static_cast<int>(size.height));
-        context.val->SetVideoMode({{static_cast<uint32_t>(size.width),
+        core.context->SetVideoMode({{static_cast<uint32_t>(size.width),
                 static_cast<uint32_t>(size.height)}});
     }
 
@@ -32,15 +32,20 @@ namespace rise::systems::rendering {
     }
 
     void initCoreState(flecs::entity e) {
-        auto renderer = createRenderer();
-        auto window = createGameWindow(
-                checkGet<flecs::Name>(e).value,
+        CoreState core;
+        if (e.has<Path>()) {
+            core.path = *e.get<Path>()->file;
+        } else {
+            core.path = "./rendering";
+        }
+
+        core.renderer = createRenderer();
+        core.window = createGameWindow(checkGet<flecs::Name>(e).value,
                 toGlm(checkGet<Extent2D>(e)));
-        e.set(Context{createRenderingContext(renderer.get(), window)});
-        e.set(Sampler{createSampler(renderer.get())});
-        e.set(Queue{renderer->GetCommandQueue()});
-        e.set(CommandBuffer{renderer->CreateCommandBuffer()});
-        e.set(Window{window});
-        e.set<RenderSystem>(renderer);
+        core.context = createRenderingContext(core.renderer.get(), core.window);
+        core.sampler = createSampler(core.renderer.get());
+        core.queue = core.renderer->GetCommandQueue();
+        core.cmdBuf = core.renderer->CreateCommandBuffer();
+        e.set<CoreState>(core);
     }
 }

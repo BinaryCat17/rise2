@@ -1,5 +1,8 @@
 #pragma once
+
 #include <LLGL/LLGL.h>
+#include "../core/resources.hpp"
+#include "pipeline.hpp"
 #include "util/ecs.hpp"
 
 namespace rise::systems::rendering {
@@ -8,16 +11,27 @@ namespace rise::systems::rendering {
     };
 
     struct MaterialRes {
-        LLGL::Buffer* val = nullptr;
+        LLGL::Buffer *uniform = nullptr;
     };
 
     struct ViewportRes {
-        LLGL::Buffer* val = nullptr;
+        LLGL::Buffer *uniform = nullptr;
+        scenePipeline::PerViewport *pData = nullptr;
+        unsigned lightId = 0;
+        bool dirtyCamera = true;
+        bool dirtyLight = true;
     };
 
-    struct TransformRes {
-        LLGL::Buffer* val = nullptr;
+    struct ModelRes {
+        LLGL::Buffer *uniform = nullptr;
+        LLGL::ResourceHeap *heap = nullptr;
     };
 
-    struct SceneTag {};
+    struct SceneState {
+        LLGL::PipelineLayout *layout = nullptr;
+        LLGL::PipelineState *pipeline = nullptr;
+        LLGL::VertexFormat format;
+    };
+
+    struct PointLightRes {};
 }

@@ -39,15 +39,16 @@ namespace rise::systems::rendering {
         return {vertices, indices};
     }
 
-    void updateMesh(flecs::entity, RenderSystem & renderer, VertexFormat const& format,
-            Mesh &mesh,  Path const &path) {
+    void updateMesh(flecs::entity, CoreState &core, SceneState &scene, MeshRes &mesh,
+            Path const &path) {
         tinyobj::ObjReaderConfig readerConfig;
         readerConfig.triangulate = true;
         readerConfig.vertex_color = false;
+        auto file = core.path + "/models/" + path.file;
 
         tinyobj::ObjReader reader;
 
-        if (!reader.ParseFromFile(path.file, readerConfig)) {
+        if (!reader.ParseFromFile(file, readerConfig)) {
             if (!reader.Error().empty()) {
                 std::string err = "TinyObjReader: " + reader.Error();
                 throw std::runtime_error(err);
@@ -59,16 +60,19 @@ namespace rise::systems::rendering {
         }
 
         auto[vertices, indices] = loadMesh(reader.GetAttrib(), reader.GetShapes());
+        if(vertices.empty() || indices.empty()) {
+            throw std::runtime_error(std::string("Loading mesh error: ") + file);
+        }
 
         if(mesh.vertices) {
-            renderer->Release(*mesh.vertices);
+            core.renderer->Release(*mesh.vertices);
         }
         if(mesh.indices) {
-            renderer->Release(*mesh.indices);
+            core.renderer->Release(*mesh.indices);
         }
 
-        mesh.vertices = createVertexBuffer(renderer.get(), format, vertices);
-        mesh.indices = createIndexBuffer(renderer.get(), indices);
+        mesh.vertices = createVertexBuffer(core.renderer.get(), scene.format, vertices);
+        mesh.indices = createIndexBuffer(core.renderer.get(), indices);
         mesh.numIndices = static_cast<uint32_t>(indices.size());
     }
 }

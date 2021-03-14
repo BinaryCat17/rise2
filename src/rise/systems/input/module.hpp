@@ -1,11 +1,11 @@
 #pragma once
-#include <glm/glm.hpp>
-#include <flecs.h>
+#include "rise/util/ecs.hpp"
 
-struct SDL_Window;
+namespace rise::systems {
 
-namespace rise {
-    struct InputModule {
-        explicit InputModule(flecs::world& ecs);
+    struct Input  {
+        explicit Input(flecs::world& ecs);
+
+        struct Controllable {};
     };
 }

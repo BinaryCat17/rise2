@@ -5,39 +5,40 @@
 #include "pipeline.hpp"
 
 namespace rise::systems::rendering {
-    void updateResourceHeap(flecs::entity, RenderSystem &renderer, PipelineLayout layout,
-            ResourceHeap &heap, DiffuseTextureRes diffuse, MaterialRes material,
-            TransformRes transform, ViewportRes viewport, Sampler sampler) {
+    void updateResourceHeap(flecs::entity, CoreState &core, SceneState &scene, ModelRes &model,
+            DiffuseTextureRes diffuse, MaterialRes material, ViewportRes viewport) {
         LLGL::ResourceHeapDescriptor resourceHeapDesc;
-        resourceHeapDesc.pipelineLayout = layout.val;
-        resourceHeapDesc.resourceViews.emplace_back(viewport.val);
-        resourceHeapDesc.resourceViews.emplace_back(material.val);
-        resourceHeapDesc.resourceViews.emplace_back(transform.val);
-        resourceHeapDesc.resourceViews.emplace_back(sampler.val);
-        resourceHeapDesc.resourceViews.emplace_back(diffuse.e.get<Texture>()->val);
+        resourceHeapDesc.pipelineLayout = scene.layout;
+        resourceHeapDesc.resourceViews.emplace_back(viewport.uniform);
+        resourceHeapDesc.resourceViews.emplace_back(material.uniform);
+        resourceHeapDesc.resourceViews.emplace_back(model.uniform);
+        resourceHeapDesc.resourceViews.emplace_back(core.sampler);
+        resourceHeapDesc.resourceViews.emplace_back(checkGet<TextureRes>(diffuse.e).val);
 
-        if (heap.val) {
-            renderer->Release(*heap.val);
+        if (model.heap) {
+            core.renderer->Release(*model.heap);
         }
 
-        heap.val = renderer->CreateResourceHeap(resourceHeapDesc);
+        model.heap = core.renderer->CreateResourceHeap(resourceHeapDesc);
     }
 
-    void updateTransform(flecs::entity, RenderSystem &renderer, TransformRes transform,
+    void updateTransform(flecs::entity, CoreState &core, SceneState &scene, ModelRes &model,
             Position3D position, Rotation3D rotation, Scale3D scale) {
         glm::mat4 mat = glm::translate(glm::mat4(1), toGlm(position));
         float angle = std::max({rotation.x, rotation.y, rotation.z});
-        mat = glm::rotate(mat, glm::radians(angle), glm::normalize(toGlm(rotation)));
+        if(angle != 0) {
+            mat = glm::rotate(mat, glm::radians(angle), glm::normalize(toGlm(rotation)));
+        }
         mat = glm::scale(mat, toGlm(scale));
 
-        updateUniformBuffer(renderer.get(), transform.val, scenePipeline::PerObject{mat});
+        updateUniformBuffer(core.renderer.get(), model.uniform, scenePipeline::PerObject{mat});
     }
 
-    void updateMaterial(flecs::entity, RenderSystem &renderer, MaterialRes material,
+    void updateMaterial(flecs::entity, CoreState &core, SceneState &scene, MaterialRes material,
             DiffuseColor color) {
         scenePipeline::PerMaterial data;
         data.diffuseColor = glm::vec4(color.r, color.g, color.b, 1);
-        updateUniformBuffer(renderer.get(), material.val, data);
+        updateUniformBuffer(core.renderer.get(), material.uniform, data);
     }
 
     Position3D calcCameraOrigin(Position3D position, Rotation3D rotation) {
@@ -49,85 +50,89 @@ namespace rise::systems::rendering {
         return {position.x + direction.x, position.y + direction.y, position.z + direction.z};
     }
 
-    void updateViewport(flecs::entity e, RenderSystem &renderer, ViewportRes &viewport,
-            Extent2D size, Position3D position, Rotation3D rotation) {
-        auto data = mapUniformBuffer<scenePipeline::PerViewport>(renderer.get(), viewport.val);
-
-        Position3D origin = calcCameraOrigin(position, rotation);
-        data->view = glm::lookAt(toGlm(position), toGlm(origin), glm::vec3(0, 1, 0));
-        data->projection = glm::perspective(glm::radians(45.0f),
-                size.width / size.height, 0.1f, 100.0f);
-
-        size_t i = 0;
-        for (auto child : e.children()) {
-            for (auto row : child) {
-                if (i < scenePipeline::maxLightCount) {
-                    auto light = child.entity(row);
-                    if (light.has<Intensity>()) {
-                        data->pointLights[i].position = toGlm(*light.get<Position3D>());
-                        data->pointLights[i].diffuse = toGlm(*light.get<DiffuseColor>());
-                        data->pointLights[i].intensity = light.get<Intensity>()->factor;
-                        data->pointLights[i].distance = light.get<Distance>()->meters;
-                        ++i;
-                    }
-                }
-            }
-        }
-
-        for (; i != scenePipeline::maxLightCount; ++i) {
-            data->pointLights[i].intensity = 0;
-        }
-
-        renderer->UnmapBuffer(*viewport.val);
+    void dirtyViewportCamera(flecs::entity, ViewportRes& viewport) {
+        viewport.dirtyCamera = true;
     }
 
-    template<typename FnT>
-    void forViewports(flecs::entity e, FnT &&f) {
-        for (auto viewports : e.children()) {
-            for (auto i : viewports) {
-                auto viewportEntity = viewports.entity(i);
-                auto pos = viewportEntity.get<Position2D>();
-                auto extent = viewportEntity.get<Extent2D>();
-                if (pos && extent) {
-                    f(viewportEntity, *pos, *extent);
-                }
-            }
+    void dirtyViewportLight(flecs::entity, ViewportRes& viewport) {
+        viewport.dirtyLight = true;
+    }
+
+    void updateRelative(flecs::entity, CoreState& core, Relative val) {
+        SDL_SetRelativeMouseMode(static_cast<SDL_bool>(val.enabled));
+    }
+
+    void prepareViewport(flecs::entity, CoreState &core, ViewportRes &viewport) {
+        if (viewport.dirtyCamera || viewport.dirtyLight) {
+            viewport.lightId = 0;
+            viewport.pData = mapUniformBuffer<scenePipeline::PerViewport>(core.renderer.get(),
+                    viewport.uniform);
         }
     }
 
-    template<typename FnT>
-    void forModels(flecs::entity e, FnT &&f) {
-        for (auto models : e.children()) {
-            for (auto j : models) {
-                auto modelEntity = models.entity(j);
-                auto heap = modelEntity.get_mut<ResourceHeap>();
-                auto mesh = modelEntity.get_mut<Mesh>();
-                if (mesh && heap) {
-                    f(modelEntity, *heap, *mesh);
-                }
-            }
+    void updateViewportCamera(flecs::entity, ViewportRes &viewport, Extent2D size,
+            Position3D position, Rotation3D rotation) {
+        if(viewport.dirtyCamera) {
+            Position3D origin = calcCameraOrigin(position, rotation);
+            auto data = viewport.pData;
+            data->view = glm::lookAt(toGlm(position), toGlm(origin), glm::vec3(0, 1, 0));
+            data->projection = glm::perspective(glm::radians(45.0f),
+                    size.width / size.height, 0.1f, 100.0f);
         }
     }
 
-    void renderScene(flecs::entity e, RenderSystem &renderer, CommandBuffer cmdBuf,
-            Pipeline pipeline, Extent2D resolution) {
-        cmdBuf.val->SetPipelineState(*pipeline.val);
+    void updateViewportLight(flecs::entity, ViewportRes &viewport, Position3D position,
+            DiffuseColor color, Intensity intensity, Distance distance) {
+        if (viewport.dirtyLight && viewport.lightId < scenePipeline::maxLightCount) {
+            auto &light = viewport.pData->pointLights[viewport.lightId];
+            light.position = toGlm(position);
+            light.diffuse = toGlm(color);
+            light.intensity = intensity.factor;
+            light.distance = distance.meters;
+            ++viewport.lightId;
+        }
+    }
 
-        forViewports(e, [cmdBuf, resolution](flecs::entity ve,
-                Position2D pos, Extent2D extent) {
-            LLGL::Viewport viewport{pos.x, pos.y, extent.width, extent.height};
+    void finishViewport(flecs::entity, CoreState &core, ViewportRes &viewport) {
+        if (viewport.dirtyLight) {
+            for (; viewport.lightId != scenePipeline::maxLightCount; ++viewport.lightId) {
+                viewport.pData->pointLights[viewport.lightId].intensity = 0;
+            }
+        }
 
-            assert(viewport.x + viewport.width <= resolution.width ||
-                    viewport.y + viewport.height <= resolution.height);
+        if (viewport.dirtyCamera || viewport.dirtyLight) {
+            core.renderer->UnmapBuffer(*viewport.uniform);
+            viewport.dirtyLight = false;
+            viewport.dirtyCamera = false;
+        }
+    }
 
-            cmdBuf.val->SetViewport(viewport);
+    void renderScene(flecs::entity, CoreState &core, SceneState &scene, Position2D position,
+            Extent2D size, MeshRes mesh, ModelRes model) {
 
-            forModels(ve, [cmdBuf](flecs::entity, ResourceHeap heap, Mesh mesh) {
-                cmdBuf.val->SetResourceHeap(*heap.val);
-                cmdBuf.val->SetVertexBuffer(*mesh.vertices);
-                cmdBuf.val->SetIndexBuffer(*mesh.indices);
-                cmdBuf.val->DrawIndexed(mesh.numIndices, 0);
-            });
-        });
+        auto cmdBuf = core.cmdBuf;
+        cmdBuf->SetPipelineState(*scene.pipeline);
+
+        LLGL::Viewport viewport{position.x, position.y, size.width, size.height};
+        cmdBuf->SetViewport(viewport);
+
+        cmdBuf->SetResourceHeap(*model.heap);
+        cmdBuf->SetVertexBuffer(*mesh.vertices);
+        cmdBuf->SetIndexBuffer(*mesh.indices);
+        cmdBuf->DrawIndexed(mesh.numIndices, 0);
+    }
+
+    void initSceneState(flecs::entity e) {
+        auto &core = checkGet<CoreState>(e);
+        SceneState scene;
+        scene.format.AppendAttribute({"position", LLGL::Format::RGB32Float});
+        scene.format.AppendAttribute({"normal", LLGL::Format::RGB32Float});
+        scene.format.AppendAttribute({"texCoord", LLGL::Format::RG32Float});
+
+        scene.layout = scenePipeline::createLayout(core.renderer.get());
+        auto program = createShaderProgram(core.renderer.get(),
+                core.path + "/shaders/scene", scene.format);
+        scene.pipeline = scenePipeline::createPipeline(core.renderer.get(), scene.layout, program);
+        e.set<SceneState>(scene);
     }
 }

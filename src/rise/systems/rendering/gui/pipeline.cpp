@@ -47,20 +47,3 @@ namespace rise::systems::rendering::guiPipeline {
         return renderer->CreatePipelineState(pipelineDesc);
     }
 }
-
-namespace rise::systems::rendering {
-    void initGuiPipeline(flecs::entity e) {
-        auto& renderer = checkGet<RenderSystem>(e);
-        VertexFormat format;
-        format.AppendAttribute(LLGL::VertexAttribute{"inPos", LLGL::Format::RG32Float});
-        format.AppendAttribute(LLGL::VertexAttribute{"inUV", LLGL::Format::RG32Float});
-        format.AppendAttribute(LLGL::VertexAttribute{"inColor", LLGL::Format::RGBA8UNorm});
-
-        auto layout = guiPipeline::createLayout(renderer.get());
-        e.set(PipelineLayout{layout});
-        auto program = createShaderProgram(renderer.get(),
-                std::string(checkGet<Path>(e).file) + "/shaders/gui", format);
-        e.set(std::move(format));
-        e.set(Pipeline{guiPipeline::createPipeline(renderer.get(), layout, program)});
-    }
-}

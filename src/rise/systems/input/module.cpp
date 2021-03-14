@@ -1,24 +1,35 @@
 #include "module.hpp"
-#include "platform.hpp"
+#include "components/rendering/module.hpp"
+#include "components/rendering/glm.hpp"
+#include "imgui.h"
+#include <SDL.h>
+#include <iostream>
 
-namespace rise {
-    InputModule::InputModule(flecs::world &ecs) {
-
-    }
+namespace rise::systems {
+    using namespace components::rendering;
 
     struct InputState {
-        bool relative = false;
-        SDL_Window *window = nullptr;
+        bool lastRelative = true;
     };
 
-    void move(glm::vec3 &position, glm::vec3 direction, float speed) {
-        auto time = static_cast<float>(events::pullTime().count());
-        position += speed * direction * (time / 17.f);
+    void move(Position3D &position, glm::vec3 direction, float speed, float time) {
+        glm::vec3 pos = toGlm(position);
+        pos += speed * direction * time * 1000.f / 17.f;
+        position = fromGlmPosition3D(pos);
     }
 
-    void processKeyboard(InputState &camera, glm::vec3 &position, glm::vec3 rotation) {
-        glm::vec3 origin = calcOrigin(position, rotation);
-        glm::vec3 direction = glm::normalize(position - origin);
+    glm::vec3 calcOrigin(glm::vec3 position, glm::vec3 rotation) {
+        glm::vec3 direction;
+        direction.x = std::cos(glm::radians(rotation.x)) * std::cos(glm::radians(rotation.z)) * 3;
+        direction.y = std::sin(glm::radians(rotation.z)) * 3;
+        direction.z = std::sin(glm::radians(rotation.x)) * std::cos(glm::radians(rotation.z)) * 3;
+
+        return {position.x + direction.x, position.y + direction.y, position.z + direction.z};
+    }
+
+    void processKeyboard(flecs::entity e, Position3D position, Rotation3D rotation) {
+        glm::vec3 origin = calcOrigin(toGlm(position), toGlm(rotation));
+        glm::vec3 direction = glm::normalize(toGlm(position) - origin);
 
         glm::vec3 right = glm::normalize(glm::cross({0.0f, 1.0f, 0.0f}, direction));
         glm::vec3 up = glm::cross(direction, right);
@@ -26,87 +37,67 @@ namespace rise {
 
         float const speed = 0.05f;
 
-        if (events::isDown(SDLK_f)) {
-            camera.relative = !camera.relative;
-            events::relativeMode(camera.relative);
+        if (ImGui::IsKeyPressed(SDL_SCANCODE_F)) {
+            e.patch<Relative>([](Relative &val) { val.enabled = !val.enabled; });
         }
 
-        if (events::isPressed(SDLK_d)) {
-            move(position, right, speed);
+        if (ImGui::IsKeyDown(SDL_SCANCODE_D)) {
+            move(position, right, speed, e.delta_time());
         }
 
-        if (events::isPressed(SDLK_a)) {
-            move(position, -right, speed);
+        if (ImGui::IsKeyDown(SDL_SCANCODE_A)) {
+            move(position, -right, speed, e.delta_time());
         }
 
-        if (events::isPressed(SDLK_w)) {
-            move(position, front, speed);
+        if (ImGui::IsKeyDown(SDL_SCANCODE_W)) {
+            move(position, front, speed, e.delta_time());
         }
 
-        if (events::isPressed(SDLK_s)) {
-            move(position, -front, speed);
+        if (ImGui::IsKeyDown(SDL_SCANCODE_S)) {
+            move(position, -front, speed, e.delta_time());
         }
 
-        if (events::isPressed(SDLK_e)) {
-            move(position, up, speed);
+        if (ImGui::IsKeyDown(SDL_SCANCODE_E)) {
+            move(position, up, speed, e.delta_time());
         }
 
-        if (events::isPressed(SDLK_q)) {
-            move(position, -up, speed);
+        if (ImGui::IsKeyDown(SDL_SCANCODE_Q)) {
+            move(position, -up, speed, e.delta_time());
         }
+
+        e.set<Position3D>(position);
     }
 
-    void processMouse(InputState &state, glm::vec3 &rotation) {
-        if (state.relative) {
-            float const speed = 0.5f;
-            auto offset = events::mouseOffset() * speed;
-            rotation.x += offset.x;
-            rotation.z -= offset.y;
+    void processMouse(flecs::entity e, Relative r, InputState &state, Rotation3D rotation) {
+        float const speed = 0.05f;
+
+        int x, y;
+        SDL_GetRelativeMouseState(&x, &y);
+
+        if (r.enabled && state.lastRelative) {
+            rotation.x += static_cast<float>(x) * speed;
+            rotation.z -= static_cast<float>(y) * speed;
         }
+
+        state.lastRelative = r.enabled;
+
+        e.set<Rotation3D>(rotation);
     }
 
-    void InputSystem::init(entt::registry &r) {
-        auto &parameters = r.ctx_or_set<Parameters>();
-        auto &state = r.set<InputState>();
-        state.window = createGameWindow(parameters.title,
-                static_cast<unsigned>(parameters.windowSize.x),
-                static_cast<unsigned>(parameters.windowSize.y),
-                static_cast<unsigned>(parameters.windowPos.x),
-                static_cast<unsigned>(parameters.windowPos.y));
+    void initInputState(flecs::entity e) {
+        e.set<InputState>({});
     }
 
-    bool InputSystem::update(entt::registry &r) {
-        auto &state = r.ctx<InputState>();
-        auto camera = RenderSystem::getActiveCamera(r);
+    Input::Input(flecs::world &ecs) {
+        ecs.module<Input>("Input");
+        ecs.component<Controllable>("Controllable");
 
-        auto &position = r.get<Position>(camera);
-        auto &rotation = r.get<Rotation>(camera);
+        ecs.system<>("addInputState", "Controllable").kind(flecs::OnAdd).each(initInputState);
 
-        glm::vec3 origin = calcOrigin(position.val, rotation.val);
+        ecs.system<Position3D, const Rotation3D>("processKeyboard", "Controllable").
+                kind(flecs::PostLoad).each(processKeyboard);
 
-        processKeyboard(state, position.val, rotation.val);
-        processMouse(state, rotation.val);
-
-        r.patch<Position>(camera, [](auto...) {});
-        r.patch<Rotation>(camera, [](auto...) {});
-
-        return events::pull(state.window);
+        ecs.system<const Relative, InputState, Rotation3D>("processMouse", "Controllable").
+                kind(flecs::PostLoad).each(processMouse);
     }
-
-    void InputSystem::destroy(entt::registry &r) {
-
-    }
-
-    void InputSystem::setRelativeMode(entt::registry &r, bool enable) {
-        auto &state = r.ctx<InputState>();
-        state.relative = enable;
-        events::relativeMode(enable);
-    }
-
-    SDL_Window *InputSystem::getWindow(entt::registry &r) {
-        auto &state = r.ctx<InputState>();
-        return state.window;
-    }
-
-
 }

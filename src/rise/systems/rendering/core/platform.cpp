@@ -10,7 +10,7 @@
 #include <SDL_syswm.h>
 #include <backends/imgui_impl_sdl.h>
 
-namespace rise {
+namespace rise::systems::rendering {
     class Surface : public LLGL::Surface {
     public:
         explicit Surface(SDL_Window *sdlWindow) : window(sdlWindow) {}
@@ -84,14 +84,16 @@ namespace rise {
         return context;
     }
 
-    bool pullInputEvents(SDL_Window *window) {
+    bool pullInputEvents(flecs::entity e, CoreState& core) {
         SDL_Event event;
 
         while (SDL_PollEvent(&event)) {
             ImGui_ImplSDL2_ProcessEvent(&event);
+
             switch (event.type) {
                 case SDL_WINDOWEVENT:
                     if (event.window.event == SDL_WINDOWEVENT_CLOSE) {
+                        ecs_quit(e.world().c_ptr());
                         return false;
                     }
                     break;
@@ -100,7 +102,7 @@ namespace rise {
             }
         }
 
-        ImGui_ImplSDL2_NewFrame(window);
+        ImGui_ImplSDL2_NewFrame(core.window);
 
         return true;
     }

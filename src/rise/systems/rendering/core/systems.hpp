@@ -8,11 +8,13 @@
 namespace rise::systems::rendering {
     using namespace components::rendering;
 
-    void prepareRender(flecs::entity, CommandBuffer cmdBuf, Context context);
+    void prepareRender(flecs::entity, CoreState& core);
 
-    void submitRender(flecs::entity, CommandBuffer cmdBuf, Queue queue, Context context);
+    void submitRender(flecs::entity, CoreState& core);
 
-    void updateWindowSize(flecs::entity, Window window, Context context, Extent2D size);
+    void updateWindowSize(flecs::entity, CoreState& core, Extent2D size);
 
     void initCoreState(flecs::entity e);
+
+    void updateRelative(flecs::entity, CoreState& core, Relative val);
 }

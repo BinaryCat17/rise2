@@ -2,83 +2,88 @@
 
 #include "rise/util/ecs.hpp"
 
-ECS_STRUCT(RiseRenderingPosition2D, {
+ECS_STRUCT(RPosition2D, {
     float x;
     float y;
 })
 
-ECS_STRUCT(RiseRenderingRotation2D, {
+ECS_STRUCT(RRotation2D, {
     float x;
     float y;
 })
 
-ECS_STRUCT(RiseRenderingScale2D, {
+ECS_STRUCT(RScale2D, {
     float x;
     float y;
 })
 
-ECS_STRUCT(RiseRenderingExtent2D, {
+ECS_STRUCT(RExtent2D, {
     float width;
     float height;
 })
 
-ECS_STRUCT(RiseRenderingPosition3D, {
+ECS_STRUCT(RPosition3D, {
     float x;
     float y;
     float z;
 })
 
-ECS_STRUCT(RiseRenderingRotation3D, {
+ECS_STRUCT(RRotation3D, {
     float x;
     float y;
     float z;
 })
 
-ECS_STRUCT(RiseRenderingScale3D, {
+ECS_STRUCT(RScale3D, {
     float x;
     float y;
     float z;
 })
 
-ECS_STRUCT(RiseRenderingExtent3D, {
+ECS_STRUCT(RExtent3D, {
     float width;
     float height;
     float depth;
 })
 
-ECS_STRUCT(RiseRenderingDiffuseColor, {
+ECS_STRUCT(RDiffuseColor, {
     float r;
     float g;
     float b;
 })
 
-ECS_STRUCT(RiseRenderingDistance, {
+ECS_STRUCT(RDistance, {
     float meters;
 })
 
-ECS_STRUCT(RiseRenderingIntensity, {
+ECS_STRUCT(RIntensity, {
     float factor;
 })
 
-ECS_STRUCT(RiseRenderingPath, {
+ECS_STRUCT(RPath, {
     flecs::string file;
+})
+
+ECS_STRUCT(RRelative, {
+    bool enabled;
 })
 
 namespace rise::components {
     namespace rendering {
         // components
-        using Extent2D = RiseRenderingExtent2D;
-        using Position2D = RiseRenderingPosition2D;
-        using Rotation2D = RiseRenderingRotation2D;
-        using Scale2D = RiseRenderingScale2D;
-        using Extent3D = RiseRenderingExtent3D;
-        using Position3D = RiseRenderingPosition3D;
-        using Rotation3D = RiseRenderingRotation3D;
-        using Scale3D = RiseRenderingScale3D;
-        using DiffuseColor = RiseRenderingDiffuseColor;
-        using Distance = RiseRenderingDistance;
-        using Intensity = RiseRenderingIntensity;
-        using Path = RiseRenderingPath;
+        using Extent2D = RExtent2D;
+        using Position2D = RPosition2D;
+        using Rotation2D = RRotation2D;
+        using Scale2D = RScale2D;
+        using Extent3D = RExtent3D;
+        using Position3D = RPosition3D;
+        using Rotation3D = RRotation3D;
+        using Scale3D = RScale3D;
+        using DiffuseColor = RDiffuseColor;
+        using Distance = RDistance;
+        using Intensity = RIntensity;
+        using Path = RPath;
+        using Relative = RRelative;
     }
 
     struct Rendering {

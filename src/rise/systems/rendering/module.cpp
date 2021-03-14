@@ -3,199 +3,190 @@
 #include "scene/systems.hpp"
 #include "scene/pipeline.hpp"
 #include "gui/systems.hpp"
-#include "gui/pipeline.hpp"
 #include "core/utils.hpp"
+#include "core/platform.hpp"
 
 namespace rise::systems {
     using namespace rendering;
 
-    struct PrefabsT {
-        flecs::type mesh;
-        flecs::type texture;
-        flecs::type material;
-        flecs::type model;
-        flecs::type pointLight;
-        flecs::type viewport;
-        flecs::type application;
-    };
-    using Prefabs = std::shared_ptr<PrefabsT>;
-
-    struct RenderSystems {
-        flecs::entity gui;
-        flecs::entity scene;
+    struct Defaults {
+        flecs::entity mesh;
+        flecs::entity texture;
+        flecs::entity material;
     };
 
     Rendering::Rendering(flecs::world &ecs) {
         // components
-        ecs.module<Rendering>("rise.systems.rendering");
-        ecs.component<RenderSystem>("RenderSystem");
-        ecs.component<Window>("Window");
-        ecs.component<Context>("Context");
-        ecs.component<CommandBuffer>("Queue");
-        ecs.component<Sampler>("Sampler");
-        ecs.component<ResourceHeap>("ResourceHeap");
-        ecs.component<Texture>("Texture");
-        ecs.component<PipelineLayout>("PipelineLayout");
-        ecs.component<Pipeline>("Pipeline");
-        ecs.component<VertexFormat>("VertexFormat");
-        ecs.component<Mesh>("MeshRes");
-        ecs.component<CoreTag>("CoreTag");
-        ecs.component<GuiParameters>("GuiParameters");
-        ecs.component<GuiTag>("GuiTag");
+        ecs.import<components::Rendering>();
+        ecs.module<Rendering>("rise::systems::rendering");
+        ecs.component<TextureRes>("TextureRes");
+        ecs.component<MeshRes>("MeshRes");
         ecs.component<DiffuseTextureRes>("DiffuseTextureRes");
         ecs.component<MaterialRes>("MaterialRes");
         ecs.component<ViewportRes>("ViewportRes");
-        ecs.component<TransformRes>("TransformRes");
-        ecs.component<SceneTag>("SceneTag");
+        ecs.component<ModelRes>("ModelRes");
+        ecs.component<CoreState>("CoreState");
+        ecs.component<GuiState>("GuiState");
+        ecs.component<SceneState>("SceneState");
 
         // observers
-        ecs.system<RenderSystem, const VertexFormat, Mesh, const Path>("updateMesh").
+        ecs.system<CoreState, SceneState, MeshRes, const Path>("updateMesh", "OWNED:MeshRes").
                 kind(flecs::OnSet).each(updateMesh);
 
-        ecs.system<RenderSystem, Texture, const Path>("updateTexture").kind(flecs::OnSet).
-                each(updateTexture);
+        ecs.system<CoreState, TextureRes, const Path>("updateTexture", "OWNED:TextureRes").
+                kind(flecs::OnSet).each(updateTexture);
 
-        ecs.system<Window, Context, const Extent2D>("updateWindowSize").kind(flecs::OnSet).
-                each(updateWindowSize);
+        ecs.system<CoreState, const Extent2D>("updateWindowSize", "OWNED:CoreState").
+                kind(flecs::OnSet).each(updateWindowSize);
 
-        ecs.system<RenderSystem, const PipelineLayout, ResourceHeap, const DiffuseTextureRes,
-                const MaterialRes, const TransformRes, const ViewportRes, const Sampler>(
-                "updateResourceHeap").kind(flecs::OnSet).each(updateResourceHeap);
+        ecs.system<CoreState, SceneState, ModelRes, const DiffuseTextureRes, const MaterialRes,
+                const ViewportRes>("updateResourceHeap", "OWNED:ModelRes").
+                kind(flecs::OnSet).each(updateResourceHeap);
 
-        ecs.system<RenderSystem, const TransformRes, const Position3D, const Rotation3D,
-                const Scale3D>("updateTransform").kind(flecs::OnSet).each(updateTransform);
+        ecs.system<CoreState, SceneState, ModelRes, const Position3D, const Rotation3D,
+                const Scale3D>("updateTransform", "OWNED:ModelRes").kind(flecs::OnSet).each(
+                updateTransform);
 
-        ecs.system<RenderSystem, const MaterialRes, const DiffuseColor>("updateMaterial").
-                kind(flecs::OnSet).each(updateMaterial);
+        ecs.system<CoreState, SceneState, MaterialRes, const DiffuseColor>("updateMaterial",
+                "OWNED:MaterialRes").kind(flecs::OnSet).each(updateMaterial);
 
-        ecs.system<RenderSystem, ViewportRes, const Extent2D, const Position3D,
-                const Rotation3D>("updateViewport").kind(flecs::OnSet).each(updateViewport);
+        ecs.system<ViewportRes>("dirtyViewportCamera",
+                "OWNED:ViewportRes,"
+                "[in] ANY:rise.components.rendering.RPosition3D,"
+                "[in] ANY:rise.components.rendering.RExtent2D,"
+                "[in] ANY:rise.components.rendering.RRotation3D").
+                kind(flecs::OnSet).each(dirtyViewportCamera);
+
+        ecs.system<ViewportRes>("dirtyViewportLight",
+                "OWNED:ViewportRes,"
+                "[in] rise.components.rendering.RPosition3D,"
+                "[in] rise.components.rendering.RDiffuseColor,"
+                "[in] rise.components.rendering.RIntensity,"
+                "[in] rise.components.rendering.RDistance").
+                kind(flecs::OnSet).each(dirtyViewportLight);
+
+        auto e = ecs.entity().add<Relative>();
+        std::cout << e.type().str() << std::endl;
+
+        ecs.system<CoreState, const Relative>("updateRelative",
+                "rise.components.rendering.RRelative").kind(flecs::OnSet).each(updateRelative);
+
+        // on load
+
+        ecs.system<CoreState>("pullInputEvents", "OWNED:CoreState").kind(flecs::OnLoad).each(
+                pullInputEvents);
 
         // pre store
 
-        ecs.system<GuiContext, RenderSystem, const GuiParameters, Mesh, const VertexFormat>(
-                "updateGuiResources", "GuiTag").kind(flecs::PreStore).each(updateResources);
+        ecs.system<CoreState, ViewportRes>("prepareViewport", "OWNED:ViewportRes").
+                kind(flecs::PreStore).each(prepareViewport);
 
-        ecs.system<CommandBuffer, Context>("prepareRender", "CoreTag").kind(flecs::PreStore).
+        ecs.system<ViewportRes, const Extent2D, const Position3D, const Rotation3D>(
+                        "updateViewportCamera", "OWNED:ViewportRes").kind(flecs::PreStore)
+                .each(updateViewportCamera);
+
+        ecs.system<ViewportRes, const Position3D, const DiffuseColor, const Intensity,
+                const Distance>("updateViewportLight", "OWNED:ViewportRes").
+                kind(flecs::PreStore).each(updateViewportLight);
+
+        ecs.system<CoreState, ViewportRes>("finishViewport", "OWNED:ViewportRes").
+                kind(flecs::PreStore).each(finishViewport);
+
+        ecs.system<CoreState>("prepareRender", "OWNED:CoreState").kind(flecs::PreStore).
                 each(prepareRender);
 
-        ecs.system<RenderSystem, CommandBuffer, Pipeline, Extent2D>("renderScene", "SceneTag").
-                kind(flecs::PreStore).each(renderScene);
+        ecs.system<CoreState, SceneState, const Position2D, const Extent2D, const MeshRes,
+                const ModelRes>("renderScene").kind(flecs::PreStore).
+                each(renderScene);
 
-        ecs.system<GuiContext, Window>("prepareImgui", "GuiTag").kind(flecs::PreStore).
-                each(prepareImgui);
+        ecs.system<CoreState, GuiState, GuiContext>("prepareImgui", "OWNED:CoreState").
+                kind(flecs::PreStore).each(prepareImgui);
 
         // on store
 
-        ecs.system<CommandBuffer, Queue, Context>("submitRender", "CoreTag").kind(flecs::OnStore).
+        ecs.system<GuiContext>("processImGui", "OWNED:CoreState").kind(flecs::OnStore).each(
+                processImGui);
+
+        ecs.system<CoreState, GuiState, GuiContext>("updateGuiResources", "OWNED:CoreState").
+                kind(flecs::OnStore).each(updateResources);
+
+        ecs.system<CoreState, GuiState, GuiContext, const Extent2D>("renderGui",
+                "OWNED:CoreState").kind(flecs::OnStore).each(renderGui);
+
+        ecs.system<CoreState>("submitRender", "OWNED:CoreState").kind(flecs::OnStore).
                 each(submitRender);
-        ecs.system<GuiContext>("processImGui", "GuiTag").kind(flecs::OnStore).each(processImGui);
-        ecs.system<GuiContext, const Pipeline, const Extent2D, RenderSystem, const CommandBuffer,
-                const Mesh, const ResourceHeap>("renderGui", "GuiTag").kind(flecs::OnStore).
-                each(renderGui);
     }
 
     void Rendering::regApplication(flecs::entity e) {
         auto ecs = e.world();
 
-        auto applicationPrefab = ecs.prefab("ApplicationPrefab").
-                set<Extent2D>({800.0f, 600.0f}).
-                set<Path>({"./"});
-
-        e.add_instanceof(applicationPrefab);
-        e.add<CoreTag>();
-
         initCoreState(e);
+        initGuiState(e);
+        initSceneState(e);
 
-        RenderSystems systems{
-                ecs.entity().add_instanceof(e).add<GuiTag>(),
-                ecs.entity().add_instanceof(e).add<SceneTag>()
-        };
-        initGuiPipeline(systems.gui);
-        initGui(systems.gui);
+        Defaults defaults;
 
-        initScenePipeline(systems.scene);
+        defaults.texture = ecs.entity().set<Path>({"paper.jpg"});
+        regTexture(e, defaults.texture);
+        defaults.mesh = ecs.entity().set<Path>({"cube.obj"});
+        regMesh(e, defaults.mesh);
+        defaults.material = ecs.entity().set<DiffuseColor>({1.0f, 1.0f, 1.0f});
+        regMaterial(e, defaults.material);
 
-        e.set<RenderSystems>(systems);
-
-        auto meshPrefab = ecs.prefab("MeshPrefab").
-                set<Path>({"cube.obj"});
-        regMesh(e, meshPrefab);
-        auto texturePrefab = ecs.prefab("TexturePrefab").
-                set<Path>({"paper.jpg"});
-        regTexture(e, texturePrefab);
-        auto materialPrefab = ecs.prefab("MaterialPrefab").
-                set<DiffuseColor>({1.0f, 1.0f, 1.0f});
-        regMaterial(e, materialPrefab);
-        auto modelPrefab = ecs.prefab("ModelPrefab").
-                set<Position3D>({0.0f, 0.0f, 0.0f}).
-                set<Rotation3D>({0.0f, 0.0f, 0.0f}).
-                set<Scale3D>({1.0f, 1.0f, 1.0f});
-        auto pointLightPrefab = ecs.prefab("PointLightPrefab").
-                set<Position3D>({0.0f, 0.0f, 0.0f}).
-                set<Intensity>({1.f}).
-                set<DiffuseColor>({1.0f, 1.0f, 1.0f}).
-                set<Distance>({5.f});
-        auto viewportPrefab = ecs.prefab("ViewportPrefab").
-                set<Position3D>({0.0f, 0.0f, 0.0f}).
-                set<Rotation3D>({0.0f, 0.0f, 0.0f}).
-                set<Position2D>({0.0f, 0.0f}).
-                set<Extent2D>({800.0f, 600.0f});
-
-        auto prefabs = std::make_shared<PrefabsT>(PrefabsT{
-                ecs.type("MeshBase").add_instanceof(meshPrefab).add<Path>(),
-                ecs.type("TextureBase").add_instanceof(texturePrefab).add<Path>(),
-                ecs.type("MaterialBase").add_instanceof(materialPrefab).add<DiffuseColor>(),
-                ecs.type("ModelBase").add_instanceof(modelPrefab).
-                        add<Position3D, Rotation3D, Scale3D>(),
-                ecs.type("PointLightBase").add_instanceof(pointLightPrefab).
-                        add<Position3D>().add<Intensity>().add<DiffuseColor>().add<Distance>(),
-                ecs.type("ViewportBase").add_instanceof(viewportPrefab).
-                        add<Position3D>().add<Rotation3D>().add<Position2D>().add<Extent2D>(),
-                ecs.type("ApplicationBase").add_instanceof(applicationPrefab).
-                        add<Extent2D>().add<Path>()
-        });
-
-        prefabs->model.add(prefabs->mesh).add(prefabs->texture);
-        e.set<Prefabs>(prefabs);
+        e.set<Defaults>(defaults);
+        e.set<Relative>(Relative{false});
     }
 
     void Rendering::regMesh(flecs::entity app, flecs::entity e) {
-        auto& prefabs = checkGet<Prefabs>(app);
-        e.add(prefabs->mesh).add_instanceof(app.get<RenderSystems>()->scene);
-        e.add<Mesh>();
+        assert(e.has<Path>());
+        if (!e.has_instanceof(app)) e.add_instanceof(app);
+        e.set<MeshRes>({});
     }
 
     void Rendering::regTexture(flecs::entity app, flecs::entity e) {
-        auto& prefabs = checkGet<Prefabs>(app);
-        e.add(prefabs->texture).add_instanceof(app.get<RenderSystems>()->scene);
-        e.add<Texture>();
+        assert(e.has<Path>());
+        if (!e.has_instanceof(app)) e.add_instanceof(app);
+        e.set<TextureRes>({});
     }
 
     void Rendering::regMaterial(flecs::entity app, flecs::entity e) {
-        auto& prefabs = checkGet<Prefabs>(app);
-        auto renderer = *app.get<RenderSystem>();
-        e.add(prefabs->material).add_instanceof(app.get<RenderSystems>()->scene);
+        auto renderer = app.get<CoreState>()->renderer;
+        if (!e.has<DiffuseColor>()) e.set<DiffuseColor>({1.0, 1.0f, 1.0f});
+        if (!e.has_instanceof(app)) e.add_instanceof(app);
         e.set<MaterialRes>({createUniformBuffer<scenePipeline::PerMaterial>(renderer.get())});
     }
 
     void Rendering::regModel(flecs::entity app, flecs::entity e) {
-        auto& prefabs = checkGet<Prefabs>(app);
-        auto renderer = *app.get<RenderSystem>();
-        e.add(prefabs->model).add_instanceof(app.get<RenderSystems>()->scene);
-        e.set<TransformRes>({createUniformBuffer<scenePipeline::PerObject>(renderer.get())});
-        e.add<ResourceHeap>();
+        auto renderer = app.get<CoreState>()->renderer;
+        auto &prefabs = checkGet<Defaults>(app);
+
+        if (!e.has<Position3D>()) e.set<Position3D>({0.0f, 0.0f, 0.0f});
+        if (!e.has<Rotation3D>()) e.set<Rotation3D>({0.0f, 0.0f, 0.0f});
+        if (!e.has<Scale3D>()) e.set<Scale3D>({1.0f, 1.0f, 1.0f});
+        if (!e.has<MaterialRes>()) e.add_instanceof(prefabs.material);
+        if (!e.has<MeshRes>()) e.add_instanceof(prefabs.mesh);
+        if (!e.has<DiffuseTextureRes>()) e.set<DiffuseTextureRes>({prefabs.texture});
+
+        if (!e.has_instanceof(app)) e.add_instanceof(app);
+        e.set<ModelRes>({createUniformBuffer<scenePipeline::PerObject>(renderer.get())});
     }
 
     void Rendering::regPointLight(flecs::entity app, flecs::entity e) {
-        auto& prefabs = checkGet<Prefabs>(app);
-        e.add(prefabs->pointLight).add_instanceof(app.get<RenderSystems>()->scene);
+        if (!e.has<Position3D>()) e.set<Position3D>({0.0f, 0.0f, 0.0f});
+        if (!e.has<Intensity>()) e.set<Intensity>({1.0f});
+        if (!e.has<DiffuseColor>()) e.set<DiffuseColor>({1.0f, 1.0f, 1.0f});
+        if (!e.has<Distance>()) e.set<Distance>({5.0f});
+        if (!e.has_instanceof(app)) e.add_instanceof(app);
     }
 
     void Rendering::regViewport(flecs::entity app, flecs::entity e) {
-        auto renderer = *app.get<RenderSystem>();
-        auto& prefabs = checkGet<Prefabs>(app);
-        e.add(prefabs->viewport).add_instanceof(app.get<RenderSystems>()->scene);
-        e.set<TransformRes>({createUniformBuffer<scenePipeline::PerViewport>(renderer.get())});
+        auto renderer = app.get<CoreState>()->renderer;
+        if (!e.has<Position3D>()) e.set<Position3D>({0.0f, 0.0f, 0.0f});
+        if (!e.has<Rotation3D>()) e.set<Rotation3D>({0.0f, 0.0f, 0.0f});
+        if (!e.has<Position2D>()) e.set<Position2D>({0.0f, 0.0f});
+        if (!e.has<Extent2D>()) e.set<Extent2D>(checkGet<Extent2D>(app));
+
+        if (!e.has_instanceof(app)) e.add_instanceof(app);
+        e.set<ViewportRes>({createUniformBuffer<scenePipeline::PerViewport>(renderer.get())});
     }
 }

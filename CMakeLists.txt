@@ -53,10 +53,10 @@ target_include_directories(imgui PUBLIC submodules/ImGuizmo)
 find_package(Threads REQUIRED)
 
 add_library(rise
+        src/rise/util/flecs_os.cpp
         src/rise/components/rendering/module.cpp
         src/rise/components/rendering/glm.hpp
         src/rise/systems/rendering/module.cpp
-        src/rise/util/flecs_os.cpp
         src/rise/systems/rendering/core/systems.cpp
         src/rise/systems/rendering/core/texture.cpp
         src/rise/systems/rendering/core/platform.cpp
@@ -65,7 +65,8 @@ add_library(rise
         src/rise/systems/rendering/gui/pipeline.cpp
         src/rise/systems/rendering/scene/mesh.cpp
         src/rise/systems/rendering/scene/pipeline.cpp
-        src/rise/systems/rendering/scene/systems.cpp)
+        src/rise/systems/rendering/scene/systems.cpp
+        src/rise/systems/input/module.cpp)
 
 target_include_directories(rise PUBLIC src)
 target_include_directories(rise PRIVATE src/rise)

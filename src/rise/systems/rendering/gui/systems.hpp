@@ -9,15 +9,14 @@
 namespace rise::systems::rendering {
     using namespace components::rendering;
 
-    void initGui(flecs::entity e);
+    void initGuiState(flecs::entity e);
 
-    void updateResources(flecs::entity, GuiContext context, RenderSystem &renderer,
-            GuiParameters shaderData, Mesh &mesh, VertexFormat const &format);
+    void updateResources(flecs::entity, CoreState &core, GuiState &gui, GuiContext context);
 
-    void prepareImgui(flecs::entity, GuiContext context, Window window);
+    void prepareImgui(flecs::entity, CoreState &core, GuiState &gui, GuiContext context);
 
     void processImGui(flecs::entity, GuiContext context);
 
-    void renderGui(flecs::entity, GuiContext context, Pipeline pipeline, Extent2D size,
-            RenderSystem &renderer, CommandBuffer cmdBuf, Mesh mesh, ResourceHeap heap);
+    void renderGui(flecs::entity, CoreState &core, GuiState &gui, GuiContext context,
+            Extent2D size);
 }
