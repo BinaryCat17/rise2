@@ -21,7 +21,6 @@ namespace rise::systems {
         ecs.module<Rendering>("rise::systems::rendering");
         ecs.component<TextureRes>("TextureRes");
         ecs.component<MeshRes>("MeshRes");
-        ecs.component<DiffuseTextureRes>("DiffuseTextureRes");
         ecs.component<MaterialRes>("MaterialRes");
         ecs.component<ViewportRes>("ViewportRes");
         ecs.component<ModelRes>("ModelRes");
@@ -39,7 +38,7 @@ namespace rise::systems {
         ecs.system<CoreState, const Extent2D>("updateWindowSize", "OWNED:CoreState").
                 kind(flecs::OnSet).each(updateWindowSize);
 
-        ecs.system<CoreState, SceneState, ModelRes, const DiffuseTextureRes, const MaterialRes,
+        ecs.system<CoreState, SceneState, ModelRes, const DiffuseTexture, const MaterialRes,
                 const ViewportRes>("updateResourceHeap", "OWNED:ModelRes").
                 kind(flecs::OnSet).each(updateResourceHeap);
 
@@ -126,7 +125,7 @@ namespace rise::systems {
 
         Defaults defaults;
 
-        defaults.texture = ecs.entity().set<Path>({"paper.jpg"});
+        defaults.texture = ecs.entity().set<Path>({"default.jpg"});
         regTexture(e, defaults.texture);
         defaults.mesh = ecs.entity().set<Path>({"cube.obj"});
         regMesh(e, defaults.mesh);
@@ -165,7 +164,7 @@ namespace rise::systems {
         if (!e.has<Scale3D>()) e.set<Scale3D>({1.0f, 1.0f, 1.0f});
         if (!e.has<MaterialRes>()) e.add_instanceof(prefabs.material);
         if (!e.has<MeshRes>()) e.add_instanceof(prefabs.mesh);
-        if (!e.has<DiffuseTextureRes>()) e.set<DiffuseTextureRes>({prefabs.texture});
+        if (!e.has<DiffuseTexture>()) e.set<DiffuseTexture>({prefabs.texture});
 
         if (!e.has_instanceof(app)) e.add_instanceof(app);
         e.set<ModelRes>({createUniformBuffer<scenePipeline::PerObject>(renderer.get())});

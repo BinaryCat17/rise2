@@ -51,7 +51,8 @@ namespace rise::systems::rendering {
         if (!reader.ParseFromFile(file, readerConfig)) {
             if (!reader.Error().empty()) {
                 std::string err = "TinyObjReader: " + reader.Error();
-                throw std::runtime_error(err);
+                std::cerr << err << std::endl;
+                return;
             }
         }
 

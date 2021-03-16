@@ -34,7 +34,7 @@ namespace rise::systems::rendering {
     void initCoreState(flecs::entity e) {
         CoreState core;
         if (e.has<Path>()) {
-            core.path = *e.get<Path>()->file;
+            core.path = e.get<Path>()->file;
         } else {
             core.path = "./rendering";
         }

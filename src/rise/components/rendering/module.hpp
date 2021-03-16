@@ -61,11 +61,15 @@ ECS_STRUCT(RIntensity, {
 })
 
 ECS_STRUCT(RPath, {
-    flecs::string file;
+    std::string file;
 })
 
 ECS_STRUCT(RRelative, {
     bool enabled;
+})
+
+ECS_STRUCT(RDiffuseTextureRes, {
+    flecs::entity e;
 })
 
 namespace rise::components {
@@ -84,6 +88,7 @@ namespace rise::components {
         using Intensity = RIntensity;
         using Path = RPath;
         using Relative = RRelative;
+        using DiffuseTexture = RDiffuseTextureRes;
     }
 
     struct Rendering {

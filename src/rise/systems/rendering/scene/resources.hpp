@@ -6,9 +6,7 @@
 #include "util/ecs.hpp"
 
 namespace rise::systems::rendering {
-    struct DiffuseTextureRes {
-        flecs::entity e{};
-    };
+
 
     struct MaterialRes {
         LLGL::Buffer *uniform = nullptr;

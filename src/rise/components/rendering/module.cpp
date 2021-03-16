@@ -20,6 +20,7 @@ namespace rise::components {
         flecs::meta<Distance>(ecs);
         flecs::meta<Intensity>(ecs);
         flecs::meta<Path>(ecs);
+        flecs::meta<DiffuseTexture>(ecs);
         ecs.component<GuiContext>("GuiContext");
     }
 }

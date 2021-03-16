@@ -10,7 +10,7 @@ namespace rise::systems::rendering {
     using namespace components::rendering;
 
     void updateResourceHeap(flecs::entity, CoreState &core, SceneState &scene, ModelRes &model,
-            DiffuseTextureRes diffuse, MaterialRes material, ViewportRes viewport);
+            DiffuseTexture diffuse, MaterialRes material, ViewportRes viewport);
 
     void updateTransform(flecs::entity, CoreState &core, SceneState &scene, ModelRes &model,
             Position3D position, Rotation3D rotation, Scale3D scale);

@@ -8,9 +8,8 @@ namespace rise::components::rendering {
     };
 
     template<typename... Types, typename F>
-    void guiSubmodule(flecs::world &ecs, flecs::entity app, F &&f) {
-        auto expr = app.name() + ":rise.components.rendering.GuiContext,"
-                                 "OWNED:rise.components.rendering.GuiContext";
+    void guiSubmodule(flecs::world &ecs, flecs::entity app, std::string const& query, F &&f) {
+        auto expr = app.name() + ":rise.components.rendering.GuiContext," + query;
         ecs.system<rendering::GuiContext, Types...>("drawGui", expr.c_str()).
                 kind(flecs::PreStore).each(f);
     }

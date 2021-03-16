@@ -1,12 +1,10 @@
 #include "systems.hpp"
 #include "../core/utils.hpp"
 #include "components/rendering/glm.hpp"
-#include <glm/ext/matrix_transform.hpp>
-#include "pipeline.hpp"
 
 namespace rise::systems::rendering {
     void updateResourceHeap(flecs::entity, CoreState &core, SceneState &scene, ModelRes &model,
-            DiffuseTextureRes diffuse, MaterialRes material, ViewportRes viewport) {
+            DiffuseTexture diffuse, MaterialRes material, ViewportRes viewport) {
         LLGL::ResourceHeapDescriptor resourceHeapDesc;
         resourceHeapDesc.pipelineLayout = scene.layout;
         resourceHeapDesc.resourceViews.emplace_back(viewport.uniform);

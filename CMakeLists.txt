@@ -3,6 +3,9 @@ project(rise)
 
 set(CMAKE_CXX_STANDARD 17)
 
+add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
+add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
+
 add_subdirectory(submodules/LLGL)
 add_subdirectory(submodules/entt)
 add_subdirectory(submodules/glm)
@@ -17,6 +20,7 @@ add_library(imgui
         submodules/imgui/imgui_widgets.cpp
         submodules/imgui/imgui_tables.cpp
         submodules/imgui/imgui_demo.cpp
+        submodules/imgui/misc/cpp/imgui_stdlib.cpp
         submodules/ImGuizmo/ImGuizmo.cpp
         submodules/ImGuizmo/ImCurveEdit.cpp
         submodules/ImGuizmo/ImGradient.cpp
