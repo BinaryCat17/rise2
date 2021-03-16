@@ -55,6 +55,7 @@ find_package(Threads REQUIRED)
 
 add_library(rise
         src/rise/util/flecs_os.cpp
+        src/rise/editor/gui.cpp
         src/rise/components/rendering/module.cpp
         src/rise/components/rendering/glm.hpp
         src/rise/systems/rendering/module.cpp
