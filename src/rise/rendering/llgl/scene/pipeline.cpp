@@ -1,7 +1,6 @@
 #include "pipeline.hpp"
-#include "../core/utils.hpp"
 
-namespace rise::systems::rendering::scenePipeline {
+namespace rise::rendering::scenePipeline {
     LLGL::PipelineLayout *createLayout(LLGL::RenderSystem *renderer) {
         LLGL::PipelineLayoutDescriptor layoutDesc;
         layoutDesc.bindings = {LLGL::BindingDescriptor{ // camera

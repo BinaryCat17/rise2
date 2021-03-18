@@ -6,7 +6,7 @@
 #include "stb_image.h"
 #include <iostream>
 
-namespace rise::systems::rendering {
+namespace rise::rendering {
     void updateTexture(flecs::entity, CoreState &core, TextureRes &texture, Path const &path) {
         int texWidth = 0, texHeight = 0, texComponents = 0;
 

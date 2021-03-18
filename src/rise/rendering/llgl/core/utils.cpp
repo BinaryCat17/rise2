@@ -4,7 +4,7 @@
 
 #include <LLGL/Utility.h>
 
-namespace rise::systems::rendering {
+namespace rise::rendering {
     LLGL::Texture *createTextureFromData(LLGL::RenderSystem *renderer, LLGL::ImageFormat format,
             void const *data, unsigned width, unsigned height) {
         LLGL::SrcImageDescriptor imageDesc;

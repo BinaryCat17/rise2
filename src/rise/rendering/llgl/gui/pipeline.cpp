@@ -1,7 +1,6 @@
 #include "pipeline.hpp"
-#include "../core/utils.hpp"
 
-namespace rise::systems::rendering::guiPipeline {
+namespace rise::rendering::guiPipeline {
     LLGL::PipelineLayout *createLayout(LLGL::RenderSystem *renderer) {
         LLGL::PipelineLayoutDescriptor layoutDesc;
         layoutDesc.bindings = {LLGL::BindingDescriptor{

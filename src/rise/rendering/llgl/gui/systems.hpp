@@ -1,14 +1,11 @@
 #pragma once
 
 #include "../core/resources.hpp"
-#include "components/rendering/imgui.hpp"
-#include "components/rendering/module.hpp"
-#include "util/ecs.hpp"
+#include "rendering/imgui.hpp"
+#include "rendering/module.hpp"
 #include "resources.hpp"
 
-namespace rise::systems::rendering {
-    using namespace components::rendering;
-
+namespace rise::rendering {
     void initGuiState(flecs::entity e);
 
     void updateResources(flecs::entity, CoreState &core, GuiState &gui, GuiContext context);

@@ -1,7 +1,7 @@
 #pragma once
 #include <LLGL/LLGL.h>
 
-namespace rise::systems::rendering {
+namespace rise::rendering {
     template<typename T>
     LLGL::Buffer *createUniformBuffer(LLGL::RenderSystem *renderer, T const &init = {}) {
         LLGL::BufferDescriptor uniformBufferDesc;

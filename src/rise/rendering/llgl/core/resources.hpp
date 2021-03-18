@@ -3,7 +3,7 @@
 #include <LLGL/LLGL.h>
 #include <SDL.h>
 
-namespace rise::systems::rendering {
+namespace rise::rendering {
     struct CoreState {
         std::shared_ptr<LLGL::RenderSystem> renderer = nullptr;
         std::string path;

@@ -10,7 +10,7 @@
 #include <SDL_syswm.h>
 #include <backends/imgui_impl_sdl.h>
 
-namespace rise::systems::rendering {
+namespace rise::rendering {
     class Surface : public LLGL::Surface {
     public:
         explicit Surface(SDL_Window *sdlWindow) : window(sdlWindow) {}

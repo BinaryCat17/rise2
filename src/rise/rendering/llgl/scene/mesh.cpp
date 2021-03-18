@@ -3,7 +3,7 @@
 #include "../core/utils.hpp"
 #include <tiny_obj_loader.h>
 
-namespace rise::systems::rendering {
+namespace rise::rendering {
     std::pair<std::vector<scenePipeline::Vertex>, std::vector<uint32_t>> loadMesh(
             tinyobj::attrib_t const &attrib, std::vector<tinyobj::shape_t> const &shapes) {
         std::vector<scenePipeline::Vertex> vertices;

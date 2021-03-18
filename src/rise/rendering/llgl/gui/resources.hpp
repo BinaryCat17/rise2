@@ -3,15 +3,14 @@
 #include <imgui.h>
 #include <LLGL/LLGL.h>
 #include "../core/resources.hpp"
-#include "util/ecs.hpp"
 
-namespace rise::systems::rendering {
+namespace rise::rendering {
     struct GuiState {
         LLGL::PipelineLayout* layout = nullptr;
         LLGL::PipelineState* pipeline = nullptr;
         LLGL::VertexFormat format;
         LLGL::ResourceHeap* heap = nullptr;
-        LLGL::Buffer* uniform;
+        LLGL::Buffer* uniform = nullptr;
         MeshRes guiMesh;
     };
 }

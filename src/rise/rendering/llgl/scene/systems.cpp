@@ -1,8 +1,8 @@
 #include "systems.hpp"
 #include "../core/utils.hpp"
-#include "components/rendering/glm.hpp"
+#include "rendering/glm.hpp"
 
-namespace rise::systems::rendering {
+namespace rise::rendering {
     void updateResourceHeap(flecs::entity, CoreState &core, SceneState &scene, ModelRes &model,
             DiffuseTexture diffuse, MaterialRes material, ViewportRes viewport) {
         LLGL::ResourceHeapDescriptor resourceHeapDesc;
@@ -11,7 +11,7 @@ namespace rise::systems::rendering {
         resourceHeapDesc.resourceViews.emplace_back(material.uniform);
         resourceHeapDesc.resourceViews.emplace_back(model.uniform);
         resourceHeapDesc.resourceViews.emplace_back(core.sampler);
-        resourceHeapDesc.resourceViews.emplace_back(checkGet<TextureRes>(diffuse.e).val);
+        resourceHeapDesc.resourceViews.emplace_back(diffuse.e.get<TextureRes>()->val);
 
         if (model.heap) {
             core.renderer->Release(*model.heap);
@@ -24,7 +24,7 @@ namespace rise::systems::rendering {
             Position3D position, Rotation3D rotation, Scale3D scale) {
         glm::mat4 mat = glm::translate(glm::mat4(1), toGlm(position));
         float angle = std::max({rotation.x, rotation.y, rotation.z});
-        if(angle != 0) {
+        if (angle != 0) {
             mat = glm::rotate(mat, glm::radians(angle), glm::normalize(toGlm(rotation)));
         }
         mat = glm::scale(mat, toGlm(scale));
@@ -48,15 +48,15 @@ namespace rise::systems::rendering {
         return {position.x + direction.x, position.y + direction.y, position.z + direction.z};
     }
 
-    void dirtyViewportCamera(flecs::entity, ViewportRes& viewport) {
+    void dirtyViewportCamera(flecs::entity, ViewportRes &viewport) {
         viewport.dirtyCamera = true;
     }
 
-    void dirtyViewportLight(flecs::entity, ViewportRes& viewport) {
+    void dirtyViewportLight(flecs::entity, ViewportRes &viewport) {
         viewport.dirtyLight = true;
     }
 
-    void updateRelative(flecs::entity, CoreState& core, Relative val) {
+    void updateRelative(flecs::entity, CoreState &core, Relative val) {
         SDL_SetRelativeMouseMode(static_cast<SDL_bool>(val.enabled));
     }
 
@@ -70,7 +70,7 @@ namespace rise::systems::rendering {
 
     void updateViewportCamera(flecs::entity, ViewportRes &viewport, Extent2D size,
             Position3D position, Rotation3D rotation) {
-        if(viewport.dirtyCamera) {
+        if (viewport.dirtyCamera) {
             Position3D origin = calcCameraOrigin(position, rotation);
             auto data = viewport.pData;
             data->view = glm::lookAt(toGlm(position), toGlm(origin), glm::vec3(0, 1, 0));
@@ -121,7 +121,7 @@ namespace rise::systems::rendering {
     }
 
     void initSceneState(flecs::entity e) {
-        auto &core = checkGet<CoreState>(e);
+        auto &core = *e.get<CoreState>();
         SceneState scene;
         scene.format.AppendAttribute({"position", LLGL::Format::RGB32Float});
         scene.format.AppendAttribute({"normal", LLGL::Format::RGB32Float});

@@ -2,9 +2,9 @@
 #include "platform.hpp"
 #include "debug.hpp"
 #include "utils.hpp"
-#include "components/rendering/glm.hpp"
+#include "rise/rendering/glm.hpp"
 
-namespace rise::systems::rendering {
+namespace rise::rendering {
     void prepareRender(flecs::entity, CoreState &core) {
         core.cmdBuf->Begin();
         core.cmdBuf->BeginRenderPass(*core.context);

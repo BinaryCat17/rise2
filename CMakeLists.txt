@@ -55,20 +55,18 @@ find_package(Threads REQUIRED)
 
 add_library(rise
         src/rise/util/flecs_os.cpp
-        src/rise/editor/gui.cpp
-        src/rise/components/rendering/module.cpp
-        src/rise/components/rendering/glm.hpp
-        src/rise/systems/rendering/module.cpp
-        src/rise/systems/rendering/core/systems.cpp
-        src/rise/systems/rendering/core/texture.cpp
-        src/rise/systems/rendering/core/platform.cpp
-        src/rise/systems/rendering/core/utils.cpp
-        src/rise/systems/rendering/gui/systems.cpp
-        src/rise/systems/rendering/gui/pipeline.cpp
-        src/rise/systems/rendering/scene/mesh.cpp
-        src/rise/systems/rendering/scene/pipeline.cpp
-        src/rise/systems/rendering/scene/systems.cpp
-        src/rise/systems/input/module.cpp)
+        src/rise/rendering/module.cpp
+        src/rise/rendering/editor.cpp
+        src/rise/rendering/llgl/module.cpp
+        src/rise/rendering/llgl/core/systems.cpp
+        src/rise/rendering/llgl/core/texture.cpp
+        src/rise/rendering/llgl/core/platform.cpp
+        src/rise/rendering/llgl/core/utils.cpp
+        src/rise/rendering/llgl/gui/systems.cpp
+        src/rise/rendering/llgl/gui/pipeline.cpp
+        src/rise/rendering/llgl/scene/mesh.cpp
+        src/rise/rendering/llgl/scene/systems.cpp
+        src/rise/rendering/llgl/scene/pipeline.cpp)
 
 target_include_directories(rise PUBLIC src)
 target_include_directories(rise PRIVATE src/rise)

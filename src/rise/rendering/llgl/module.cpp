@@ -9,8 +9,8 @@
 namespace rise::rendering {
     LLGLModule::LLGLModule(flecs::world &ecs) {
         // components
-        ecs.import<components::Rendering>();
-        ecs.module<Rendering>("rise::systems::rendering");
+        ecs.import<Module>();
+        ecs.module<LLGLModule>("rise::rendering::LLGL");
         ecs.component<TextureRes>("TextureRes");
         ecs.component<MeshRes>("MeshRes");
         ecs.component<MaterialRes>("MaterialRes");

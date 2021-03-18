@@ -2,12 +2,11 @@
 #define GLM_ENABLE_EXPERIMENTAL
 
 #include <LLGL/LLGL.h>
-#include "components/rendering/module.hpp"
-#include "util/ecs.hpp"
+#include "rendering/module.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtx/hash.hpp>
 
-namespace rise::systems::rendering::scenePipeline {
+namespace rise::rendering::scenePipeline {
     struct Vertex {
         glm::vec3 pos{};
         glm::vec3 normal{};
@@ -55,8 +54,8 @@ namespace rise::systems::rendering::scenePipeline {
 
 namespace std {
     template<>
-    struct hash<rise::systems::rendering::scenePipeline::Vertex> {
-        size_t operator()(rise::systems::rendering::scenePipeline::Vertex const &vertex) const {
+    struct hash<rise::rendering::scenePipeline::Vertex> {
+        size_t operator()(rise::rendering::scenePipeline::Vertex const &vertex) const {
             return ((hash<glm::vec3>()(vertex.pos) ^
                     (hash<glm::vec3>()(vertex.normal) << 1)) >> 1) ^
                     (hash<glm::vec2>()(vertex.texCoord) << 1);

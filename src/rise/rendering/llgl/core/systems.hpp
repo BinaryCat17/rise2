@@ -1,13 +1,11 @@
 #pragma once
 
-#include "components/rendering/module.hpp"
-#include "util/ecs.hpp"
+#include <flecs/flecs.hpp>
+#include "../module.hpp"
 #include "resources.hpp"
 #include "texture.hpp"
 
-namespace rise::systems::rendering {
-    using namespace components::rendering;
-
+namespace rise::rendering {
     void prepareRender(flecs::entity, CoreState& core);
 
     void submitRender(flecs::entity, CoreState& core);

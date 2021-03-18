@@ -3,11 +3,8 @@
 #include <LLGL/LLGL.h>
 #include "../core/resources.hpp"
 #include "pipeline.hpp"
-#include "util/ecs.hpp"
 
-namespace rise::systems::rendering {
-
-
+namespace rise::rendering {
     struct MaterialRes {
         LLGL::Buffer *uniform = nullptr;
     };

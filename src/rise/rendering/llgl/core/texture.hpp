@@ -1,11 +1,9 @@
 #pragma once
 
-#include "components/rendering/module.hpp"
-#include "util/ecs.hpp"
+#include <flecs/flecs.hpp>
+#include "../module.hpp"
 #include "resources.hpp"
 
-namespace rise::systems::rendering {
-    using namespace components::rendering;
-
+namespace rise::rendering {
     void updateTexture(flecs::entity e, CoreState& core, TextureRes &texture, Path const &path);
 }

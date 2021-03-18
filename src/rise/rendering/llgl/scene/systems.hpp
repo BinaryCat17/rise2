@@ -1,14 +1,11 @@
 #pragma once
 
 #include "../core/resources.hpp"
-#include "components/rendering/module.hpp"
+#include "rendering/module.hpp"
 #include "mesh.hpp"
-#include "util/ecs.hpp"
 #include "resources.hpp"
 
-namespace rise::systems::rendering {
-    using namespace components::rendering;
-
+namespace rise::rendering {
     void updateResourceHeap(flecs::entity, CoreState &core, SceneState &scene, ModelRes &model,
             DiffuseTexture diffuse, MaterialRes material, ViewportRes viewport);
 
@@ -18,9 +15,9 @@ namespace rise::systems::rendering {
     void updateMaterial(flecs::entity, CoreState &core, SceneState &scene, MaterialRes material,
             DiffuseColor color);
 
-    void dirtyViewportCamera(flecs::entity, ViewportRes& viewport);
+    void dirtyViewportCamera(flecs::entity, ViewportRes &viewport);
 
-    void dirtyViewportLight(flecs::entity, ViewportRes& viewport);
+    void dirtyViewportLight(flecs::entity, ViewportRes &viewport);
 
     void prepareViewport(flecs::entity, CoreState &core, ViewportRes &viewport);
 

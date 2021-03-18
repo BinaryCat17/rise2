@@ -3,7 +3,7 @@
 #include "pipeline.hpp"
 #include <backends/imgui_impl_sdl.h>
 
-namespace rise::systems::rendering {
+namespace rise::rendering {
     void configImGui() {
         ImGuiStyle &style = ImGui::GetStyle();
         style.Colors[ImGuiCol_TitleBg] = ImVec4(1.0f, 0.0f, 0.0f, 0.6f);
