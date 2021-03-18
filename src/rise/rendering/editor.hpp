@@ -2,7 +2,7 @@
 #include <flecs.h>
 
 namespace rise::rendering {
-    struct Editor {
-        explicit Editor(flecs::world& ecs);
+    struct EditorComponents {
+        explicit EditorComponents(flecs::world& ecs);
     };
 }

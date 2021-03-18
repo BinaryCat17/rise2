@@ -40,8 +40,7 @@ namespace rise::rendering {
         }
 
         core.renderer = createRenderer();
-        core.window = createGameWindow(checkGet<flecs::Name>(e).value,
-                toGlm(checkGet<Extent2D>(e)));
+        core.window = createGameWindow(e.name(), toGlm(*e.get<Extent2D>()));
         core.context = createRenderingContext(core.renderer.get(), core.window);
         core.sampler = createSampler(core.renderer.get());
         core.queue = core.renderer->GetCommandQueue();

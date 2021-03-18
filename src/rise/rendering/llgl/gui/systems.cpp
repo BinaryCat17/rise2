@@ -27,16 +27,16 @@ namespace rise::rendering {
 
     void initGuiState(flecs::entity e) {
         auto ecs = e.world();
-        auto &core = checkGet<CoreState>(e);
-        auto renderer = core.renderer.get();
+        auto core = e.get_mut<CoreState>();
+        auto renderer = core->renderer.get();
         GuiState gui;
-        initGuiPipeline(core, gui);
+        initGuiPipeline(*core, gui);
 
         auto context = ImGui::CreateContext();
         ImGui::SetCurrentContext(context);
         e.set(GuiContext{context});
 
-        ImGui_ImplSDL2_InitForVulkan(core.window);
+        ImGui_ImplSDL2_InitForVulkan(core->window);
         configImGui();
 
         unsigned char *fontData;
@@ -52,7 +52,7 @@ namespace rise::rendering {
         LLGL::ResourceHeapDescriptor resourceHeapDesc;
         resourceHeapDesc.pipelineLayout = gui.layout;
         resourceHeapDesc.resourceViews.emplace_back(gui.uniform);
-        resourceHeapDesc.resourceViews.emplace_back(core.sampler);
+        resourceHeapDesc.resourceViews.emplace_back(core->sampler);
         resourceHeapDesc.resourceViews.emplace_back(fontTexture);
         gui.heap = renderer->CreateResourceHeap(resourceHeapDesc);
 

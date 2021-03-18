@@ -1,7 +1,7 @@
 #pragma once
 
-#include "rise/util/ecs.hpp"
-#include "rise/components/rendering/imgui.hpp"
+#include <flecs.h>
+#include "rise/rendering/imgui.hpp"
 
 namespace rise::editor {
     enum class GuiComponentType {
@@ -17,10 +17,10 @@ namespace rise::editor {
     };
 
     struct Module {
-        explicit Module(flecs::world& ecs);
+        explicit Module(flecs::world &ecs);
     };
 
-    void editorGuiSubmodule(flecs::entity e, components::rendering::GuiContext context);
+    void guiSubmodule(flecs::entity e, rendering::GuiContext context);
 
     template<typename T>
     void regGuiComponent(flecs::world &ecs, GuiComponentType type, T init = {}) {

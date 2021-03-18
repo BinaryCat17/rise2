@@ -4,7 +4,6 @@ project(rise)
 set(CMAKE_CXX_STANDARD 17)
 
 add_subdirectory(submodules/LLGL)
-add_subdirectory(submodules/entt)
 add_subdirectory(submodules/glm)
 add_subdirectory(submodules/tinyobjloader)
 add_subdirectory(submodules/SDL2)
@@ -55,6 +54,7 @@ find_package(Threads REQUIRED)
 
 add_library(rise
         src/rise/util/flecs_os.cpp
+
         src/rise/rendering/module.cpp
         src/rise/rendering/editor.cpp
         src/rise/rendering/llgl/module.cpp
@@ -66,13 +66,17 @@ add_library(rise
         src/rise/rendering/llgl/gui/pipeline.cpp
         src/rise/rendering/llgl/scene/mesh.cpp
         src/rise/rendering/llgl/scene/systems.cpp
-        src/rise/rendering/llgl/scene/pipeline.cpp)
+        src/rise/rendering/llgl/scene/pipeline.cpp
+
+        src/rise/input/module.cpp
+
+        src/rise/editor/gui.cpp
+        )
 
 target_include_directories(rise PUBLIC src)
 target_include_directories(rise PRIVATE src/rise)
 
 add_executable(riseapp app/main.cpp)
-add_executable(entt_test app/entt_test.cpp)
 add_executable(flecs_test app/flecs_test.cpp)
 
 target_link_libraries(rise PUBLIC

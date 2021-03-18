@@ -2,6 +2,7 @@
 
 #include <flecs.h>
 #include <string>
+#include <memory>
 
 namespace rise::rendering {
     struct Position2D {
@@ -78,7 +79,9 @@ namespace rise::rendering {
         explicit Module(flecs::world &ecs);
     };
 
-    struct Application {
+    struct ApplicationT {
+        virtual ~ApplicationT() = default;
+
         virtual void regMesh(flecs::entity app, flecs::entity e) = 0;
 
         virtual void regTexture(flecs::entity app, flecs::entity e) = 0;
@@ -91,4 +94,18 @@ namespace rise::rendering {
 
         virtual void regViewport(flecs::entity app, flecs::entity e) = 0;
     };
+
+    using Application = std::shared_ptr<ApplicationT>;
+
+    void regMesh(flecs::entity app, flecs::entity e);
+
+    void regTexture(flecs::entity app, flecs::entity e);
+
+    void regMaterial(flecs::entity app, flecs::entity e);
+
+    void regModel(flecs::entity app, flecs::entity e);
+
+    void regPointLight(flecs::entity app, flecs::entity e);
+
+    void regViewport(flecs::entity app, flecs::entity e);
 }

@@ -57,14 +57,14 @@ namespace rise::editor {
     }
 
     Module::Module(flecs::world &ecs) {
-        ecs.module<Module>("Editor");
+        ecs.module<Module>("rise::editor");
         ecs.component<GuiComponentType>("GuiComponentType");
         ecs.component<GuiComponentDefault>("GuiComponentDefault");
         ecs.component<GuiComponentsQuery>("GuiComponentsQuery");
         ecs.set<GuiComponentsQuery>({ecs.query<GuiComponentDefault>()});
     }
 
-    void editorGuiSubmodule(flecs::entity e, components::rendering::GuiContext context) {
+    void guiSubmodule(flecs::entity e, rendering::GuiContext context) {
         ImGui::SetCurrentContext(context.context);
         auto ecs = e.world();
 
@@ -81,9 +81,18 @@ namespace rise::editor {
                 ImGui::EndPopup();
             }
 
+            if (ImGui::Button("Add resource")) {
+                ImGui::OpenPopup("resources_popup");
+            }
+
+            if (ImGui::BeginPopup("resource_popup")) {
+                ImGui::Text("Available resources: ");
+                writeResources(ecs, e);
+                ImGui::EndPopup();
+            }
+
             ImGui::NewLine();
             ImGui::TreePop();
         }
     }
-
 }

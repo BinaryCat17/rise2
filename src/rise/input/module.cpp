@@ -1,12 +1,12 @@
 #include "module.hpp"
-#include "components/rendering/module.hpp"
-#include "components/rendering/glm.hpp"
+#include "rendering/module.hpp"
+#include "rendering/glm.hpp"
 #include "imgui.h"
 #include <SDL.h>
 #include <iostream>
 
-namespace rise::systems {
-    using namespace components::rendering;
+namespace rise::input {
+    using namespace rendering;
 
     struct InputState {
         bool lastRelative = true;
@@ -88,8 +88,8 @@ namespace rise::systems {
         e.set<InputState>({});
     }
 
-    Input::Input(flecs::world &ecs) {
-        ecs.module<Input>("Input");
+    Module::Module(flecs::world &ecs) {
+        ecs.module<Module>("rise::input");
         ecs.component<Controllable>("Controllable");
 
         ecs.system<>("addInputState", "Controllable").kind(flecs::OnAdd).each(initInputState);

@@ -1,9 +1,6 @@
 [submodule "DiligentEngine"]
 	path = DiligentEngine
 	url = https://github.com/DiligentGraphics/DiligentEngine.git
-[submodule "submodules/entt"]
-	path = submodules/entt
-	url = https://github.com/skypjack/entt.git
 [submodule "submodules/glm"]
 	path = submodules/glm
 	url = https://github.com/g-truc/glm.git

@@ -9,5 +9,4 @@ namespace rise::rendering {
 
         static void reg(flecs::entity app);
     };
-
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <flecs/flecs.hpp>
+#include <flecs.h>
 #include "../module.hpp"
 #include "resources.hpp"
 
