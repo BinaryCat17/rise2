@@ -49,25 +49,24 @@ int main() {
             add<input::Controllable>().
             add<rendering::Viewport>().
             add<rendering::PointLight>();
-
-    auto cube = ecs.entity("Cube").
+    ecs.entity("Cube").
             add_instanceof(application).
             add_instanceof(mesh).
             add_instanceof(camera).
             set(rendering::DiffuseTexture{texture}).
             set<rendering::Position3D>({0, 0, 0}).
             set<rendering::Scale3D>({5.f, 0.2f, 5.f}).
-            add<Model>();
+            add<rendering::Model>();
 
-    auto ball = ecs.entity("Ball").
+    ecs.entity("Ball").
             add_instanceof(application).
             add_instanceof(camera).
             set<rendering::Path>({"sphere.obj"}).
             set<rendering::Position3D>({0, 1, 0}).
             set<rendering::Scale3D>({0.01, 0.01, 0.01}).
             set<rendering::DiffuseColor>({0.8, 0, 0}).
-            add<Mesh>().
-            add<Model>();
+            add<rendering::Mesh>().
+            add<rendering::Model>();
 
     ecs.set_target_fps(60);
     while (ecs.progress()) {}

@@ -75,37 +75,19 @@ namespace rise::rendering {
         flecs::entity e;
     };
 
+    struct Mesh {};
+
+    struct Texture {};
+
+    struct Material {};
+
+    struct Model {};
+
+    struct PointLight {};
+
+    struct Viewport {};
+
     struct Module {
         explicit Module(flecs::world &ecs);
     };
-
-    struct ApplicationT {
-        virtual ~ApplicationT() = default;
-
-        virtual void regMesh(flecs::entity app, flecs::entity e) = 0;
-
-        virtual void regTexture(flecs::entity app, flecs::entity e) = 0;
-
-        virtual void regMaterial(flecs::entity app, flecs::entity e) = 0;
-
-        virtual void regModel(flecs::entity app, flecs::entity e) = 0;
-
-        virtual void regPointLight(flecs::entity app, flecs::entity e) = 0;
-
-        virtual void regViewport(flecs::entity app, flecs::entity e) = 0;
-    };
-
-    using Application = std::shared_ptr<ApplicationT>;
-
-    void regMesh(flecs::entity app, flecs::entity e);
-
-    void regTexture(flecs::entity app, flecs::entity e);
-
-    void regMaterial(flecs::entity app, flecs::entity e);
-
-    void regModel(flecs::entity app, flecs::entity e);
-
-    void regPointLight(flecs::entity app, flecs::entity e);
-
-    void regViewport(flecs::entity app, flecs::entity e);
 }

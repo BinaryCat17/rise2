@@ -32,6 +32,8 @@ namespace rise::editor {
                         written = ImGui::InputText(name, reinterpret_cast<std::string *>(pVal));
                         size = sizeof(std::string);
                         break;
+                    case GuiComponentType::Tag:
+                        break;
                 }
                 if (written) {
                     ecs_set_ptr_w_entity(ecs.c_ptr(), e.id(), t, size, pVal);
@@ -78,16 +80,6 @@ namespace rise::editor {
             if (ImGui::BeginPopup("components_popup")) {
                 ImGui::Text("Available components: ");
                 writeComponents(ecs, e);
-                ImGui::EndPopup();
-            }
-
-            if (ImGui::Button("Add resource")) {
-                ImGui::OpenPopup("resources_popup");
-            }
-
-            if (ImGui::BeginPopup("resource_popup")) {
-                ImGui::Text("Available resources: ");
-                writeResources(ecs, e);
                 ImGui::EndPopup();
             }
 

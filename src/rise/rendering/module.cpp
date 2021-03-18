@@ -21,29 +21,11 @@ namespace rise::rendering {
         ecs.component<Relative>("Relative");
         ecs.component<DiffuseTexture>("DiffuseTexture");
         ecs.component<GuiContext>("GuiContext");
-    }
-
-    void regMesh(flecs::entity app, flecs::entity e) {
-        (*app.get<Application>())->regMesh(app, e);
-    }
-
-    void regTexture(flecs::entity app, flecs::entity e) {
-        (*app.get<Application>())->regTexture(app, e);
-    }
-
-    void regMaterial(flecs::entity app, flecs::entity e) {
-        (*app.get<Application>())->regMaterial(app, e);
-    }
-
-    void regModel(flecs::entity app, flecs::entity e) {
-        (*app.get<Application>())->regModel(app, e);
-    }
-
-    void regPointLight(flecs::entity app, flecs::entity e) {
-        (*app.get<Application>())->regPointLight(app, e);
-    }
-
-    void regViewport(flecs::entity app, flecs::entity e) {
-        (*app.get<Application>())->regViewport(app, e);
+        ecs.component<Mesh>("Mesh");
+        ecs.component<Texture>("Texture");
+        ecs.component<Material>("Material");
+        ecs.component<Model>("Model");
+        ecs.component<PointLight>("PointLight");
+        ecs.component<Viewport>("Viewport");
     }
 }

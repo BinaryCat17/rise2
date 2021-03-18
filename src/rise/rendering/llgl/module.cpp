@@ -7,10 +7,106 @@
 #include "core/platform.hpp"
 
 namespace rise::rendering {
+    struct Presets {
+        flecs::entity material;
+        flecs::entity mesh;
+        flecs::entity texture;
+    };
+
+    void regApplication(flecs::entity e) {
+        if (e.owns<LLGLApplication>()) {
+            auto ecs = e.world();
+
+            initCoreState(e);
+            initGuiState(e);
+            initSceneState(e);
+
+            Presets presets{
+                    ecs.entity().
+                            add_instanceof(e).
+                            set<DiffuseColor>({1.0f, 1.0f, 1.0f}).
+                            add<Material>(),
+                    ecs.entity().
+                            add_instanceof(e).
+                            set<Path>({"cube.obj"}).
+                            add<Mesh>(),
+                    ecs.entity().
+                            add_instanceof(e).
+                            set<Path>({"default.jpg"}).
+                            add<Texture>(),
+            };
+
+            e.set<Presets>(presets);
+            e.set<Relative>(Relative{false});
+        }
+    }
+
+    void regMesh(flecs::entity e) {
+        if (e.owns<Mesh>()) {
+            if (!e.has<Path>()) e.set<Path>({});
+            e.set<MeshRes>({});
+        }
+    }
+
+    void regTexture(flecs::entity e) {
+        if (e.owns<Texture>()) {
+            if (!e.has<Path>()) e.set<Path>({});
+            e.set<TextureRes>({});
+        }
+    }
+
+    void regMaterial(flecs::entity e) {
+        if (e.owns<Material>()) {
+            if (!e.has<Path>()) e.set<Path>({});
+            auto renderer = e.get<CoreState>()->renderer;
+            if (!e.has<DiffuseColor>()) e.set<DiffuseColor>({1.0, 1.0f, 1.0f});
+            e.set<MaterialRes>({createUniformBuffer<scenePipeline::PerMaterial>(renderer.get())});
+        }
+    }
+
+    void regModel(flecs::entity e) {
+        if (e.owns<Model>()) {
+            auto renderer = e.get<CoreState>()->renderer;
+            auto presets = e.get<Presets>();
+
+            if (!e.has<Position3D>()) e.set<Position3D>({0.0f, 0.0f, 0.0f});
+            if (!e.has<Rotation3D>()) e.set<Rotation3D>({0.0f, 0.0f, 0.0f});
+            if (!e.has<Scale3D>()) e.set<Scale3D>({1.0f, 1.0f, 1.0f});
+            if (!e.has<MaterialRes>()) e.add_instanceof(presets->material);
+            if (!e.has<MeshRes>()) e.add_instanceof(presets->mesh);
+            if (!e.has<DiffuseTexture>()) e.set<DiffuseTexture>({presets->texture});
+
+            e.set<ModelRes>({createUniformBuffer<scenePipeline::PerObject>(renderer.get())});
+        }
+    }
+
+    void regPointLight(flecs::entity e) {
+        if (e.owns<PointLight>()) {
+            if (!e.has<Position3D>()) e.set<Position3D>({0.0f, 0.0f, 0.0f});
+            if (!e.has<Intensity>()) e.set<Intensity>({1.0f});
+            if (!e.has<DiffuseColor>()) e.set<DiffuseColor>({1.0f, 1.0f, 1.0f});
+            if (!e.has<Distance>()) e.set<Distance>({5.0f});
+        }
+    }
+
+    void regViewport(flecs::entity e) {
+        if (e.owns<Viewport>()) {
+            auto renderer = e.get<CoreState>()->renderer;
+
+            if (!e.has<Position3D>()) e.set<Position3D>({0.0f, 0.0f, 0.0f});
+            if (!e.has<Rotation3D>()) e.set<Rotation3D>({0.0f, 0.0f, 0.0f});
+            if (!e.has<Position2D>()) e.set<Position2D>({0.0f, 0.0f});
+            if (!e.has<Extent2D>()) e.set<Extent2D>({0.0f, 0.0f});
+
+            e.set<ViewportRes>({createUniformBuffer<scenePipeline::PerViewport>(renderer.get())});
+        }
+    }
+
     LLGLModule::LLGLModule(flecs::world &ecs) {
         // components
-        ecs.module<LLGLModule>("rise::rendering::LLGL");
+        ecs.module<LLGLModule>("rise::rendering::llgl");
         ecs.import<Module>();
+        ecs.component<LLGLApplication>("Application");
         ecs.component<TextureRes>("TextureRes");
         ecs.component<MeshRes>("MeshRes");
         ecs.component<MaterialRes>("MaterialRes");
@@ -19,6 +115,29 @@ namespace rise::rendering {
         ecs.component<CoreState>("CoreState");
         ecs.component<GuiState>("GuiState");
         ecs.component<SceneState>("SceneState");
+
+        // resources
+
+        ecs.system<>("regLLGLApplication", "rise.rendering.llgl.Application").
+                kind(flecs::OnAdd).each(regApplication);
+
+        ecs.system<>("regLLGLMesh", "rise.rendering.Mesh").
+                kind(flecs::OnAdd).each(regMesh);
+
+        ecs.system<>("regTexture", "rise.rendering.Texture").
+                kind(flecs::OnAdd).each(regTexture);
+
+        ecs.system<>("regLLGLMaterial", "rise.rendering.Material").
+                kind(flecs::OnAdd).each(regMaterial);
+
+        ecs.system<>("regLLGLModel", "rise.rendering.Model").
+                kind(flecs::OnAdd).each(regModel);
+
+        ecs.system<>("regLLGLPointLight", "rise.rendering.PointLight").
+                kind(flecs::OnAdd).each(regPointLight);
+
+        ecs.system<>("regLLGLViewport", "rise.rendering.Viewport").
+                kind(flecs::OnAdd).each(regViewport);
 
         // observers
         ecs.system<CoreState, SceneState, MeshRes, const Path>("updateMesh", "OWNED:MeshRes").
@@ -55,8 +174,6 @@ namespace rise::rendering {
                 "[in] rise.rendering.Intensity,"
                 "[in] rise.rendering.Distance").
                 kind(flecs::OnSet).each(dirtyViewportLight);
-
-        auto e = ecs.entity().add<Relative>();
 
         ecs.system<CoreState, const Relative>("updateRelative",
                 "rise.rendering.Relative").kind(flecs::OnSet).each(updateRelative);
@@ -105,89 +222,5 @@ namespace rise::rendering {
 
         ecs.system<CoreState>("submitRender", "OWNED:CoreState").kind(flecs::OnStore).
                 each(submitRender);
-    }
-
-    class LLGLApplication : public ApplicationT {
-    public:
-        LLGLApplication(const flecs::entity &meshPreset, const flecs::entity &texturePreset,
-                const flecs::entity &materialPreset) : meshPreset(meshPreset),
-                texturePreset(texturePreset), materialPreset(materialPreset) {}
-
-        void regMesh(flecs::entity app, flecs::entity e) override {
-            assert(e.has<Path>());
-            if (!e.has_instanceof(app)) e.add_instanceof(app);
-            e.set<MeshRes>({});
-        }
-
-        void regTexture(flecs::entity app, flecs::entity e) override {
-            assert(e.has<Path>());
-            if (!e.has_instanceof(app)) e.add_instanceof(app);
-            e.set<TextureRes>({});
-        }
-
-        void regMaterial(flecs::entity app, flecs::entity e) override {
-            auto renderer = app.get<CoreState>()->renderer;
-            if (!e.has<DiffuseColor>()) e.set<DiffuseColor>({1.0, 1.0f, 1.0f});
-            if (!e.has_instanceof(app)) e.add_instanceof(app);
-            e.set<MaterialRes>({createUniformBuffer<scenePipeline::PerMaterial>(renderer.get())});
-        }
-
-        void regModel(flecs::entity app, flecs::entity e) override {
-            auto renderer = app.get<CoreState>()->renderer;
-
-            if (!e.has<Position3D>()) e.set<Position3D>({0.0f, 0.0f, 0.0f});
-            if (!e.has<Rotation3D>()) e.set<Rotation3D>({0.0f, 0.0f, 0.0f});
-            if (!e.has<Scale3D>()) e.set<Scale3D>({1.0f, 1.0f, 1.0f});
-            if (!e.has<MaterialRes>()) e.add_instanceof(materialPreset);
-            if (!e.has<MeshRes>()) e.add_instanceof(meshPreset);
-            if (!e.has<DiffuseTexture>()) e.set<DiffuseTexture>({texturePreset});
-
-            if (!e.has_instanceof(app)) e.add_instanceof(app);
-            e.set<ModelRes>({createUniformBuffer<scenePipeline::PerObject>(renderer.get())});
-        }
-
-        void regPointLight(flecs::entity app, flecs::entity e) override {
-            if (!e.has<Position3D>()) e.set<Position3D>({0.0f, 0.0f, 0.0f});
-            if (!e.has<Intensity>()) e.set<Intensity>({1.0f});
-            if (!e.has<DiffuseColor>()) e.set<DiffuseColor>({1.0f, 1.0f, 1.0f});
-            if (!e.has<Distance>()) e.set<Distance>({5.0f});
-            if (!e.has_instanceof(app)) e.add_instanceof(app);
-        }
-
-        void regViewport(flecs::entity app, flecs::entity e) override {
-            auto renderer = app.get<CoreState>()->renderer;
-            if (!e.has<Position3D>()) e.set<Position3D>({0.0f, 0.0f, 0.0f});
-            if (!e.has<Rotation3D>()) e.set<Rotation3D>({0.0f, 0.0f, 0.0f});
-            if (!e.has<Position2D>()) e.set<Position2D>({0.0f, 0.0f});
-            if (!e.has<Extent2D>()) e.set<Extent2D>(*app.get<Extent2D>());
-
-            if (!e.has_instanceof(app)) e.add_instanceof(app);
-            e.set<ViewportRes>({createUniformBuffer<scenePipeline::PerViewport>(renderer.get())});
-        }
-
-    private:
-        flecs::entity meshPreset;
-        flecs::entity texturePreset;
-        flecs::entity materialPreset;
-    };
-
-    void LLGLModule::reg(flecs::entity app) {
-        auto ecs = app.world();
-
-        initCoreState(app);
-        initGuiState(app);
-        initSceneState(app);
-
-        auto texture = ecs.entity().set<Path>({"default.jpg"});
-        auto mesh = ecs.entity().set<Path>({"cube.obj"});
-        auto material = ecs.entity().set<DiffuseColor>({1.0f, 1.0f, 1.0f});
-
-        Application manager = std::make_shared<LLGLApplication>( mesh, texture, material);
-        manager->regTexture(app, texture);
-        manager->regMesh(app, mesh);
-        manager->regMaterial(app, material);
-
-        app.set<Application>({std::move(manager)});
-        app.set<Relative>(Relative{false});
     }
 }

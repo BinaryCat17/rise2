@@ -5,6 +5,7 @@
 
 namespace rise::editor {
     enum class GuiComponentType {
+        Tag,
         DragFloat,
         DragFloat3,
         DragFloat2,
