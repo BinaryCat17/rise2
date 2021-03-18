@@ -20,6 +20,7 @@ flecs::world initWorld() {
     ecs.import<Input>();
     ecs.import<flecs::dash>();
     ecs.import<flecs::systems::civetweb>();
+    ecs.import<editor::Module>();
     ecs.entity().set<flecs::dash::Server>({9090});
 
     return ecs;
@@ -31,17 +32,17 @@ int main() {
     auto windowSize = ecs.prefab("WindowSize").set<Extent2D>({1000, 800});
 
     auto application = ecs.entity("Minecraft2").add_instanceof(windowSize);
-    Rendering::regApplication(application);
+    rendering::LLGLModule::reg(application);
 
-    guiSubmodule<TypeTable>(ecs, application, "", editorGuiSubmodule);
-    regGuiComponent<Position3D>(application, GuiComponentType::DragFloat3);
-    regGuiComponent<Path>(application, GuiComponentType::Text);
+    guiSubmodule(ecs, application, "", editorGuiSubmodule);
+    regGuiComponent<Position3D>(ecs, GuiComponentType::DragFloat3);
+    regGuiComponent<Path>(ecs, GuiComponentType::InputTextStdString);
 
     auto mesh = ecs.entity("CubeMesh").set<Path>({"cube.obj"});
-    Rendering::regMesh(application, mesh);
+    rendering::regMesh(application, mesh);
 
     auto texture = ecs.entity("CubeTexture").set<Path>({"field.jpg"});
-    Rendering::regTexture(application, texture);
+    rendering::regTexture(application, texture);
 
     auto camera = ecs.entity("Viewport").
             add_instanceof(windowSize).

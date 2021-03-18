@@ -2,7 +2,7 @@
 #include "module.hpp"
 #include <glm/glm.hpp>
 
-namespace rise::components::rendering {
+namespace rise::rendering {
     inline glm::vec2 toGlm(Extent2D val) {
         return {val.width, val.height};
     }

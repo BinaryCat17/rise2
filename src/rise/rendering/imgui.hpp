@@ -1,14 +1,15 @@
 #pragma once
-#include <imgui.h>
-#include "rise/util/ecs.hpp"
 
-namespace rise::components::rendering {
+#include <imgui.h>
+#include <flecs.h>
+
+namespace rise::rendering {
     struct GuiContext {
-        ImGuiContext* context;
+        ImGuiContext *context;
     };
 
     template<typename... Types, typename F>
-    void guiSubmodule(flecs::world &ecs, flecs::entity app, std::string const& query, F &&f) {
+    void guiSubmodule(flecs::world &ecs, flecs::entity app, F &&f, std::string const &query) {
         auto expr = app.name() + ":rise.components.rendering.GuiContext," + query;
         ecs.system<rendering::GuiContext, Types...>("drawGui", expr.c_str()).
                 kind(flecs::PreStore).each(f);

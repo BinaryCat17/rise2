@@ -2,27 +2,30 @@
 
 #include "rise/util/ecs.hpp"
 #include "rise/components/rendering/imgui.hpp"
-#include <map>
 
 namespace rise::editor {
     enum class GuiComponentType {
         DragFloat,
         DragFloat3,
         DragFloat2,
-        Text, // std string
+        InputTextStdString,
     };
 
-
-    struct TypeTable {
-        std::map<flecs::entity_t, GuiComponentType> map;
+    struct GuiComponentDefault {
+        void const *val;
+        size_t size;
     };
 
-    void editorGuiSubmodule(flecs::entity e, components::rendering::GuiContext context,
-            TypeTable &table);
+    struct Module {
+        explicit Module(flecs::world& ecs);
+    };
+
+    void editorGuiSubmodule(flecs::entity e, components::rendering::GuiContext context);
 
     template<typename T>
-    void regGuiComponent(flecs::entity app, GuiComponentType type) {
-        auto& table = app.get_mut<TypeTable>()->map;
-        table[app.world().type_id<T>()] = type;
+    void regGuiComponent(flecs::world &ecs, GuiComponentType type, T init = {}) {
+        auto e = ecs.entity(ecs.type_id<T>());
+        e.template set<GuiComponentType>(type);
+        e.template set<GuiComponentDefault>({new T(init), sizeof(T)});
     }
 }

@@ -6,16 +6,8 @@
 #include "core/utils.hpp"
 #include "core/platform.hpp"
 
-namespace rise::systems {
-    using namespace rendering;
-
-    struct Defaults {
-        flecs::entity mesh;
-        flecs::entity texture;
-        flecs::entity material;
-    };
-
-    Rendering::Rendering(flecs::world &ecs) {
+namespace rise::rendering {
+    LLGLModule::LLGLModule(flecs::world &ecs) {
         // components
         ecs.import<components::Rendering>();
         ecs.module<Rendering>("rise::systems::rendering");
@@ -116,7 +108,7 @@ namespace rise::systems {
                 each(submitRender);
     }
 
-    void Rendering::regApplication(flecs::entity e) {
+    void LLGLModule::reg(flecs::entity app) {
         auto ecs = e.world();
 
         initCoreState(e);
@@ -136,56 +128,62 @@ namespace rise::systems {
         e.set<Relative>(Relative{false});
     }
 
-    void Rendering::regMesh(flecs::entity app, flecs::entity e) {
-        assert(e.has<Path>());
-        if (!e.has_instanceof(app)) e.add_instanceof(app);
-        e.set<MeshRes>({});
-    }
+    struct LLGLApplication : Application {
+        void regMesh(flecs::entity app, flecs::entity e) override {
+            assert(e.has<Path>());
+            if (!e.has_instanceof(app)) e.add_instanceof(app);
+            e.set<MeshRes>({});
+        }
 
-    void Rendering::regTexture(flecs::entity app, flecs::entity e) {
-        assert(e.has<Path>());
-        if (!e.has_instanceof(app)) e.add_instanceof(app);
-        e.set<TextureRes>({});
-    }
+        void regTexture(flecs::entity app, flecs::entity e) override {
+            assert(e.has<Path>());
+            if (!e.has_instanceof(app)) e.add_instanceof(app);
+            e.set<TextureRes>({});
+        }
 
-    void Rendering::regMaterial(flecs::entity app, flecs::entity e) {
-        auto renderer = app.get<CoreState>()->renderer;
-        if (!e.has<DiffuseColor>()) e.set<DiffuseColor>({1.0, 1.0f, 1.0f});
-        if (!e.has_instanceof(app)) e.add_instanceof(app);
-        e.set<MaterialRes>({createUniformBuffer<scenePipeline::PerMaterial>(renderer.get())});
-    }
+        void regMaterial(flecs::entity app, flecs::entity e) override {
+            auto renderer = app.get<CoreState>()->renderer;
+            if (!e.has<DiffuseColor>()) e.set<DiffuseColor>({1.0, 1.0f, 1.0f});
+            if (!e.has_instanceof(app)) e.add_instanceof(app);
+            e.set<MaterialRes>({createUniformBuffer<scenePipeline::PerMaterial>(renderer.get())});
+        }
 
-    void Rendering::regModel(flecs::entity app, flecs::entity e) {
-        auto renderer = app.get<CoreState>()->renderer;
-        auto &prefabs = checkGet<Defaults>(app);
+        void regModel(flecs::entity app, flecs::entity e) override {
+            auto renderer = app.get<CoreState>()->renderer;
+            auto &prefabs = checkGet<Defaults>(app);
 
-        if (!e.has<Position3D>()) e.set<Position3D>({0.0f, 0.0f, 0.0f});
-        if (!e.has<Rotation3D>()) e.set<Rotation3D>({0.0f, 0.0f, 0.0f});
-        if (!e.has<Scale3D>()) e.set<Scale3D>({1.0f, 1.0f, 1.0f});
-        if (!e.has<MaterialRes>()) e.add_instanceof(prefabs.material);
-        if (!e.has<MeshRes>()) e.add_instanceof(prefabs.mesh);
-        if (!e.has<DiffuseTexture>()) e.set<DiffuseTexture>({prefabs.texture});
+            if (!e.has<Position3D>()) e.set<Position3D>({0.0f, 0.0f, 0.0f});
+            if (!e.has<Rotation3D>()) e.set<Rotation3D>({0.0f, 0.0f, 0.0f});
+            if (!e.has<Scale3D>()) e.set<Scale3D>({1.0f, 1.0f, 1.0f});
+            if (!e.has<MaterialRes>()) e.add_instanceof(prefabs.material);
+            if (!e.has<MeshRes>()) e.add_instanceof(prefabs.mesh);
+            if (!e.has<DiffuseTexture>()) e.set<DiffuseTexture>({prefabs.texture});
 
-        if (!e.has_instanceof(app)) e.add_instanceof(app);
-        e.set<ModelRes>({createUniformBuffer<scenePipeline::PerObject>(renderer.get())});
-    }
+            if (!e.has_instanceof(app)) e.add_instanceof(app);
+            e.set<ModelRes>({createUniformBuffer<scenePipeline::PerObject>(renderer.get())});
+        }
 
-    void Rendering::regPointLight(flecs::entity app, flecs::entity e) {
-        if (!e.has<Position3D>()) e.set<Position3D>({0.0f, 0.0f, 0.0f});
-        if (!e.has<Intensity>()) e.set<Intensity>({1.0f});
-        if (!e.has<DiffuseColor>()) e.set<DiffuseColor>({1.0f, 1.0f, 1.0f});
-        if (!e.has<Distance>()) e.set<Distance>({5.0f});
-        if (!e.has_instanceof(app)) e.add_instanceof(app);
-    }
+        void regPointLight(flecs::entity app, flecs::entity e) override {
+            if (!e.has<Position3D>()) e.set<Position3D>({0.0f, 0.0f, 0.0f});
+            if (!e.has<Intensity>()) e.set<Intensity>({1.0f});
+            if (!e.has<DiffuseColor>()) e.set<DiffuseColor>({1.0f, 1.0f, 1.0f});
+            if (!e.has<Distance>()) e.set<Distance>({5.0f});
+            if (!e.has_instanceof(app)) e.add_instanceof(app);
+        }
 
-    void Rendering::regViewport(flecs::entity app, flecs::entity e) {
-        auto renderer = app.get<CoreState>()->renderer;
-        if (!e.has<Position3D>()) e.set<Position3D>({0.0f, 0.0f, 0.0f});
-        if (!e.has<Rotation3D>()) e.set<Rotation3D>({0.0f, 0.0f, 0.0f});
-        if (!e.has<Position2D>()) e.set<Position2D>({0.0f, 0.0f});
-        if (!e.has<Extent2D>()) e.set<Extent2D>(checkGet<Extent2D>(app));
+        void regViewport(flecs::entity app, flecs::entity e) override {
+            auto renderer = app.get<CoreState>()->renderer;
+            if (!e.has<Position3D>()) e.set<Position3D>({0.0f, 0.0f, 0.0f});
+            if (!e.has<Rotation3D>()) e.set<Rotation3D>({0.0f, 0.0f, 0.0f});
+            if (!e.has<Position2D>()) e.set<Position2D>({0.0f, 0.0f});
+            if (!e.has<Extent2D>()) e.set<Extent2D>(checkGet<Extent2D>(app));
 
-        if (!e.has_instanceof(app)) e.add_instanceof(app);
-        e.set<ViewportRes>({createUniformBuffer<scenePipeline::PerViewport>(renderer.get())});
-    }
+            if (!e.has_instanceof(app)) e.add_instanceof(app);
+            e.set<ViewportRes>({createUniformBuffer<scenePipeline::PerViewport>(renderer.get())});
+        }
+
+        flecs::entity mesh;
+        flecs::entity texture;
+        flecs::entity material;
+    };
 }
