@@ -4,60 +4,7 @@
 #include <backends/imgui_impl_sdl.h>
 
 namespace rise::rendering {
-    void configImGui() {
-        ImGuiStyle &style = ImGui::GetStyle();
-        style.Colors[ImGuiCol_TitleBg] = ImVec4(1.0f, 0.0f, 0.0f, 0.6f);
-        style.Colors[ImGuiCol_TitleBgActive] = ImVec4(1.0f, 0.0f, 0.0f, 0.8f);
-        style.Colors[ImGuiCol_MenuBarBg] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
-        style.Colors[ImGuiCol_Header] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
-        style.Colors[ImGuiCol_CheckMark] = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
-    }
 
-
-    void initGuiPipeline(CoreState &core, GuiState &gui) {
-        gui.format.AppendAttribute(LLGL::VertexAttribute{"inPos", LLGL::Format::RG32Float});
-        gui.format.AppendAttribute(LLGL::VertexAttribute{"inUV", LLGL::Format::RG32Float});
-        gui.format.AppendAttribute(LLGL::VertexAttribute{"inColor", LLGL::Format::RGBA8UNorm});
-
-        gui.layout = guiPipeline::createLayout(core.renderer.get());
-        auto program = createShaderProgram(core.renderer.get(),
-                core.path + "/shaders/gui", gui.format);
-        gui.pipeline = guiPipeline::createPipeline(core.renderer.get(), gui.layout, program);
-    }
-
-    void initGuiState(flecs::entity e) {
-        auto ecs = e.world();
-        auto core = e.get_mut<CoreState>();
-        auto renderer = core->renderer.get();
-        GuiState gui;
-        initGuiPipeline(*core, gui);
-
-        auto context = ImGui::CreateContext();
-        ImGui::SetCurrentContext(context);
-        e.set(GuiContext{context});
-
-        ImGui_ImplSDL2_InitForVulkan(core->window);
-        configImGui();
-
-        unsigned char *fontData;
-        int texWidth, texHeight;
-        ImGuiIO &io = ImGui::GetIO();
-        io.Fonts->GetTexDataAsRGBA32(&fontData, &texWidth, &texHeight);
-
-        auto fontTexture = createTextureFromData(renderer, LLGL::ImageFormat::RGBA,
-                fontData, texWidth, texHeight);
-
-        gui.uniform = createUniformBuffer(renderer, guiPipeline::Global{});
-
-        LLGL::ResourceHeapDescriptor resourceHeapDesc;
-        resourceHeapDesc.pipelineLayout = gui.layout;
-        resourceHeapDesc.resourceViews.emplace_back(gui.uniform);
-        resourceHeapDesc.resourceViews.emplace_back(core->sampler);
-        resourceHeapDesc.resourceViews.emplace_back(fontTexture);
-        gui.heap = renderer->CreateResourceHeap(resourceHeapDesc);
-
-        e.set<GuiState>(gui);
-    }
 
     void updateResources(flecs::entity, CoreState &core, GuiState &gui, GuiContext context) {
         ImGui::SetCurrentContext(context.context);

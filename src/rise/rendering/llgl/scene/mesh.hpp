@@ -1,11 +1,16 @@
 #pragma once
 
 #include <flecs.h>
-#include "rendering/module.hpp"
-#include "../scene/resources.hpp"
-#include "resources.hpp"
+#include <LLGL/LLGL.h>
 
 namespace rise::rendering {
-    void updateMesh(flecs::entity, CoreState &core, SceneState &scene, MeshRes &mesh, Path const &path);
+    struct MeshRes {
+        LLGL::Buffer *vertices = nullptr;
+        LLGL::Buffer *indices = nullptr;
+        unsigned numIndices = 0;
+        unsigned numVertices = 0;
+    };
+
+    void importMesh(flecs::world& ecs);
 }
 

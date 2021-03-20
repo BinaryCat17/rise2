@@ -1,12 +1,12 @@
 #pragma once
-
+#include <flecs.h>
 #include <LLGL/LLGL.h>
 #include <SDL.h>
 
 namespace rise::rendering {
     struct CoreState {
         std::shared_ptr<LLGL::RenderSystem> renderer = nullptr;
-        std::string path;
+        std::string root;
         SDL_Window *window = nullptr;
         LLGL::RenderContext* context = nullptr;
         LLGL::CommandQueue *queue = nullptr;
@@ -14,14 +14,5 @@ namespace rise::rendering {
         LLGL::Sampler *sampler = nullptr;
     };
 
-    struct TextureRes {
-        LLGL::Texture *val = nullptr;
-    };
-
-    struct MeshRes {
-        LLGL::Buffer *vertices = nullptr;
-        LLGL::Buffer *indices = nullptr;
-        unsigned numIndices = 0;
-        unsigned numVertices = 0;
-    };
+    void importCoreState(flecs::world& ecs);
 }

@@ -49,6 +49,7 @@ int main() {
             add<input::Controllable>().
             add<rendering::Viewport>().
             add<rendering::PointLight>();
+
     ecs.entity("Cube").
             add_instanceof(application).
             add_instanceof(mesh).

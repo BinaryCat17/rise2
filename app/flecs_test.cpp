@@ -11,36 +11,28 @@ struct Vel {
     int32_t y;
 };
 
+void setS(flecs::entity e, Pos p) {
+    std::cout << "set" << std::endl;
+    e.set<Pos>({});
+    e.set<Vel>({});
+}
 
-struct Module {
-    struct F { };
-
-    Module(flecs::world& ecs) {
-        ecs.module<Module>("Module");
-
-        auto e = ecs.entity().add<Module::F>();
-        std::cout << "1 " << e.type().str() << std::endl;
-    }
-};
-
-struct Module2 {
-    Module2(flecs::world& ecs) {
-        ecs.import<Module>();
-        ecs.module<Module2>("M2");
-        auto e = ecs.entity().add<Module::F>();
-        std::cout << e.type().str() << std::endl;
-
-        ecs.system<>("df", "M.Relative").each([](flecs::entity){});
-    }
-};
+static int n = 0;
+void printOnSet(flecs::entity e, Pos p, Vel v) {
+    std::cout << ++n << " ------------------" << std::endl;
+    std::cout << p.x << " " << p.y << std::endl;
+    std::cout << v.x << " " << v.y << std::endl;
+}
 
 int main(int argc, char *argv[]) {
     flecs::world world(argc, argv);
-    world.import<Module>();
+    world.system<Pos, Vel>(nullptr).kind(flecs::OnSet).each(printOnSet);
+    world.system<Pos>().each(setS);
 
-    auto e = world.entity().add<Module::F>();
-    std::cout << "1 " << e.type().str() << std::endl;
+    auto e = world.entity().set<Pos>({1, 2});
+    e.set<Vel>({3, 4});
 
-    world.progress();
+    world.set_target_fps(1);
+    while(world.progress()) {};
 }
 

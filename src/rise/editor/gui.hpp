@@ -5,7 +5,6 @@
 
 namespace rise::editor {
     enum class GuiComponentType {
-        Tag,
         DragFloat,
         DragFloat3,
         DragFloat2,
@@ -16,6 +15,8 @@ namespace rise::editor {
         void const *val;
         size_t size;
     };
+
+    struct GuiTag {};
 
     struct Module {
         explicit Module(flecs::world &ecs);
@@ -28,5 +29,11 @@ namespace rise::editor {
         auto e = ecs.entity(ecs.type_id<T>());
         e.template set<GuiComponentType>(type);
         e.template set<GuiComponentDefault>({new T(init), sizeof(T)});
+    }
+
+    template<typename T>
+    void regGuiTag(flecs::world &ecs) {
+        auto e = ecs.entity(ecs.type_id<T>());
+        e.template add<GuiTag>();
     }
 }

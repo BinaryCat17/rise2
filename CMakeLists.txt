@@ -54,18 +54,28 @@ find_package(Threads REQUIRED)
 
 add_library(rise
         src/rise/util/flecs_os.cpp
+        src/rise/util/math.cpp
 
         src/rise/rendering/module.cpp
         src/rise/rendering/editor.cpp
         src/rise/rendering/llgl/module.cpp
+
         src/rise/rendering/llgl/core/systems.cpp
         src/rise/rendering/llgl/core/texture.cpp
         src/rise/rendering/llgl/core/platform.cpp
+        src/rise/rendering/llgl/core/state.cpp
         src/rise/rendering/llgl/core/utils.cpp
+
         src/rise/rendering/llgl/gui/systems.cpp
         src/rise/rendering/llgl/gui/pipeline.cpp
+        src/rise/rendering/llgl/gui/state.cpp
+
         src/rise/rendering/llgl/scene/mesh.cpp
         src/rise/rendering/llgl/scene/systems.cpp
+        src/rise/rendering/llgl/scene/state.cpp
+        src/rise/rendering/llgl/scene/material.cpp
+        src/rise/rendering/llgl/scene/model.cpp
+        src/rise/rendering/llgl/scene/viewport.cpp
         src/rise/rendering/llgl/scene/pipeline.cpp
 
         src/rise/input/module.cpp
@@ -78,6 +88,8 @@ target_include_directories(rise PRIVATE src/rise)
 
 add_executable(riseapp app/main.cpp)
 add_executable(flecs_test app/flecs_test.cpp)
+
+target_include_directories(glm INTERFACE submodules/glm)
 
 target_link_libraries(rise PUBLIC
         ${CMAKE_DL_LIBS}

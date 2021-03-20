@@ -1,8 +1,7 @@
 #pragma once
-
-#include <imgui.h>
+#include <flecs.h>
 #include <LLGL/LLGL.h>
-#include "../core/resources.hpp"
+#include "../scene/mesh.hpp"
 
 namespace rise::rendering {
     struct GuiState {
@@ -13,4 +12,6 @@ namespace rise::rendering {
         LLGL::Buffer* uniform = nullptr;
         MeshRes guiMesh;
     };
+
+    void importGuiState(flecs::world &ecs);
 }

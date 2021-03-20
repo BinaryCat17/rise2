@@ -1,9 +1,12 @@
 #pragma once
 
 #include <flecs.h>
-#include "../module.hpp"
-#include "resources.hpp"
+#include <LLGL/LLGL.h>
 
 namespace rise::rendering {
-    void updateTexture(flecs::entity e, CoreState& core, TextureRes &texture, Path const &path);
+    struct TextureRes {
+        LLGL::Texture* val = nullptr;
+    };
+
+    void importTexture(flecs::world& ecs);
 }

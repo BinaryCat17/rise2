@@ -1,6 +1,8 @@
 #include "mesh.hpp"
+#include "state.hpp"
 #include "pipeline.hpp"
 #include "../core/utils.hpp"
+#include "../core/state.hpp"
 #include <tiny_obj_loader.h>
 
 namespace rise::rendering {
@@ -39,12 +41,30 @@ namespace rise::rendering {
         return {vertices, indices};
     }
 
-    void updateMesh(flecs::entity, CoreState &core, SceneState &scene, MeshRes &mesh,
+    void regMesh(flecs::entity e) {
+        if (e.owns<Mesh>()) {
+            if (!e.has<Path>()) e.set<Path>({});
+            e.set<MeshRes>({});
+        }
+    }
+
+    void unregMesh(flecs::entity e) {
+        if (e.owns<Mesh>()) {
+            e.remove<MeshRes>();
+        }
+    }
+
+    void removeMesh(flecs::entity, CoreState &core, MeshRes &mesh) {
+        core.renderer->Release(*mesh.vertices);
+        core.renderer->Release(*mesh.indices);
+    }
+
+    void updateMesh(flecs::entity e, CoreState &core, SceneState &scene, MeshRes &mesh,
             Path const &path) {
         tinyobj::ObjReaderConfig readerConfig;
         readerConfig.triangulate = true;
         readerConfig.vertex_color = false;
-        auto file = core.path + "/models/" + path.file;
+        auto file = core.root + "/models/" + path.file;
 
         tinyobj::ObjReader reader;
 
@@ -61,19 +81,24 @@ namespace rise::rendering {
         }
 
         auto[vertices, indices] = loadMesh(reader.GetAttrib(), reader.GetShapes());
-        if(vertices.empty() || indices.empty()) {
-            throw std::runtime_error(std::string("Loading mesh error: ") + file);
+        if (vertices.empty() || indices.empty()) {
+            std::cout << "Loading mesh error: " << file << std::endl;
+            return;
         }
 
-        if(mesh.vertices) {
-            core.renderer->Release(*mesh.vertices);
-        }
-        if(mesh.indices) {
-            core.renderer->Release(*mesh.indices);
-        }
+        removeMesh(e, core, mesh);
 
         mesh.vertices = createVertexBuffer(core.renderer.get(), scene.format, vertices);
         mesh.indices = createIndexBuffer(core.renderer.get(), indices);
         mesh.numIndices = static_cast<uint32_t>(indices.size());
+    }
+
+    void importMesh(flecs::world &ecs) {
+        ecs.system<>("regMesh", "Mesh").kind(flecs::OnAdd).each(regMesh);
+        ecs.system<>("unregMesh", "Mesh").kind(flecs::OnRemove).each(unregMesh);
+        ecs.system<CoreState, SceneState, MeshRes, Path>("updateMesh", "OWNED:MeshRes").
+                kind(flecs::OnSet).each(updateMesh);
+        ecs.system<CoreState, MeshRes>("removeMesh", "OWNED:MeshRes").
+                kind(EcsUnSet).each(removeMesh);
     }
 }
