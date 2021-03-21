@@ -42,29 +42,28 @@ namespace rise::rendering {
     }
 
     void regMesh(flecs::entity e) {
-        if (e.owns<Mesh>()) {
-            if (!e.has<Path>()) e.set<Path>({});
-            e.set<MeshRes>({});
-        }
+        if (!e.has<Path>()) e.set<Path>({});
+        e.set<MeshRes>({});
     }
 
     void unregMesh(flecs::entity e) {
-        if (e.owns<Mesh>()) {
-            e.remove<MeshRes>();
-        }
-    }
-
-    void removeMesh(flecs::entity, CoreState &core, MeshRes &mesh) {
+        auto &core = *e.get<RegTo>()->e.get<CoreState>();
+        auto &mesh = *e.get_mut<MeshRes>();
+        core.queue->WaitIdle();
         core.renderer->Release(*mesh.vertices);
         core.renderer->Release(*mesh.indices);
+        mesh.vertices = nullptr;
+        mesh.indices = nullptr;
     }
 
-    void updateMesh(flecs::entity e, CoreState &core, SceneState &scene, MeshRes &mesh,
-            Path const &path) {
+    void updateMesh(flecs::entity e, RegTo state, MeshRes &mesh, Path const &path) {
+        auto &core = *state.e.get<CoreState>();
+        auto &scene = *state.e.get<SceneState>();
+        auto file = core.root + "/models/" + path.file;
+
         tinyobj::ObjReaderConfig readerConfig;
         readerConfig.triangulate = true;
         readerConfig.vertex_color = false;
-        auto file = core.root + "/models/" + path.file;
 
         tinyobj::ObjReader reader;
 
@@ -86,7 +85,10 @@ namespace rise::rendering {
             return;
         }
 
-        removeMesh(e, core, mesh);
+        if (mesh.vertices && mesh.indices) {
+            core.renderer->Release(*mesh.vertices);
+            core.renderer->Release(*mesh.indices);
+        }
 
         mesh.vertices = createVertexBuffer(core.renderer.get(), scene.format, vertices);
         mesh.indices = createIndexBuffer(core.renderer.get(), indices);
@@ -96,9 +98,7 @@ namespace rise::rendering {
     void importMesh(flecs::world &ecs) {
         ecs.system<>("regMesh", "Mesh").kind(flecs::OnAdd).each(regMesh);
         ecs.system<>("unregMesh", "Mesh").kind(flecs::OnRemove).each(unregMesh);
-        ecs.system<CoreState, SceneState, MeshRes, Path>("updateMesh", "OWNED:MeshRes").
+        ecs.system<const RegTo, MeshRes, const Path>("updateMesh", "Mesh").
                 kind(flecs::OnSet).each(updateMesh);
-        ecs.system<CoreState, MeshRes>("removeMesh", "OWNED:MeshRes").
-                kind(EcsUnSet).each(removeMesh);
     }
 }

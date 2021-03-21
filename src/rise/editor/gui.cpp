@@ -1,7 +1,5 @@
 #include "gui.hpp"
 #include <misc/cpp/imgui_stdlib.h>
-#include "rise/rendering/module.hpp"
-#include <iostream>
 
 namespace rise::editor {
     struct GuiQuery {
@@ -18,27 +16,35 @@ namespace rise::editor {
                 bool written = false;
                 size_t size = 0;
 
+                ImGui::Text("%s", name);
+                ImGui::PushID(name);
+
                 switch (*type) {
                     case GuiComponentType::DragFloat:
-                        written = ImGui::DragFloat(name, reinterpret_cast<float *>(pVal));
+                        written = ImGui::DragFloat("", reinterpret_cast<float *>(pVal));
                         size = sizeof(float);
                         break;
                     case GuiComponentType::DragFloat2:
-                        written = ImGui::DragFloat2(name, reinterpret_cast<float *>(pVal));
+                        written = ImGui::DragFloat2("", reinterpret_cast<float *>(pVal));
                         size = sizeof(float) * 2;
                         break;
                     case GuiComponentType::DragFloat3:
-                        written = ImGui::DragFloat3(name, reinterpret_cast<float *>(pVal));
+                        written = ImGui::DragFloat3("", reinterpret_cast<float *>(pVal));
                         size = sizeof(float) * 3;
                         break;
                     case GuiComponentType::InputTextStdString:
-                        written = ImGui::InputText(name, reinterpret_cast<std::string *>(pVal));
+                        written = ImGui::InputText("", reinterpret_cast<std::string *>(pVal));
                         size = sizeof(std::string);
                         break;
                 }
                 if (written) {
                     ecs_set_ptr_w_entity(ecs.c_ptr(), e.id(), t, size, pVal);
                 }
+                ImGui::SameLine();
+                if (ImGui::Button("Remove")) {
+                    e.remove(t);
+                }
+                ImGui::PopID();
             }
         }
     }
@@ -48,23 +54,19 @@ namespace rise::editor {
             auto type = ecs.entity(t);
             if (type.has<GuiTag>() && e.owns(t)) {
                 auto name = ecs_get_name(ecs.c_ptr(), t);
-                if(name != nullptr) {
-                    bool enabled = e.is_enabled(t);
-
-                    if(ImGui::Checkbox(name, &enabled)) {
-                        if(enabled) {
-                            e.enable(t);
-                        } else {
-                            e.disable(t);
-                        };
-                    }
+                ImGui::PushID(name);
+                ImGui::Text("%s", name);
+                ImGui::SameLine();
+                if (ImGui::Button("Remove")) {
+                    e.remove(t);
                 }
-           }
+                ImGui::PopID();
+            }
         }
     }
 
     void listComponents(flecs::world &ecs, flecs::entity e) {
-        auto const& query = ecs.get<GuiQuery>()->component;
+        auto const &query = ecs.get<GuiQuery>()->component;
         for (auto it : query) {
             auto defaults = it.column<const GuiComponentDefault>(1);
             for (auto row : it) {
@@ -80,14 +82,13 @@ namespace rise::editor {
     }
 
     void listTags(flecs::world &ecs, flecs::entity e) {
-        auto const& query = ecs.get<GuiQuery>()->tag;
+        auto const &query = ecs.get<GuiQuery>()->tag;
         for (auto it : query) {
             for (auto row : it) {
                 auto type = it.entity(row);
                 if (!e.owns(type)) {
                     if (ImGui::Button(type.name().c_str())) {
                         e.add(type);
-                        //e.add<rise::rendering::Material>();
                     }
                 }
             }

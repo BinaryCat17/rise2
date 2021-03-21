@@ -12,37 +12,39 @@
 
 namespace rise::rendering {
     void regModel(flecs::entity e) {
-        if (e.owns<Model>()) {
-            if (!e.has<Position3D>()) e.set<Position3D>({0.0f, 0.0f, 0.0f});
-            if (!e.has<Rotation3D>()) e.set<Rotation3D>({0.0f, 0.0f, 0.0f});
-            if (!e.has<Scale3D>()) e.set<Scale3D>({1.0f, 1.0f, 1.0f});
+        if (!e.has<Position3D>()) e.set<Position3D>({0.0f, 0.0f, 0.0f});
+        if (!e.has<Rotation3D>()) e.set<Rotation3D>({0.0f, 0.0f, 0.0f});
+        if (!e.has<Scale3D>()) e.set<Scale3D>({1.0f, 1.0f, 1.0f});
 
-            e.set<ModelRes>({});
-        }
+        auto &core = *e.get<RegTo>()->e.get<CoreState>();
+        auto &presets = *e.get<RegTo>()->e.get<Presets>();
 
-    }
-
-    void unregModel(flecs::entity e) {
-        if (e.owns<Model>()) {
-            e.remove<ModelRes>();
-        }
-    }
-
-    void initModel(flecs::entity e, CoreState &core, Presets &presets, ModelRes &model) {
         if (!e.has<MaterialRes>()) e.add_instanceof(presets.material);
         if (!e.has<MeshRes>()) e.add_instanceof(presets.mesh);
         if (!e.has<DiffuseTexture>()) e.set<DiffuseTexture>({presets.texture});
 
-        model.uniform = createUniformBuffer<scenePipeline::PerObject>(core.renderer.get());
+        e.set<ModelRes>({createUniformBuffer<scenePipeline::PerObject>(core.renderer.get())});
     }
 
-    void removeModel(flecs::entity, CoreState &core, ModelRes &model) {
+    void unregModel(flecs::entity e) {
+        auto &core = *e.get<RegTo>()->e.get<CoreState>();
+        auto &model = *e.get_mut<ModelRes>();
+
+        core.queue->WaitIdle();
         core.renderer->Release(*model.heap);
         core.renderer->Release(*model.uniform);
+        model.uniform = nullptr;
+        model.heap = nullptr;
+
+        e.remove<ModelRes>();
     }
 
-    void updateResourceHeap(flecs::entity, CoreState &core, SceneState &scene, ModelRes &model,
-            DiffuseTexture diffuse, MaterialRes material, ViewportRes viewport) {
+    void updateResourceHeap(flecs::entity, RegTo state, RenderTo target, ModelRes &model,
+            DiffuseTexture diffuse, MaterialRes material) {
+        auto &core = *state.e.get<CoreState>();
+        auto &scene = *state.e.get<SceneState>();
+        auto &viewport = *target.e.get<ViewportRes>();
+
         LLGL::ResourceHeapDescriptor resourceHeapDesc;
         resourceHeapDesc.pipelineLayout = scene.layout;
         resourceHeapDesc.resourceViews.emplace_back(viewport.uniform);
@@ -58,8 +60,10 @@ namespace rise::rendering {
         model.heap = core.renderer->CreateResourceHeap(resourceHeapDesc);
     }
 
-    void updateTransform(flecs::entity, CoreState &core, SceneState &scene, ModelRes &model,
+    void updateTransform(flecs::entity, RegTo state, ModelRes &model,
             Position3D position, Rotation3D rotation, Scale3D scale) {
+        auto &core = *state.e.get<CoreState>();
+
         glm::mat4 mat = glm::translate(glm::mat4(1), toGlm(position));
         float angle = std::max({rotation.x, rotation.y, rotation.z});
         if (angle != 0) {
@@ -73,17 +77,11 @@ namespace rise::rendering {
     void importModel(flecs::world &ecs) {
         ecs.system<>("regModel", "Model").kind(flecs::OnAdd).each(regModel);
         ecs.system<>("unregModel", "Model").kind(flecs::OnRemove).each(unregModel);
-        ecs.system<CoreState, Presets, ModelRes>("initModel", "OWNED:ModelRes").
-                kind(flecs::OnSet).each(initModel);
-        ecs.system<CoreState, ModelRes>("removeModel", "OWNED:ModelRes").
-                kind(EcsUnSet).each(removeModel);
 
-        ecs.system<CoreState, SceneState, ModelRes, const DiffuseTexture, const MaterialRes,
-                const ViewportRes>("updateModelResourceHeap", "OWNED:ModelRes").
-                kind(flecs::OnSet).each(updateResourceHeap);
+        ecs.system<const RegTo, const RenderTo, ModelRes, const DiffuseTexture, const MaterialRes>(
+                "updateModelResourceHeap").kind(flecs::OnSet).each(updateResourceHeap);
 
-        ecs.system<CoreState, SceneState, ModelRes, const Position3D, const Rotation3D,
-                const Scale3D>("updateModelTransform", "OWNED:ModelRes").
-                kind(flecs::OnSet).each(updateTransform);
+        ecs.system<const RegTo, ModelRes, const Position3D, const Rotation3D, const Scale3D>(
+                "updateModelTransform").kind(flecs::OnSet).each(updateTransform);
     }
 }

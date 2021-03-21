@@ -9,15 +9,16 @@ namespace rise::rendering {
     void updateWindowSize(flecs::entity, CoreState &core, rendering::Extent2D size) {
         SDL_SetWindowSize(core.window, static_cast<int>(size.width),
                 static_cast<int>(size.height));
-        core.context->SetVideoMode({static_cast<uint32_t>(size.width),
-                static_cast<uint32_t>(size.height)});
+        core.context->SetVideoMode({{static_cast<uint32_t>(size.width),
+                static_cast<uint32_t>(size.height)}});
     }
 
     void regCoreState(flecs::entity e) {
-        if(e.owns<LLGLApplication>()) {
+        if (e.owns<LLGLApplication>()) {
             if (!e.has<Path>()) {
                 e.set<Path>({"./rendering"});
             }
+            e.set<Relative>({});
             e.set<CoreState>({});
         }
     }
@@ -36,6 +37,9 @@ namespace rise::rendering {
         core.sampler = createSampler(core.renderer.get());
         core.queue = core.renderer->GetCommandQueue();
         core.cmdBuf = core.renderer->CreateCommandBuffer();
+        core.sharedState = e.world().entity("SharedState").set<Relative>({false});
+
+        e.add_instanceof(core.sharedState);
     }
 
     void updateRelative(flecs::entity, CoreState &core, Relative val) {
@@ -43,16 +47,16 @@ namespace rise::rendering {
     }
 
     void importCoreState(flecs::world &ecs) {
-        ecs.system<>("regCoreState", "rise.rendering.llgl.Application").
+        ecs.system<>("regCoreState", "Application").
                 kind(flecs::OnAdd).each(regCoreState);
 
-        ecs.system<CoreState>("initCoreState", "OWNED:CoreState").
+        ecs.system<CoreState>("initCoreState", "Application").
                 kind(flecs::OnSet).each(initCoreState);
 
-        ecs.system<CoreState, const Extent2D>("updateCoreStateWindowSize", "OWNED:CoreState").
+        ecs.system<CoreState, const Extent2D>("updateCoreStateWindowSize", "Application").
                 kind(flecs::OnSet).each(updateWindowSize);
 
-        ecs.system<CoreState, const Relative>("updateCoreStateRelative",
-                "OWNED:CoreState").kind(flecs::OnSet).each(updateRelative);
+        ecs.system<CoreState, const Relative>("updateCoreStateRelative").
+                kind(flecs::OnSet).each(updateRelative);
     }
 }

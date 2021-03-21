@@ -33,7 +33,7 @@ namespace rise::rendering {
 
         auto context = ImGui::CreateContext();
         ImGui::SetCurrentContext(context);
-        e.set(GuiContext{context});
+        e.get_mut<CoreState>()->sharedState.set<GuiContext>(GuiContext{context});
 
         ImGui_ImplSDL2_InitForVulkan(core.window);
         configImGui();
@@ -57,16 +57,14 @@ namespace rise::rendering {
     }
 
     void regGuiState(flecs::entity e) {
-        if (e.has<LLGLApplication>()) {
-            e.set<GuiState>({});
-        }
+        e.set<GuiState>({});
     }
 
     void importGuiState(flecs::world &ecs) {
-        ecs.system<>("regGuiState", "rise.rendering.llgl.Application").
+        ecs.system<>("regGuiState", "Application").
                 kind(flecs::OnAdd).each(regGuiState);
 
-        ecs.system<CoreState, GuiState>("initGuiState", "OWNED:GuiState").
+        ecs.system<CoreState, GuiState>("initGuiState", "OWNED:Application").
                 kind(flecs::OnSet).each(initGuiState);
     }
 }

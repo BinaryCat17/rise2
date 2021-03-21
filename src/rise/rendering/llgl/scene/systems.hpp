@@ -7,6 +7,5 @@
 #include "../module.hpp"
 
 namespace rise::rendering {
-    void renderScene(flecs::entity, CoreState &core, SceneState &scene, Position2D position,
-            Extent2D size, MeshRes mesh, ModelRes model);
+    void renderScene(flecs::entity, RegTo state, RenderTo target, MeshRes mesh, ModelRes model);
 }

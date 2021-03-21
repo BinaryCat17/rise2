@@ -6,28 +6,28 @@
 
 namespace rise::rendering {
     void regMaterial(flecs::entity e) {
-        if (e.owns<Material>()) {
-            if (!e.has<Path>()) e.set<Path>({});
-            if (!e.has<DiffuseColor>()) e.set<DiffuseColor>({1.0, 1.0f, 1.0f});
-            e.set<MaterialRes>({});
-        }
+        if (!e.has<Path>()) e.set<Path>({});
+        if (!e.has<DiffuseColor>()) e.set<DiffuseColor>({1.0, 1.0f, 1.0f});
+
+        auto &core = *e.get<RegTo>()->e.get<CoreState>();
+        e.set<MaterialRes>({
+                createUniformBuffer<scenePipeline::PerMaterial>(core.renderer.get())
+        });
     }
 
     void unregMaterial(flecs::entity e) {
-        if (e.owns<Material>()) {
-            e.remove<MaterialRes>();
-        }
-    }
+        auto &core = *e.get<RegTo>()->e.get<CoreState>();
+        auto &material = *e.get_mut<MaterialRes>();
 
-    void initMaterial(flecs::entity, CoreState &core, MaterialRes &material) {
-        material.uniform = createUniformBuffer<scenePipeline::PerMaterial>(core.renderer.get());
-    }
-
-    void removeMaterial(flecs::entity, CoreState &core, MaterialRes &material) {
+        core.queue->WaitIdle();
         core.renderer->Release(*material.uniform);
+        material.uniform = nullptr;
+
+        e.remove<MaterialRes>();
     }
 
-    void updateMaterial(flecs::entity, CoreState &core, MaterialRes material, DiffuseColor color) {
+    void updateMaterial(flecs::entity, RegTo state, MaterialRes material, DiffuseColor color) {
+        auto &core = *state.e.get<CoreState>();
         scenePipeline::PerMaterial data;
         data.diffuseColor = glm::vec4(color.r, color.g, color.b, 1);
         updateUniformBuffer(core.renderer.get(), material.uniform, data);
@@ -36,11 +36,7 @@ namespace rise::rendering {
     void importMaterial(flecs::world &ecs) {
         ecs.system<>("regMaterial", "Material").kind(flecs::OnAdd).each(regMaterial);
         ecs.system<>("unregMaterial", "Material").kind(flecs::OnRemove).each(unregMaterial);
-        ecs.system<CoreState, MaterialRes>("initMaterial", "OWNED:MaterialRes").
-                kind(flecs::OnSet).each(initMaterial);
-        ecs.system<CoreState, MaterialRes>("removeMaterial", "OWNED:MaterialRes").
-                kind(EcsUnSet).each(removeMaterial);
-        ecs.system<CoreState, MaterialRes, DiffuseColor>("updateMaterial", "OWNED:MaterialRes").
+        ecs.system<const RegTo, MaterialRes, const DiffuseColor>("updateMaterial", "Material").
                 kind(flecs::OnSet).each(updateMaterial);
     }
 }

@@ -23,24 +23,23 @@ namespace rise::rendering {
                 core.root + "/shaders/scene", scene.format);
         scene.pipeline = scenePipeline::createPipeline(core.renderer.get(), scene.layout, program);
 
-        presets.material.add_instanceof(e).
+        presets.material.set<RegTo>({e}).
                 set<DiffuseColor>({1.0f, 1.0f, 1.0f}).
                 add<Material>();
 
-        presets.mesh.add_instanceof(e).
+        presets.mesh.set<RegTo>({e}).
                 set<Path>({"cube.obj"}).
                 add<Mesh>();
 
-        presets.texture.add_instanceof(e).
+        presets.texture.set<RegTo>({e}).
                 set<Path>({"default.jpg"}).
                 add<Texture>();
     };
 
     void importSceneState(flecs::world &ecs) {
-        ecs.system<>("regSceneState", "rise.rendering.llgl.Application").
-                kind(flecs::OnAdd).each(regSceneState);
+        ecs.system<>("regSceneState", "Application").kind(flecs::OnAdd).each(regSceneState);
 
-        ecs.system<CoreState, SceneState, Presets>("initSceneState", "OWNED:SceneState").
+        ecs.system<CoreState, SceneState, Presets>("initSceneState", "Application").
                 kind(flecs::OnSet).each(initSceneState);
     }
 }

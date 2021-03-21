@@ -1,38 +1,63 @@
-#include <flecs.h>
 #include <iostream>
+#include <flecs.h>
 
-struct Pos {
-    int32_t x;
-    int32_t y;
+/* Ordinary position & velocity components */
+struct Position {
+    float x;
+    float y;
 };
 
-struct Vel {
-    int32_t x;
-    int32_t y;
+struct Velocity {
+    float x;
+    float y;
 };
 
-void setS(flecs::entity e, Pos p) {
-    std::cout << "set" << std::endl;
-    e.set<Pos>({});
-    e.set<Vel>({});
+struct RenderTo {
+    flecs::entity e;
+};
+
+struct LightTag {};
+
+void onAdd(flecs::entity) {
+    std::cout << "fdsf" << std::endl;
 }
 
-static int n = 0;
-void printOnSet(flecs::entity e, Pos p, Vel v) {
-    std::cout << ++n << " ------------------" << std::endl;
-    std::cout << p.x << " " << p.y << std::endl;
-    std::cout << v.x << " " << v.y << std::endl;
-}
 
 int main(int argc, char *argv[]) {
-    flecs::world world(argc, argv);
-    world.system<Pos, Vel>(nullptr).kind(flecs::OnSet).each(printOnSet);
-    world.system<Pos>().each(setS);
+    flecs::world ecs(argc, argv);
 
-    auto e = world.entity().set<Pos>({1, 2});
-    e.set<Vel>({3, 4});
+    ecs.component<RenderTo>("RenderTo");
+    ecs.component<LightTag>("LightTag");
+    ecs.component<Position>();
+    ecs.component<LightTag>();
+    ecs.component<Velocity>();
 
-    world.set_target_fps(1);
-    while(world.progress()) {};
+    ecs.system<>(nullptr, "TRAIT | RenderTo > LightTag").kind(flecs::OnSet).each(onAdd);
+
+    ecs.system<>(nullptr, "TRAIT | RenderTo")
+            .iter([](flecs::iter it) {
+                for(auto row : it) {
+                    auto trait = it.column<RenderTo>(1);
+
+                    auto e = it.entity(row);
+                    auto t = e.get_trait<RenderTo, LightTag>();
+                    std::cout << t->e.name() << std::endl;
+
+
+                }
+            });
+
+    auto e1 = ecs.entity("e1").set<Position>({1, 0});
+    auto e2 = ecs.entity("e2").set<Position>({0, 1});
+
+    auto e = ecs.entity("e");
+
+    e.set_trait<RenderTo, LightTag>({e1});
+
+    std::cout << e.type().str() << std::endl;
+
+    ecs.set_target_fps(1);
+    while (ecs.progress()) {
+
+    }
 }
-

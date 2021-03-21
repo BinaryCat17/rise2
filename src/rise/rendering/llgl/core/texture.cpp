@@ -9,31 +9,28 @@
 
 namespace rise::rendering {
     void regTexture(flecs::entity e) {
-        if (e.owns<Texture>()) {
-            if (!e.has<Path>()) e.set<Path>({});
-            e.set<TextureRes>({});
-        }
+        if (!e.has<Path>()) e.set<Path>({});
+        e.set<TextureRes>({});
     }
 
     void unregTexture(flecs::entity e) {
-        if (e.owns<Texture>()) {
-            e.remove<TextureRes>();
-        }
+        auto &core = *e.get<RegTo>()->e.get<CoreState>();
+        auto &texture = *e.get_mut<TextureRes>();
+        core.renderer->Release(*e.get<TextureRes>()->val);
+        e.remove<TextureRes>();
     }
 
-    void removeTexture(flecs::entity, CoreState &core, TextureRes &texture) {
-        if (texture.val) {
-            core.renderer->Release(*texture.val);
-        }
-    }
+    void updateTexture(flecs::entity, RegTo state, TextureRes &texture, Path const &path) {
+        auto& core = *state.e.get<CoreState>();
 
-    void updateTexture(flecs::entity e, CoreState &core, TextureRes &texture, Path const &path) {
         auto file = core.root + "/textures/" + path.file;
 
         int texWidth = 0, texHeight = 0, texComponents = 0;
         auto imageBuffer = stbi_load(file.c_str(), &texWidth, &texHeight, &texComponents, 0);
         if (imageBuffer) {
-            removeTexture(e, core, texture);
+            if (texture.val) {
+                core.renderer->Release(*texture.val);
+            }
 
             auto format = texComponents == 4 ? LLGL::ImageFormat::RGBA : LLGL::ImageFormat::RGB;
             texture.val = createTextureFromData(core.renderer.get(), format,
@@ -48,9 +45,7 @@ namespace rise::rendering {
     void importTexture(flecs::world &ecs) {
         ecs.system<>("regTexture", "Texture").kind(flecs::OnAdd).each(regTexture);
         ecs.system<>("unregTexture", "Texture").kind(flecs::OnRemove).each(unregTexture);
-        ecs.system<CoreState, TextureRes, Path>("updateTexture", "OWNED:TextureRes").
+        ecs.system< const RegTo, TextureRes, const Path>("updateTexture", "Texture").
                 kind(flecs::OnSet).each(updateTexture);
-        ecs.system<CoreState, TextureRes>("removeTexture", "OWNED:TextureRes").
-                kind(EcsUnSet).each(removeTexture);
     }
 }

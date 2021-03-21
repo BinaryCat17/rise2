@@ -71,6 +71,14 @@ namespace rise::rendering {
         bool enabled;
     };
 
+    struct RenderTo {
+        flecs::entity e;
+    };
+
+    struct RegTo {
+        flecs::entity e;
+    };
+
     struct DiffuseTexture {
         flecs::entity e;
     };

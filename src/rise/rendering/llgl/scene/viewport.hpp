@@ -8,7 +8,8 @@ namespace rise::rendering {
         LLGL::Buffer *uniform = nullptr;
         scenePipeline::PerViewport *pData = nullptr;
         unsigned lightId = 0;
+        bool dirtyCamera = true;
     };
 
-    void importMaterial(flecs::world& ecs);
+    void importViewport(flecs::world& ecs);
 }

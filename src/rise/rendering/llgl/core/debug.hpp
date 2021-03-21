@@ -6,9 +6,11 @@ namespace rise {
     public:
     protected:
         void OnError(LLGL::ErrorType type, Message &message) override {
+            //std::cout << message.GetText() << std::endl;
         }
 
         void OnWarning(LLGL::WarningType type, Message &message) override {
+            //std::cout << message.GetText() << std::endl;
         }
     };
 }

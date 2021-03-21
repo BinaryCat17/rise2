@@ -9,7 +9,6 @@
 #include "scene/model.hpp"
 #include "scene/material.hpp"
 #include "scene/viewport.hpp"
-#include "scene/model.hpp"
 #include "gui/state.hpp"
 #include "gui/systems.hpp"
 
@@ -28,6 +27,16 @@ namespace rise::rendering {
         ecs.component<SceneState>("SceneState");
         ecs.component<Presets>("Presets");
 
+        ecs.system<const RegTo>("AddGuiContext").kind(flecs::OnSet).each(
+                [](flecs::entity e, RegTo state) {
+                    e.add_instanceof(state.e.get<CoreState>()->sharedState);
+                });
+
+        ecs.system<const RenderTo>("AddRegTo").kind(flecs::OnSet).each(
+                [](flecs::entity e, RenderTo state) {
+                    e.set<RegTo>({state.e.get<RegTo>()->e});
+                });
+
         importCoreState(ecs);
         importSceneState(ecs);
         importGuiState(ecs);
@@ -39,47 +48,32 @@ namespace rise::rendering {
 
         // On load --------------------------------------------------------------------------------
 
-        ecs.system<CoreState>("pullInputEvents", "OWNED:CoreState").kind(flecs::OnLoad).each(
+        ecs.system<CoreState>("pullInputEvents", "OWNED:Application").kind(flecs::OnLoad).each(
                 pullInputEvents);
 
         // Pre store ------------------------------------------------------------------------------
 
-        ecs.system<CoreState, ViewportRes>("prepareViewport", "OWNED:ViewportRes").
-                kind(flecs::PreStore).each(prepareViewport);
-
-        ecs.system<ViewportRes, const Extent2D, const Position3D, const Rotation3D>(
-                        "updateViewportCamera", "OWNED:ViewportRes").kind(flecs::PreStore)
-                .each(updateViewportCamera);
-
-        ecs.system<ViewportRes, const Position3D, const DiffuseColor, const Intensity,
-                const Distance>("updateViewportLight", "OWNED:ViewportRes").
-                kind(flecs::PreStore).each(updateViewportLight);
-
-        ecs.system<CoreState, ViewportRes>("finishViewport", "OWNED:ViewportRes").
-                kind(flecs::PreStore).each(finishViewport);
-
-        ecs.system<CoreState>("prepareRender", "OWNED:CoreState").kind(flecs::PreStore).
+        ecs.system<CoreState>("prepareRender", "OWNED:Application").kind(flecs::PreStore).
                 each(prepareRender);
 
-        ecs.system<CoreState, SceneState, const Position2D, const Extent2D, const MeshRes,
-                const ModelRes>("renderScene").kind(flecs::PreStore).
-                each(renderScene);
+        ecs.system<const RegTo, const RenderTo, const MeshRes, const ModelRes>("renderScene").
+                kind(flecs::PreStore).each(renderScene);
 
-        ecs.system<CoreState, GuiState, GuiContext>("prepareImgui", "OWNED:CoreState").
+        ecs.system<CoreState, GuiState, GuiContext>("prepareImgui", "OWNED:Application").
                 kind(flecs::PreStore).each(prepareImgui);
 
         // On store -------------------------------------------------------------------------------
 
-        ecs.system<GuiContext>("processImGui", "OWNED:CoreState").kind(flecs::OnStore).each(
+        ecs.system<GuiContext>("processImGui", "OWNED:Application").kind(flecs::OnStore).each(
                 processImGui);
 
-        ecs.system<CoreState, GuiState, GuiContext>("updateGuiResources", "OWNED:CoreState").
+        ecs.system<CoreState, GuiState, GuiContext>("updateGuiResources", "OWNED:Application").
                 kind(flecs::OnStore).each(updateResources);
 
         ecs.system<CoreState, GuiState, GuiContext, const Extent2D>("renderGui",
-                "OWNED:CoreState").kind(flecs::OnStore).each(renderGui);
+                "OWNED:Application").kind(flecs::OnStore).each(renderGui);
 
-        ecs.system<CoreState>("submitRender", "OWNED:CoreState").kind(flecs::OnStore).
+        ecs.system<CoreState>("submitRender", "OWNED:Application").kind(flecs::OnStore).
                 each(submitRender);
     }
 }

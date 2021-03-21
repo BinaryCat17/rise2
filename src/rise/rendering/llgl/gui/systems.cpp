@@ -4,8 +4,6 @@
 #include <backends/imgui_impl_sdl.h>
 
 namespace rise::rendering {
-
-
     void updateResources(flecs::entity, CoreState &core, GuiState &gui, GuiContext context) {
         ImGui::SetCurrentContext(context.context);
         ImGuiIO &io = ImGui::GetIO();

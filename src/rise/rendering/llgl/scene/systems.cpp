@@ -1,8 +1,12 @@
 #include "systems.hpp"
 
 namespace rise::rendering {
-    void renderScene(flecs::entity, CoreState &core, SceneState &scene, Position2D position,
-            Extent2D size, MeshRes mesh, ModelRes model) {
+    void renderScene(flecs::entity, RegTo state, RenderTo target, MeshRes mesh, ModelRes model) {
+        auto &core = *state.e.get<CoreState>();
+        auto &scene = *state.e.get<SceneState>();
+        auto position = *target.e.get<Position2D>();
+        auto size = *target.e.get<Extent2D>();
+
         auto cmdBuf = core.cmdBuf;
         cmdBuf->SetPipelineState(*scene.pipeline);
 

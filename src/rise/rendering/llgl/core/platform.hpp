@@ -4,7 +4,7 @@
 #include <LLGL/LLGL.h>
 #include <SDL.h>
 #include <glm/glm.hpp>
-#include "resources.hpp"
+#include "state.hpp"
 
 namespace rise::rendering {
     SDL_Window* createGameWindow(std::string const& title, glm::vec2 extent);
