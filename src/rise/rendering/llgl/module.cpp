@@ -27,14 +27,11 @@ namespace rise::rendering {
         ecs.component<SceneState>("SceneState");
         ecs.component<Presets>("Presets");
 
-        ecs.system<const RegTo>("AddGuiContext").kind(flecs::OnSet).each(
-                [](flecs::entity e, RegTo state) {
-                    e.add_instanceof(state.e.get<CoreState>()->sharedState);
-                });
-
         ecs.system<const RenderTo>("AddRegTo").kind(flecs::OnSet).each(
                 [](flecs::entity e, RenderTo state) {
-                    e.set<RegTo>({state.e.get<RegTo>()->e});
+                    auto p = state.e.get<RegTo>()->e;
+                    std::cout << p.id() << std::endl;
+                    e.set<RegTo>({ p });
                 });
 
         importCoreState(ecs);

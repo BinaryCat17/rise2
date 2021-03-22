@@ -8,10 +8,6 @@
 namespace rise::input {
     using namespace rendering;
 
-    struct InputState {
-        bool lastRelative = true;
-    };
-
     void move(Position3D &position, glm::vec3 direction, float speed, float time) {
         glm::vec3 pos = toGlm(position);
         pos += speed * direction * time * 1000.f / 17.f;
@@ -27,7 +23,7 @@ namespace rise::input {
         return {position.x + direction.x, position.y + direction.y, position.z + direction.z};
     }
 
-    void processKeyboard(flecs::entity e, Position3D position, Rotation3D rotation) {
+    void processKeyboard(flecs::entity e, Relative &input, Position3D position, Rotation3D rotation) {
         glm::vec3 origin = calcOrigin(toGlm(position), toGlm(rotation));
         glm::vec3 direction = glm::normalize(toGlm(position) - origin);
 
@@ -38,7 +34,7 @@ namespace rise::input {
         float const speed = 0.05f;
 
         if (ImGui::IsKeyPressed(SDL_SCANCODE_F)) {
-            e.patch<Relative>([](Relative &val) { val.enabled = !val.enabled; });
+            input.enabled = !input.enabled;
         }
 
         if (ImGui::IsKeyDown(SDL_SCANCODE_D)) {
@@ -68,36 +64,28 @@ namespace rise::input {
         e.set<Position3D>(position);
     }
 
-    void processMouse(flecs::entity e, Relative r, InputState &state, Rotation3D rotation) {
+    void processMouse(flecs::entity e, Relative relative, Rotation3D rotation) {
         float const speed = 0.05f;
 
         int x, y;
         SDL_GetRelativeMouseState(&x, &y);
 
-        if (r.enabled && state.lastRelative) {
+        if (relative.enabled) {
             rotation.x += static_cast<float>(x) * speed;
             rotation.z -= static_cast<float>(y) * speed;
         }
 
-        state.lastRelative = r.enabled;
-
         e.set<Rotation3D>(rotation);
-    }
-
-    void initInputState(flecs::entity e) {
-        e.set<InputState>({});
     }
 
     Module::Module(flecs::world &ecs) {
         ecs.module<Module>("rise::input");
         ecs.component<Controllable>("Controllable");
 
-        ecs.system<>("addInputState", "Controllable").kind(flecs::OnAdd).each(initInputState);
-
-        ecs.system<Position3D, const Rotation3D>("processKeyboard", "Controllable").
+        ecs.system<Relative, Position3D, const Rotation3D>("processKeyboard", "Controllable").
                 kind(flecs::PostLoad).each(processKeyboard);
 
-        ecs.system<const Relative, InputState, Rotation3D>("processMouse", "Controllable").
+        ecs.system<const Relative, Rotation3D>("processMouse", "Controllable").
                 kind(flecs::PostLoad).each(processMouse);
     }
 }

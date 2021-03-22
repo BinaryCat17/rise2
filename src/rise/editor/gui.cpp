@@ -104,8 +104,9 @@ namespace rise::editor {
         ecs.set<GuiQuery>({ecs.query<GuiComponentDefault>(), ecs.query<>("GuiTag")});
     }
 
-    void guiSubmodule(flecs::entity e, rendering::GuiContext context) {
-        ImGui::SetCurrentContext(context.context);
+    void guiSubmodule(flecs::entity e, rendering::RegTo state) {
+        auto context = state.e.get<rendering::GuiContext>()->context;
+        ImGui::SetCurrentContext(context);
         auto ecs = e.world();
 
         if (!e.name().empty() && ImGui::TreeNode(e.name().c_str())) {

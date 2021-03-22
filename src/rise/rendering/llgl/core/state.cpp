@@ -18,7 +18,7 @@ namespace rise::rendering {
             if (!e.has<Path>()) {
                 e.set<Path>({"./rendering"});
             }
-            e.set<Relative>({});
+            e.set<Relative>({false});
             e.set<CoreState>({});
         }
     }
@@ -37,12 +37,10 @@ namespace rise::rendering {
         core.sampler = createSampler(core.renderer.get());
         core.queue = core.renderer->GetCommandQueue();
         core.cmdBuf = core.renderer->CreateCommandBuffer();
-        core.sharedState = e.world().entity("SharedState").set<Relative>({false});
-
-        e.add_instanceof(core.sharedState);
+        e.set<RegTo>({e});
     }
 
-    void updateRelative(flecs::entity, CoreState &core, Relative val) {
+    void updateRelative(flecs::entity, Relative val) {
         SDL_SetRelativeMouseMode(static_cast<SDL_bool>(val.enabled));
     }
 
@@ -56,7 +54,6 @@ namespace rise::rendering {
         ecs.system<CoreState, const Extent2D>("updateCoreStateWindowSize", "Application").
                 kind(flecs::OnSet).each(updateWindowSize);
 
-        ecs.system<CoreState, const Relative>("updateCoreStateRelative").
-                kind(flecs::OnSet).each(updateRelative);
+        ecs.system<const Relative>("updateCoreStateRelative").kind(flecs::OnLoad).each(updateRelative);
     }
 }

@@ -33,7 +33,7 @@ namespace rise::rendering {
 
         auto context = ImGui::CreateContext();
         ImGui::SetCurrentContext(context);
-        e.get_mut<CoreState>()->sharedState.set<GuiContext>(GuiContext{context});
+        e.set<GuiContext>(GuiContext{context});
 
         ImGui_ImplSDL2_InitForVulkan(core.window);
         configImGui();

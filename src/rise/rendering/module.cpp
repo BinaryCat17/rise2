@@ -27,7 +27,5 @@ namespace rise::rendering {
         ecs.component<Model>("Model");
         ecs.component<PointLight>("PointLight");
         ecs.component<Viewport>("Viewport");
-        ecs.component<RegTo>("RegTo");
-        ecs.component<RenderTo>("RenderTo");
     }
 }

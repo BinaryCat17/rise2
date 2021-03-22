@@ -2,6 +2,7 @@
 
 #include <flecs.h>
 #include "rise/rendering/imgui.hpp"
+#include "rise/rendering/module.hpp"
 
 namespace rise::editor {
     enum class GuiComponentType {
@@ -22,7 +23,7 @@ namespace rise::editor {
         explicit Module(flecs::world &ecs);
     };
 
-    void guiSubmodule(flecs::entity e, rendering::GuiContext context);
+    void guiSubmodule(flecs::entity e, rendering::RegTo state);
 
     template<typename T>
     void regGuiComponent(flecs::world &ecs, GuiComponentType type, T init = {}) {
