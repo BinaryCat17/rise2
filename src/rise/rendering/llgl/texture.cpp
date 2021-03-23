@@ -1,9 +1,5 @@
 #define STB_IMAGE_IMPLEMENTATION
-
-#include "texture.hpp"
-#include "state.hpp"
-#include "utils.hpp"
-#include "rise/rendering/module.hpp"
+#include "resources.hpp"
 #include "stb_image.h"
 #include <iostream>
 
@@ -18,6 +14,7 @@ namespace rise::rendering {
         auto &texture = *e.get_mut<TextureRes>();
         core.renderer->Release(*e.get<TextureRes>()->val);
         e.remove<TextureRes>();
+        e.mut();
     }
 
     void updateTexture(flecs::entity, RegTo state, TextureRes &texture, Path const &path) {

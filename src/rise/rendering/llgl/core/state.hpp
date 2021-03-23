@@ -3,12 +3,11 @@
 #include <flecs.h>
 #include <LLGL/LLGL.h>
 #include <SDL.h>
+#include "util/soa.hpp"
 
 namespace rise::rendering {
     struct CoreState {
-        std::shared_ptr<LLGL::RenderSystem> renderer = nullptr;
-        bool relativeChanged = false;
-        std::string root;
+        std::unique_ptr<LLGL::RenderSystem> renderer = nullptr;
         SDL_Window *window = nullptr;
         LLGL::RenderContext *context = nullptr;
         LLGL::CommandQueue *queue = nullptr;

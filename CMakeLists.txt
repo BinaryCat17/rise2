@@ -59,7 +59,8 @@ add_library(rise
         src/rise/rendering/module.cpp
         src/rise/rendering/editor.cpp
         src/rise/rendering/llgl/module.cpp
-        src/rise/rendering/llgl/resources/manager.cpp
+        src/rise/rendering/llgl/texture.cpp
+        src/rise/rendering/llgl/pipelines/scene.cpp
 
         src/rise/rendering/llgl/core/systems.cpp
         src/rise/rendering/llgl/core/texture.cpp
@@ -77,7 +78,7 @@ add_library(rise
         src/rise/rendering/llgl/scene/material.cpp
         src/rise/rendering/llgl/scene/model.cpp
         src/rise/rendering/llgl/scene/viewport.cpp
-        src/rise/rendering/llgl/scene/pipeline.cpp
+        src/rise/rendering/llgl/scene/scene.cpp
 
         src/rise/input/module.cpp
 

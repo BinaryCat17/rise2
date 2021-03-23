@@ -75,6 +75,14 @@ namespace rise::rendering {
         flecs::entity e;
     };
 
+    struct RegTo {
+        flecs::entity e;
+    };
+
+    struct RenderTo {
+        flecs::entity e;
+    };
+
     struct Mesh {};
 
     struct Texture {};
