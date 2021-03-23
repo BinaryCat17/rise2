@@ -59,6 +59,7 @@ add_library(rise
         src/rise/rendering/module.cpp
         src/rise/rendering/editor.cpp
         src/rise/rendering/llgl/module.cpp
+        src/rise/rendering/llgl/resources/manager.cpp
 
         src/rise/rendering/llgl/core/systems.cpp
         src/rise/rendering/llgl/core/texture.cpp
@@ -84,6 +85,7 @@ add_library(rise
         )
 
 target_include_directories(rise PUBLIC src)
+target_include_directories(rise PUBLIC submodules/sg14/)
 target_include_directories(rise PRIVATE src/rise)
 
 add_executable(riseapp app/main.cpp)
@@ -104,3 +106,5 @@ target_link_libraries(rise PUBLIC
 target_link_libraries(riseapp PRIVATE rise)
 
 target_link_libraries(flecs_test PRIVATE flecs_static flecs_deps)
+target_include_directories(flecs_test PUBLIC submodules/sg14/)
+target_include_directories(flecs_test PUBLIC src)

@@ -49,3 +49,6 @@
 [submodule "submodules/flecs-rest"]
 	path = submodules/flecs-rest
 	url = https://github.com/flecs-hub/flecs-rest.git
+[submodule "submodules/sg14"]
+	path = submodules/sg14
+	url = https://github.com/WG21-SG14/SG14
