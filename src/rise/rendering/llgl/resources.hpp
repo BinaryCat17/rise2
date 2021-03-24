@@ -1,4 +1,5 @@
 #pragma once
+
 #include <SDL.h>
 #include <LLGL/LLGL.h>
 #include <flecs.h>
@@ -6,21 +7,19 @@
 #include "util/soa.hpp"
 
 namespace rise::rendering {
-    // id + version
-    using Key = std::pair<unsigned, unsigned>;
 
     struct TextureId {
-        Key id;
+        Key id = NullKey;
     };
 
     struct TextureState {
-        LLGL::Texture* val = nullptr;
+        LLGL::Texture *val = nullptr;
     };
 
-    void importTexture(flecs::world& ecs);
+    void importTexture(flecs::world &ecs);
 
     struct MeshId {
-        Key id;
+        Key id = NullKey;
     };
 
     struct MeshState {
@@ -30,20 +29,20 @@ namespace rise::rendering {
         unsigned numVertices = 0;
     };
 
-    void importMesh(flecs::world& ecs);
+    void importMesh(flecs::world &ecs);
 
     struct MaterialId {
-        Key id;
+        Key id = NullKey;
     };
 
     struct MaterialState {
         LLGL::Buffer *uniform = nullptr;
     };
 
-    void importMaterial(flecs::world& ecs);
+    void importMaterial(flecs::world &ecs);
 
     struct ModelId {
-        Key id;
+        Key id = NullKey;
     };
 
     struct ModelState {
@@ -51,10 +50,10 @@ namespace rise::rendering {
         LLGL::ResourceHeap *heap = nullptr;
     };
 
-    void importModel(flecs::world& ecs);
+    void importModel(flecs::world &ecs);
 
     struct ViewportId {
-        Key id;
+        Key id = NullKey;
     };
 
     struct ViewportRef {
@@ -68,7 +67,12 @@ namespace rise::rendering {
         bool dirtyCamera = true;
     };
 
-    void importViewport(flecs::world& ecs);
+    inline ViewportId getViewport(flecs::entity e) {
+        auto ref = e.get<ViewportRef>()->ref;
+        return { ref->id };
+    }
+
+    void importViewport(flecs::world &ecs);
 
     struct CoreState {
         std::unique_ptr<LLGL::RenderSystem> renderer = nullptr;
@@ -86,11 +90,11 @@ namespace rise::rendering {
     };
 
     struct GuiState {
-        LLGL::PipelineLayout* layout = nullptr;
-        LLGL::PipelineState* pipeline = nullptr;
+        LLGL::PipelineLayout *layout = nullptr;
+        LLGL::PipelineState *pipeline = nullptr;
         LLGL::VertexFormat format;
-        LLGL::ResourceHeap* heap = nullptr;
-        LLGL::Buffer* uniform = nullptr;
+        LLGL::ResourceHeap *heap = nullptr;
+        LLGL::Buffer *uniform = nullptr;
         MeshState mesh;
     };
 
@@ -100,11 +104,19 @@ namespace rise::rendering {
         flecs::entity texture;
     };
 
-    struct Manager {
-        SoaSlotMap<TextureState> textures;
-        std::vector<std::map<TextureState, TextureId>> texturesToInit;
-        std::vector<TextureId> texturesToRemove;
+    enum TextureSlots : int {
+        eTextureState,
+        eTextureModels
+    };
 
+    struct Manager {
+        SoaSlotMap<TextureState, std::vector<ModelId>> textures;
+        std::vector<std::pair<TextureState, TextureId>> texturesToInit;
+        std::vector<TextureId> texturesToRemove;
+        SoaSlotMap<ModelState> models;
+        std::vector<std::pair<ModelState, ModelId>> modelsToInit;
+        std::vector<ModelId> modelsToRemove;
+        std::vector<ModelId> updatedModels;
     };
 
     struct ApplicationState {
@@ -115,13 +127,19 @@ namespace rise::rendering {
         Presets presets;
     };
 
+
     struct ApplicationId {
-        ApplicationState* id;
+        ApplicationState *id = nullptr;
     };
 
     struct ApplicationRef {
         flecs::ref<ApplicationId> ref;
     };
 
-    void importApplication(flecs::world& ecs);
+    inline ApplicationState* getApp(flecs::entity e) {
+        auto ref = e.get<ApplicationRef>()->ref;
+        return ref->id;
+    }
+
+    void importApplication(flecs::world &ecs);
 }

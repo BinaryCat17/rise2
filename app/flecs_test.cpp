@@ -5,10 +5,12 @@
 
 int main() {
     rise::SoaSlotMap<double, int> table;
+    stdext::slot_map<int> map;
 
     auto e = table.push_back(std::tuple{1.0, 1});
-    auto p = table.at(e);
-    std::cout << std::get<0>(p) << std::endl;
+    table.erase(e);
+    auto e2 = table.push_back(std::tuple{1.0, 1});
+    std::cout << table.find({-1, -1}) << std::endl;
 
     table.push_back(std::tuple{2.0, 1});
     table.push_back(std::tuple{10.0, 1});

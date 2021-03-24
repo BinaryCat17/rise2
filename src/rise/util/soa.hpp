@@ -115,6 +115,11 @@ namespace rise {
                     std::make_integer_sequence<unsigned, sizeof...(Types)>()); // unrolling parameter pack
         }
 
+        constexpr static size_t find(type &c_, Key position_) {
+            return doFind(c_, position_,
+                    std::make_integer_sequence<unsigned, sizeof...(Types)>()); // unrolling parameter pack
+        }
+
         constexpr static void resize(type &c_, std::size_t size_) {
             doResize(c_, size_,
                     std::make_integer_sequence<unsigned, sizeof...(Types)>()); // unrolling parameter pack
@@ -124,6 +129,10 @@ namespace rise {
         constexpr static auto push_back(type &c_, TValue &&val_) {
             return doPushBack(c_, std::forward<TValue>(val_),
                     std::make_integer_sequence<unsigned, sizeof...(Types)>()); // unrolling parameter pack
+        }
+
+        constexpr static auto erase(type &c_, Key position_) {
+            return doErase(c_, position_, std::make_integer_sequence<unsigned, sizeof...(Types)>()); // unrolling parameter pack
         }
 
         static constexpr std::size_t size(type &c_) { return std::get<0>(c_).size(); }
@@ -143,6 +152,12 @@ namespace rise {
         }
 
         template<unsigned... Ids>
+        constexpr static size_t
+        doFind(type &c_, Key position_, std::integer_sequence<unsigned, Ids...>) {
+            return std::get<0>(c_).find(position_) - std::get<0>(c_).begin(); // guaranteed copy elision
+        }
+
+        template<unsigned... Ids>
         constexpr static void
         doResize(type &c_, unsigned size_, std::integer_sequence<unsigned, Ids...>) {
             ( std::get<Ids>(c_).resize(size_), ... ); //fold expressions
@@ -153,6 +168,12 @@ namespace rise {
         doPushBack(type &c_, TValue &&val_, std::integer_sequence<unsigned, Ids...>) {
             return ( std::get<Ids>(c_).push_back(
                     std::get<Ids>(std::forward<TValue>(val_))), ... ); // fold expressions
+        }
+
+        template< unsigned... Ids>
+        constexpr static auto
+        doErase(type &c_, Key position_, std::integer_sequence<unsigned, Ids...>) {
+            return ( std::get<Ids>(c_).erase(position_), ... ); // fold expressions
         }
     };
 
@@ -181,6 +202,10 @@ namespace rise {
             return policy_t::push_back(mValues, std::forward<Fwd>(val));
         }
 
+        void erase() {
+            return policy_t::erase(mValues);
+        }
+
         std::size_t size() {
             return policy_t::size(mValues);
         }
@@ -191,6 +216,10 @@ namespace rise {
 
         value_type at(Key position_) {
             return policy_t::at(mValues, position_);
+        }
+
+        size_t find(Key position_) {
+            return policy_t::find(mValues, position_);
         }
 
         void resize(size_t size_) {
@@ -275,5 +304,16 @@ namespace rise {
 
     template<typename... Types>
     using SoaSlotMap = BaseContainer<DefaultSlotMap, DataLayout::SoA, std::tuple<Types...>>;
+
+    // id + version
+    using Key = std::pair<unsigned, unsigned>;
+    const static std::pair NullKey = {std::numeric_limits<unsigned>::max(), std::numeric_limits<unsigned>::max()};
+
+    template<typename... Types>
+    bool contains(SoaSlotMap<Types...> const& map, Key key) {
+        auto id = map.find(key);
+        return id != map.size();
+    }
+
 
 }
