@@ -30,17 +30,17 @@ int main() {
     guiSubmodule(ecs, application, editor::guiSubmodule);
 
     auto mesh = ecs.entity("CubeMesh").
-            add_childof(application).
+            set<rendering::RegTo>({application}).
             set<rendering::Path>({"cube.obj"}).
             add<rendering::Mesh>();
 
     auto texture = ecs.entity("CubeTexture").
-            add_childof(application).
+            set<rendering::RegTo>({application}).
             set<rendering::Path>({"field.jpg"}).
             add<rendering::Texture>();
 
     auto camera = ecs.entity("Viewport").
-            add_childof(application).
+            set<rendering::RegTo>({application}).
             add_instanceof(windowSize).
             set<rendering::Position3D>({-2, 2, 1}).
             set<rendering::Distance>({50.f}).
@@ -49,8 +49,7 @@ int main() {
             add<rendering::PointLight>();
 
     ecs.entity("Cube").
-            add_childof(application).
-            add_childof(camera).
+            set<rendering::RenderTo>({camera}).
             add_instanceof(mesh).
             set(rendering::DiffuseTexture{texture}).
             set<rendering::Position3D>({0, 0, 0}).
@@ -58,8 +57,7 @@ int main() {
             add<rendering::Model>();
 
     ecs.entity("Ball").
-            add_childof(application).
-            add_childof(camera).
+            set<rendering::RenderTo>({camera}).
             set<rendering::Path>({"sphere.obj"}).
             set<rendering::Position3D>({0, 1, 0}).
             set<rendering::Scale3D>({0.01, 0.01, 0.01}).

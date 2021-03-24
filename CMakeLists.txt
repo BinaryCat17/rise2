@@ -75,7 +75,6 @@ add_library(rise
         src/rise/rendering/llgl/scene/mesh.cpp
         src/rise/rendering/llgl/scene/systems.cpp
         src/rise/rendering/llgl/scene/state.cpp
-        src/rise/rendering/llgl/scene/material.cpp
         src/rise/rendering/llgl/scene/model.cpp
         src/rise/rendering/llgl/scene/viewport.cpp
         src/rise/rendering/llgl/scene/scene.cpp
@@ -87,6 +86,7 @@ add_library(rise
 
 target_include_directories(rise PUBLIC src)
 target_include_directories(rise PUBLIC submodules/sg14/)
+target_include_directories(rise PUBLIC submodules/stb/)
 target_include_directories(rise PRIVATE src/rise)
 
 add_executable(riseapp app/main.cpp)

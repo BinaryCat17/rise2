@@ -1,46 +1,7 @@
 #include "model.hpp"
-#include "state.hpp"
-#include "pipeline.hpp"
-#include "../core/utils.hpp"
-#include "../core/state.hpp"
-#include "../core/texture.hpp"
-#include "../module.hpp"
-#include "rendering/glm.hpp"
-#include "material.hpp"
-#include "mesh.hpp"
-#include "viewport.hpp"
 
 namespace rise::rendering {
-    void regModel(flecs::entity e) {
-        if (!e.has<Position3D>()) e.set<Position3D>({0.0f, 0.0f, 0.0f});
-        if (!e.has<Rotation3D>()) e.set<Rotation3D>({0.0f, 0.0f, 0.0f});
-        if (!e.has<Scale3D>()) e.set<Scale3D>({1.0f, 1.0f, 1.0f});
-
-        auto &core = *e.get<RegTo>()->e.get<CoreState>();
-        auto &presets = *e.get<RegTo>()->e.get<Presets>();
-
-        if (!e.has<MaterialRes>()) e.add_instanceof(presets.material);
-        if (!e.has<MeshRes>()) e.add_instanceof(presets.mesh);
-        if (!e.has<DiffuseTexture>()) e.set<DiffuseTexture>({presets.texture});
-
-        e.set<ModelRes>({createUniformBuffer<scenePipeline::PerObject>(core.renderer.get())});
-    }
-
-    void unregModel(flecs::entity e) {
-        auto &core = *e.get<RegTo>()->e.get<CoreState>();
-        auto &model = *e.get_mut<ModelRes>();
-
-        core.queue->WaitIdle();
-        core.renderer->Release(*model.heap);
-        core.renderer->Release(*model.uniform);
-        model.uniform = nullptr;
-        model.heap = nullptr;
-
-        e.remove<ModelRes>();
-    }
-
-    void updateResourceHeap(flecs::entity, RegTo state, RenderTo target, ModelRes &model,
-            DiffuseTexture diffuse, MaterialRes material) {
+     ModelRes createResourceHeap(* diffuse, MaterialRes material) {
         auto &core = *state.e.get<CoreState>();
         auto &scene = *state.e.get<SceneState>();
         auto &viewport = *target.e.get<ViewportRes>();

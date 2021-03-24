@@ -2,7 +2,6 @@
 #define GLM_ENABLE_EXPERIMENTAL
 
 #include <LLGL/LLGL.h>
-#include "rendering/module.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtx/hash.hpp>
 

@@ -52,3 +52,6 @@
 [submodule "submodules/sg14"]
 	path = submodules/sg14
 	url = https://github.com/WG21-SG14/SG14
+[submodule "submodules/stb"]
+	path = submodules/stb
+	url = https://github.com/nothings/stb.git

@@ -1,6 +1,7 @@
 #pragma once
+#include "../core/texture.hpp"
 #include <LLGL/LLGL.h>
-#include <flecs.h>
+#include <optional>
 
 namespace rise::rendering {
     struct ModelRes {
