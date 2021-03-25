@@ -1,8 +1,8 @@
 #pragma once
+
 #define GLM_ENABLE_EXPERIMENTAL
 
 #include <LLGL/LLGL.h>
-#include "rendering/module.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtx/hash.hpp>
 
@@ -44,6 +44,18 @@ namespace rise::rendering::scenePipeline {
 
     struct PerObject {
         alignas(16) glm::mat4 transform = {};
+    };
+
+    LLGL::PipelineLayout *createLayout(LLGL::RenderSystem *renderer);
+
+    LLGL::PipelineState *createPipeline(LLGL::RenderSystem *renderer,
+            LLGL::PipelineLayout *layout, LLGL::ShaderProgram *program);
+}
+
+namespace rise::rendering::guiPipeline {
+    struct Global {
+        alignas(8) glm::vec2 scale;
+        alignas(8) glm::vec2 translate;
     };
 
     LLGL::PipelineLayout *createLayout(LLGL::RenderSystem *renderer);

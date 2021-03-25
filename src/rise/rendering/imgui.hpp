@@ -2,6 +2,7 @@
 
 #include <imgui.h>
 #include <flecs.h>
+#include "module.hpp"
 
 namespace rise::rendering {
     struct GuiContext {

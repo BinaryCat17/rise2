@@ -67,6 +67,10 @@ namespace rise::rendering {
         std::string file;
     };
 
+    struct Title {
+        std::string title;
+    };
+
     struct Relative {
         bool enabled;
     };

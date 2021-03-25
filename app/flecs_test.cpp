@@ -8,9 +8,8 @@ int main() {
     stdext::slot_map<int> map;
 
     auto e = table.push_back(std::tuple{1.0, 1});
-    table.erase(e);
-    auto e2 = table.push_back(std::tuple{1.0, 1});
-    std::cout << table.find({-1, -1}) << std::endl;
+
+     table.push_back(std::tuple{1.0, 1});
 
     table.push_back(std::tuple{2.0, 1});
     table.push_back(std::tuple{10.0, 1});

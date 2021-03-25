@@ -132,7 +132,8 @@ namespace rise {
         }
 
         constexpr static auto erase(type &c_, Key position_) {
-            return doErase(c_, position_, std::make_integer_sequence<unsigned, sizeof...(Types)>()); // unrolling parameter pack
+            return doErase(c_, position_,
+                    std::make_integer_sequence<unsigned, sizeof...(Types)>()); // unrolling parameter pack
         }
 
         static constexpr std::size_t size(type &c_) { return std::get<0>(c_).size(); }
@@ -142,7 +143,8 @@ namespace rise {
         template<unsigned... Ids>
         constexpr static auto
         doGet(type &c_, size_t position_, std::integer_sequence<unsigned, Ids...>) {
-            return value_type{ref_wrap(*std::get<Ids>(c_).find_unchecked({position_, 0}))...}; // guaranteed copy elision
+            return value_type{ref_wrap(*std::get<Ids>(c_).find_unchecked(
+                    {position_, 0}))...}; // guaranteed copy elision
         }
 
         template<unsigned... Ids>
@@ -154,7 +156,8 @@ namespace rise {
         template<unsigned... Ids>
         constexpr static size_t
         doFind(type &c_, Key position_, std::integer_sequence<unsigned, Ids...>) {
-            return std::get<0>(c_).find(position_) - std::get<0>(c_).begin(); // guaranteed copy elision
+            return std::get<0>(c_).find(position_) -
+                    std::get<0>(c_).begin(); // guaranteed copy elision
         }
 
         template<unsigned... Ids>
@@ -170,7 +173,7 @@ namespace rise {
                     std::get<Ids>(std::forward<TValue>(val_))), ... ); // fold expressions
         }
 
-        template< unsigned... Ids>
+        template<unsigned... Ids>
         constexpr static auto
         doErase(type &c_, Key position_, std::integer_sequence<unsigned, Ids...>) {
             return ( std::get<Ids>(c_).erase(position_), ... ); // fold expressions
@@ -202,8 +205,8 @@ namespace rise {
             return policy_t::push_back(mValues, std::forward<Fwd>(val));
         }
 
-        void erase() {
-            return policy_t::erase(mValues);
+        void erase(Key v) {
+            policy_t::erase(mValues, v);
         }
 
         std::size_t size() {
@@ -215,6 +218,7 @@ namespace rise {
         }
 
         value_type at(Key position_) {
+            assert(contains(position_) && "Element doesn't exist");
             return policy_t::at(mValues, position_);
         }
 
@@ -229,6 +233,11 @@ namespace rise {
         iterator begin() { return iterator(this, 0); }
 
         iterator end() { return iterator(this, size()); }
+
+        bool contains(Key key) {
+            auto id = find(key);
+            return id != size();
+        }
 
     private:
 
@@ -307,13 +316,8 @@ namespace rise {
 
     // id + version
     using Key = std::pair<unsigned, unsigned>;
-    const static std::pair NullKey = {std::numeric_limits<unsigned>::max(), std::numeric_limits<unsigned>::max()};
-
-    template<typename... Types>
-    bool contains(SoaSlotMap<Types...> const& map, Key key) {
-        auto id = map.find(key);
-        return id != map.size();
-    }
+    const static std::pair NullKey = {std::numeric_limits<unsigned>::max(),
+            std::numeric_limits<unsigned>::max()};
 
 
 }

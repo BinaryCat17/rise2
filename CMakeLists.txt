@@ -24,26 +24,26 @@ add_library(imgui
         submodules/imgui/backends/imgui_impl_sdl.cpp)
 
 add_library(flecs_deps
-    submodules/flecs-meta/flecs_meta.c
-    submodules/flecs-components-http/flecs_components_http.c
-    submodules/flecs-json/flecs_json.c
-    submodules/flecs-monitor/flecs_monitor.c
-    submodules/flecs-rest/flecs_rest.c
-    submodules/flecs-player/flecs_player.c
-    submodules/flecs-dash/flecs_dash.c
-    submodules/flecs-systems-civetweb/flecs_systems_civetweb.c
-    )
+        submodules/flecs-meta/flecs_meta.c
+        submodules/flecs-components-http/flecs_components_http.c
+        submodules/flecs-json/flecs_json.c
+        submodules/flecs-monitor/flecs_monitor.c
+        submodules/flecs-rest/flecs_rest.c
+        submodules/flecs-player/flecs_player.c
+        submodules/flecs-dash/flecs_dash.c
+        submodules/flecs-systems-civetweb/flecs_systems_civetweb.c
+        )
 target_link_libraries(flecs_deps PRIVATE flecs_static)
 target_include_directories(flecs_deps PUBLIC
-    submodules/flecs-meta
-    submodules/flecs-components-http
-    submodules/flecs-json
-    submodules/flecs-player
-    submodules/flecs-monitor
-    submodules/flecs-rest
-    submodules/flecs-dash
-    submodules/flecs-systems-civetweb
-    )
+        submodules/flecs-meta
+        submodules/flecs-components-http
+        submodules/flecs-json
+        submodules/flecs-player
+        submodules/flecs-monitor
+        submodules/flecs-rest
+        submodules/flecs-dash
+        submodules/flecs-systems-civetweb
+        )
 
 target_link_libraries(imgui PRIVATE SDL2)
 
@@ -54,32 +54,24 @@ find_package(Threads REQUIRED)
 
 add_library(rise
         src/rise/util/flecs_os.cpp
-        src/rise/util/math.cpp
 
         src/rise/rendering/module.cpp
         src/rise/rendering/editor.cpp
-        src/rise/rendering/llgl/module.cpp
-        src/rise/rendering/llgl/texture.cpp
-        src/rise/rendering/llgl/pipelines/scene.cpp
-
-        src/rise/rendering/llgl/core/systems.cpp
-        src/rise/rendering/llgl/core/texture.cpp
-        src/rise/rendering/llgl/core/platform.cpp
-        src/rise/rendering/llgl/core/state.cpp
-        src/rise/rendering/llgl/core/utils.cpp
-
-        src/rise/rendering/llgl/gui/systems.cpp
-        src/rise/rendering/llgl/gui/pipeline.cpp
-        src/rise/rendering/llgl/gui/state.cpp
-
-        src/rise/rendering/llgl/scene/mesh.cpp
-        src/rise/rendering/llgl/scene/systems.cpp
-        src/rise/rendering/llgl/scene/state.cpp
-        src/rise/rendering/llgl/scene/model.cpp
-        src/rise/rendering/llgl/scene/viewport.cpp
-        src/rise/rendering/llgl/scene/scene.cpp
 
         src/rise/input/module.cpp
+        src/rise/rendering/llgl/module.cpp
+        src/rise/rendering/llgl/platform.cpp
+        src/rise/rendering/llgl/viewport.cpp
+        src/rise/rendering/llgl/material.cpp
+        src/rise/rendering/llgl/core.cpp
+        src/rise/rendering/llgl/utils.cpp
+        src/rise/rendering/llgl/math.cpp
+        src/rise/rendering/llgl/texture.cpp
+        src/rise/rendering/llgl/model.cpp
+        src/rise/rendering/llgl/scene.cpp
+        src/rise/rendering/llgl/mesh.cpp
+        src/rise/rendering/llgl/pipelines.cpp
+        src/rise/rendering/llgl/gui.cpp
 
         src/rise/editor/gui.cpp
         )

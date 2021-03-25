@@ -19,6 +19,7 @@ namespace rise::rendering {
         ecs.component<Intensity>("Intensity");
         ecs.component<Path>("Path");
         ecs.component<Relative>("Relative");
+        ecs.component<Title>("Title");
         ecs.component<DiffuseTexture>("DiffuseTexture");
         ecs.component<GuiContext>("GuiContext");
         ecs.component<Mesh>("Mesh");
@@ -27,5 +28,7 @@ namespace rise::rendering {
         ecs.component<Model>("Model");
         ecs.component<PointLight>("PointLight");
         ecs.component<Viewport>("Viewport");
+        ecs.component<RegTo>("RegTo");
+        ecs.component<RenderTo>("RenderTo");
     }
 }

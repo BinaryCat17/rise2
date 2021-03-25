@@ -84,7 +84,29 @@ namespace rise::rendering {
         return context;
     }
 
-    bool pullInputEvents(flecs::entity e, CoreState& core) {
+
+    SDL_Window *createGameWindow(std::string const &title, Extent2D extent) {
+        SDL_Init(SDL_INIT_EVENTS);
+        auto window = SDL_CreateWindow(title.c_str(),
+                SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+                static_cast<int>(extent.width), static_cast<int>(extent.height), SDL_WINDOW_VULKAN);
+        if (!window) {
+            throw std::runtime_error("fail to create window");
+        }
+        return window;
+    }
+
+
+    void initPlatformWindow(flecs::entity e, ApplicationState &state, Title const& title) {
+        state.platform.window = createGameWindow(title.title, *e.get<Extent2D>());
+    }
+
+    void initPlatformSurface(flecs::entity e, ApplicationState &state) {
+        state.platform.context = createRenderingContext(state.core.renderer.get(),
+                state.platform.window);
+    }
+
+    void pullInputEvents(flecs::entity e, ApplicationId app, Extent2D &size) {
         SDL_Event event;
 
         while (SDL_PollEvent(&event)) {
@@ -94,7 +116,12 @@ namespace rise::rendering {
                 case SDL_WINDOWEVENT:
                     if (event.window.event == SDL_WINDOWEVENT_CLOSE) {
                         ecs_quit(e.world().c_ptr());
-                        return false;
+                    }
+                    if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
+                        int width, height;
+                        SDL_GetWindowSize(app.id->platform.window, &width, &height);
+                        size.width = static_cast<float>(width);
+                        size.height = static_cast<float>(height);
                     }
                     break;
                 default:
@@ -102,19 +129,32 @@ namespace rise::rendering {
             }
         }
 
-        ImGui_ImplSDL2_NewFrame(core.window);
-
-        return true;
+        ImGui_ImplSDL2_NewFrame(app.id->platform.window);
     }
 
-    SDL_Window *createGameWindow(std::string const &title, glm::vec2 extent) {
-        SDL_Init(SDL_INIT_EVENTS);
-        auto window = SDL_CreateWindow(title.c_str(),
-                SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-                static_cast<int>(extent.x), static_cast<int>(extent.y), SDL_WINDOW_VULKAN);
-        if (!window) {
-            throw std::runtime_error("fail to create window");
-        }
-        return window;
+    void updateWindowSize(flecs::entity, ApplicationId app, Extent2D size) {
+        SDL_SetWindowSize(app.id->platform.window, static_cast<int>(size.width),
+                static_cast<int>(size.height));
+        app.id->platform.context->SetVideoMode({{static_cast<uint32_t>(size.width),
+                static_cast<uint32_t>(size.height)}});
+    }
+
+    void updateWindowTitle(flecs::entity, ApplicationId application, Title const &title) {
+        SDL_SetWindowTitle(application.id->platform.window, title.title.c_str());
+    }
+
+    void updateWindowRelative(flecs::entity, Relative relative) {
+        SDL_SetRelativeMouseMode(static_cast<SDL_bool>(relative.enabled));
+    }
+
+    void importPlatformState(flecs::world &ecs) {
+        ecs.system<const ApplicationId, const Extent2D>("updateWindowSize", "Application").
+                kind(flecs::OnSet).each(updateWindowSize);
+
+        ecs.system<const ApplicationId, const Title>("updateWindowTitle", "Application").
+                kind(flecs::OnSet).each(updateWindowTitle);
+
+        ecs.system<const Relative>("updateWindowRelative", "Application").
+                kind(flecs::OnSet).each(updateWindowRelative);
     }
 }

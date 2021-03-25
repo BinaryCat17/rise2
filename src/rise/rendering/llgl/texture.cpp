@@ -1,77 +1,60 @@
 #define STB_IMAGE_IMPLEMENTATION
-#include "resources.hpp"
+
+#include "texture.hpp"
 #include "stb_image.h"
 #include "utils.hpp"
-#include <iostream>
 
 namespace rise::rendering {
     void regTexture(flecs::entity e) {
-        if (!e.has<Path>()) e.set<Path>({});
-        auto app = getApp(e);
-        e.set<TextureId>({ app->manager.textures.push_back(std::tuple{TextureState{}})});
+        if (!e.owns<Initialized>()) {
+            if (!e.has<Path>()) e.set<Path>({});
+            e.set<TextureId>({});
+        }
+    }
+
+    void initTexture(flecs::entity e, TextureId &id) {
+        std::tuple init{TextureState{}, std::vector<flecs::entity>{}};
+        id.id = getApp(e)->manager.texture.states.push_back(std::move(init));
+        e.add<Initialized>();
     }
 
     void unregTexture(flecs::entity e) {
-        auto app = getApp(e);
-        app->manager.texturesToRemove.push_back(*e.get<TextureId>());
-        e.remove<TextureId>();
+        if (e.owns<Initialized>()) {
+            getApp(e)->manager.texture.toRemove.push_back(*e.get<TextureId>());
+            e.remove<TextureId>();
+            e.remove<Initialized>();
+        }
     }
 
+    // при изменении пути до файла отложенно обновляем текстуру
     void updateTexture(flecs::entity, ApplicationRef ref, TextureId texture, Path const &path) {
-        auto& root = ref.ref.entity().get<Path>()->file;
-        auto& app = *ref.ref->id;
+        auto &root = ref.ref.entity().get<Path>()->file;
+        auto &manager = ref.ref->id->manager;
+        auto renderer = ref.ref->id->core.renderer.get();
 
         auto file = root + "/textures/" + path.file;
 
         int width = 0, height = 0, components = 0;
-        auto imageBuffer = stbi_load(file.c_str(), &width, &height, &components, 0);
+        auto image = stbi_load(file.c_str(), &width, &height, &components, 0);
 
-        if (imageBuffer) {
-            auto format = components == 4 ? LLGL::ImageFormat::RGBA : LLGL::ImageFormat::RGB;
-
+        if (image) {
             TextureState state;
-            state.val = createTextureFromData(app.core.renderer.get(), format, imageBuffer, width, height);
+            auto format = components == 4 ? LLGL::ImageFormat::RGBA : LLGL::ImageFormat::RGB;
+            state.val = createTextureFromData(renderer, format, image, width, height);
 
-            stbi_image_free(imageBuffer);
+            manager.texture.toInit.emplace_back(state, texture);
 
-            app.manager.texturesToRemove.emplace_back(texture);
-            app.manager.texturesToInit.emplace_back(state, texture);
-
+            stbi_image_free(image);
         } else {
             std::cerr << "failed to load image from file: " << file << std::endl;
-        }
-    }
-
-    void prepareDeferTexture(flecs::entity, ApplicationId app) {
-        auto& manager = app.id->manager;
-        for(auto texture : manager.texturesToRemove) {
-            auto& models = std::get<eTextureModels>(manager.textures.at(texture.id)).get();
-            for(auto model : models) {
-                manager.updatedModels.push_back(model);
-            }
-        }
-    }
-
-    void processDeferTexture(flecs::entity, ApplicationId app) {
-        auto& manager = app.id->manager;
-        for(auto texture : manager.texturesToRemove) {
-            if(contains(manager.textures, texture.id)) {
-                auto& state = std::get<eTextureState>(manager.textures.at(texture.id)).get();
-                app.id->core.renderer->Release(*state.val);
-            }
-        }
-
-        for(auto texture : manager.texturesToInit) {
-            auto& state = std::get<eTextureState>(manager.textures.at(texture.second.id)).get();
-            state = texture.first;
-
         }
     }
 
     void importTexture(flecs::world &ecs) {
         ecs.system<>("regTexture", "Texture").kind(flecs::OnAdd).each(regTexture);
         ecs.system<>("unregTexture", "Texture").kind(flecs::OnRemove).each(unregTexture);
-        ecs.system<const ApplicationRef, const TextureId, const Path>("updateTexture", "Texture").
-                kind(flecs::OnSet).each(updateTexture);
+        ecs.system<TextureId>("initTexture", "!Initialized").kind(flecs::OnSet).each(initTexture);
+        ecs.system<const ApplicationRef, const TextureId, const Path>("updateTexture",
+                "Texture, Initialized").kind(flecs::OnSet).each(updateTexture);
     }
 }

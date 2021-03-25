@@ -1,10 +1,74 @@
-#include "systems.hpp"
-#include "../core/utils.hpp"
-#include "pipeline.hpp"
+#include "gui.hpp"
+#include "utils.hpp"
 #include <backends/imgui_impl_sdl.h>
 
 namespace rise::rendering {
-    void updateResources(flecs::entity, CoreState &core, GuiState &gui, GuiContext context) {
+    void configImGui() {
+        ImGuiStyle &style = ImGui::GetStyle();
+        style.Colors[ImGuiCol_TitleBg] = ImVec4(1.0f, 0.0f, 0.0f, 0.6f);
+        style.Colors[ImGuiCol_TitleBgActive] = ImVec4(1.0f, 0.0f, 0.0f, 0.8f);
+        style.Colors[ImGuiCol_MenuBarBg] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
+        style.Colors[ImGuiCol_Header] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
+        style.Colors[ImGuiCol_CheckMark] = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
+    }
+
+    void initGuiPipeline(CoreState const &core, GuiState &gui, std::string const& root) {
+        gui.format.AppendAttribute(LLGL::VertexAttribute{"inPos", LLGL::Format::RG32Float});
+        gui.format.AppendAttribute(LLGL::VertexAttribute{"inUV", LLGL::Format::RG32Float});
+        gui.format.AppendAttribute(LLGL::VertexAttribute{"inColor", LLGL::Format::RGBA8UNorm});
+
+        gui.layout = guiPipeline::createLayout(core.renderer.get());
+
+        auto program = createShaderProgram(core.renderer.get(),
+                root + "/shaders/gui", gui.format);
+        gui.pipeline = guiPipeline::createPipeline(core.renderer.get(), gui.layout, program);
+    }
+
+    void initGuiState(flecs::entity e, ApplicationState &state, Path const& path) {
+        auto const &root = path.file;
+        auto& gui = state.gui;
+        auto renderer = state.core.renderer.get();
+
+        initGuiPipeline(state.core, gui, root);
+
+        auto context = ImGui::CreateContext();
+        ImGui::SetCurrentContext(context);
+        e.set<GuiContext>(GuiContext{context});
+
+        ImGui_ImplSDL2_InitForVulkan(state.platform.window);
+        configImGui();
+
+        unsigned char *fontData;
+        int texWidth, texHeight;
+        ImGuiIO &io = ImGui::GetIO();
+        io.Fonts->GetTexDataAsRGBA32(&fontData, &texWidth, &texHeight);
+
+        auto fontTexture = createTextureFromData(renderer, LLGL::ImageFormat::RGBA,
+                fontData, texWidth, texHeight);
+
+        gui.uniform = createUniformBuffer(renderer, guiPipeline::Global{});
+
+        LLGL::ResourceHeapDescriptor resourceHeapDesc;
+        resourceHeapDesc.pipelineLayout = gui.layout;
+        resourceHeapDesc.resourceViews.emplace_back(gui.uniform);
+        resourceHeapDesc.resourceViews.emplace_back(state.core.sampler);
+        resourceHeapDesc.resourceViews.emplace_back(fontTexture);
+        gui.heap = renderer->CreateResourceHeap(resourceHeapDesc);
+    }
+
+    void regGuiState(flecs::entity) {
+
+    }
+
+    void importGuiState(flecs::world &ecs) {
+        ecs.system<>("regGuiState", "Application").
+                kind(flecs::OnAdd).each(regGuiState);
+    }
+
+    void updateResources(flecs::entity, ApplicationId app, GuiContext context) {
+        auto& core = app.id->core;
+        auto& gui = app.id->gui;
+
         ImGui::SetCurrentContext(context.context);
         ImGuiIO &io = ImGui::GetIO();
         ImDrawData *imDrawData = ImGui::GetDrawData();
@@ -32,15 +96,15 @@ namespace rise::rendering {
                     cmd_list->IdxBuffer.Data + cmd_list->IdxBuffer.Size);
         }
 
-        auto &mesh = gui.guiMesh;
-        auto renderer = core.renderer;
+        auto &mesh = gui.mesh;
+        auto renderer = core.renderer.get();
 
         if (mesh.numVertices != imDrawData->TotalVtxCount) {
             if (mesh.vertices) {
                 renderer->Release(*mesh.vertices);
             }
             mesh.numVertices = imDrawData->TotalVtxCount;
-            mesh.vertices = createVertexBuffer(renderer.get(), gui.format, vertices);
+            mesh.vertices = createVertexBuffer(renderer, gui.format, vertices);
         } else {
             renderer->WriteBuffer(*mesh.vertices, 0, vertices.data(),
                     vertices.size() * sizeof(ImDrawVert));
@@ -51,24 +115,25 @@ namespace rise::rendering {
                 renderer->Release(*mesh.indices);
             }
             mesh.numIndices = imDrawData->TotalIdxCount;
-            mesh.indices = createIndexBuffer(renderer.get(), indices);
+            mesh.indices = createIndexBuffer(renderer, indices);
         } else {
             renderer->WriteBuffer(*mesh.indices, 0, indices.data(),
                     indices.size() * sizeof(ImDrawIdx));
         }
     }
 
-    void prepareImgui(flecs::entity, CoreState &core, GuiState &gui, GuiContext context) {
+    void prepareImgui(flecs::entity, ApplicationId app, GuiContext context) {
+        auto window = app.id->platform.window;
         ImGui::SetCurrentContext(context.context);
 
         int width, height;
-        SDL_GetWindowSize(core.window, &width, &height);
+        SDL_GetWindowSize(window, &width, &height);
 
         ImGuiIO &io = ImGui::GetIO();
         io.DisplaySize = ImVec2(static_cast<float>(width), static_cast<float>(height));
         io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
 
-        ImGui_ImplSDL2_NewFrame(core.window);
+        ImGui_ImplSDL2_NewFrame(window);
         ImGui::NewFrame();
     }
 
@@ -77,8 +142,10 @@ namespace rise::rendering {
         ImGui::Render();
     }
 
-    void renderGui(flecs::entity, CoreState &core, GuiState &gui, GuiContext context,
-            Extent2D size) {
+    void renderGui(flecs::entity, ApplicationId app, GuiContext context, Extent2D size) {
+        auto& core = app.id->core;
+        auto& gui = app.id->gui;
+
         ImGui::SetCurrentContext(context.context);
 
         LLGL::Viewport viewport;
@@ -103,8 +170,8 @@ namespace rise::rendering {
         int32_t indexOffset = 0;
 
         if (imDrawData->CmdListsCount > 0) {
-            cmdBuf->SetVertexBuffer(*gui.guiMesh.vertices);
-            cmdBuf->SetIndexBuffer(*gui.guiMesh.indices);
+            cmdBuf->SetVertexBuffer(*gui.mesh.vertices);
+            cmdBuf->SetIndexBuffer(*gui.mesh.indices);
 
             for (int32_t i = 0; i < imDrawData->CmdListsCount; i++) {
                 const ImDrawList *cmd_list = imDrawData->CmdLists[i];
@@ -134,5 +201,4 @@ namespace rise::rendering {
             }
         }
     }
-
 }

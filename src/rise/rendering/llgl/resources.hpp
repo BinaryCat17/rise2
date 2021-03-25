@@ -3,11 +3,11 @@
 #include <SDL.h>
 #include <LLGL/LLGL.h>
 #include <flecs.h>
-#include "pipelines/scene.hpp"
+#include "../module.hpp"
+#include "pipelines.hpp"
 #include "util/soa.hpp"
 
 namespace rise::rendering {
-
     struct TextureId {
         Key id = NullKey;
     };
@@ -15,8 +15,6 @@ namespace rise::rendering {
     struct TextureState {
         LLGL::Texture *val = nullptr;
     };
-
-    void importTexture(flecs::world &ecs);
 
     struct MeshId {
         Key id = NullKey;
@@ -29,8 +27,6 @@ namespace rise::rendering {
         unsigned numVertices = 0;
     };
 
-    void importMesh(flecs::world &ecs);
-
     struct MaterialId {
         Key id = NullKey;
     };
@@ -38,8 +34,6 @@ namespace rise::rendering {
     struct MaterialState {
         LLGL::Buffer *uniform = nullptr;
     };
-
-    void importMaterial(flecs::world &ecs);
 
     struct ModelId {
         Key id = NullKey;
@@ -49,8 +43,6 @@ namespace rise::rendering {
         LLGL::Buffer *uniform = nullptr;
         LLGL::ResourceHeap *heap = nullptr;
     };
-
-    void importModel(flecs::world &ecs);
 
     struct ViewportId {
         Key id = NullKey;
@@ -63,24 +55,29 @@ namespace rise::rendering {
     struct ViewportState {
         LLGL::Buffer *uniform = nullptr;
         scenePipeline::PerViewport *pData = nullptr;
-        unsigned lightId = 0;
-        bool dirtyCamera = true;
+    };
+
+    struct UpdatedViewportState {
+        bool camera = true;
+        bool light = true;
+        size_t currentLight = 0;
     };
 
     inline ViewportId getViewport(flecs::entity e) {
         auto ref = e.get<ViewportRef>()->ref;
-        return { ref->id };
+        return {ref->id};
     }
-
-    void importViewport(flecs::world &ecs);
 
     struct CoreState {
         std::unique_ptr<LLGL::RenderSystem> renderer = nullptr;
-        SDL_Window *window = nullptr;
-        LLGL::RenderContext *context = nullptr;
         LLGL::CommandQueue *queue = nullptr;
         LLGL::CommandBuffer *cmdBuf = nullptr;
         LLGL::Sampler *sampler = nullptr;
+    };
+
+    struct Platform {
+        SDL_Window *window = nullptr;
+        LLGL::RenderContext *context = nullptr;
     };
 
     struct SceneState {
@@ -109,24 +106,108 @@ namespace rise::rendering {
         eTextureModels
     };
 
-    struct Manager {
-        SoaSlotMap<TextureState, std::vector<ModelId>> textures;
-        std::vector<std::pair<TextureState, TextureId>> texturesToInit;
-        std::vector<TextureId> texturesToRemove;
-        SoaSlotMap<ModelState> models;
-        std::vector<std::pair<ModelState, ModelId>> modelsToInit;
-        std::vector<ModelId> modelsToRemove;
-        std::vector<ModelId> updatedModels;
+    struct TextureResources {
+        SoaSlotMap<TextureState, std::vector<flecs::entity>> states;
+        std::vector<std::pair<TextureState, TextureId>> toInit;
+        std::vector<TextureId> toRemove;
     };
+
+    enum ViewportSlots : int {
+        eViewportState,
+        eViewportUpdated,
+        eViewportModels,
+    };
+
+    struct ViewportResources {
+        SoaSlotMap<ViewportState, UpdatedViewportState, std::vector<flecs::entity>> states;
+        std::vector<std::pair<ViewportState, ViewportId>> toInit;
+        std::vector<ViewportId> toRemove;
+    };
+
+    enum MaterialSlots : int {
+        eMaterialState,
+        eMaterialModels
+    };
+
+    struct MaterialResources {
+        SoaSlotMap<MaterialState, std::vector<flecs::entity>> states;
+        std::vector<std::pair<MaterialState, MaterialId>> toInit;
+        std::vector<flecs::entity> toUpdate;
+        std::vector<MaterialId> toRemove;
+    };
+
+    enum ModelSlots : int {
+        eModelState,
+    };
+
+    struct ModelResources {
+        SoaSlotMap<ModelState> states;
+        std::vector<std::pair<ModelState, ModelId>> toInit;
+        std::vector<ModelId> toRemove;
+        std::vector<flecs::entity> toUpdateDescriptors;
+        std::vector<flecs::entity> toUpdateTransform;
+    };
+
+    enum MeshSlots : int {
+        eMeshState,
+    };
+
+    struct MeshResources {
+        SoaSlotMap<MeshState> states;
+        std::vector<std::pair<MeshState, MeshId>> toInit;
+        std::vector<MeshId> toRemove;
+    };
+
+    struct Manager {
+        TextureResources texture;
+        ViewportResources viewport;
+        ModelResources model;
+        MeshResources mesh;
+        MaterialResources material;
+    };
+
+    template<auto n, typename T>
+    void prepareRemove(Manager &manager, T &res) {
+        // добавляем в очередь все модели для обновления наборов дескрипторов
+        for (auto rm : res.toRemove) {
+            auto elem = res.states.at(rm.id);
+            auto &models = std::get<n>(std::move(elem)).get();
+
+            for (auto model : models) {
+                manager.model.toUpdateDescriptors.push_back(model);
+            }
+        }
+    }
+
+    template<auto n, typename Res, typename Fn>
+    void processRemoveInit(Manager &manager, Res &res, Fn &&f) {
+        for (auto rm : res.toRemove) {
+            auto elem = res.states.at(rm.id);
+            auto &state = std::get<n>(std::move(elem)).get();
+
+            f(state);
+
+            manager.texture.states.erase(rm.id);
+        }
+
+        for (auto up : res.toInit) {
+            auto elem = res.states.at(up.second.id);
+            auto &state = std::get<n>(std::move(elem)).get();
+
+            f(state);
+
+            state = up.first;
+        }
+    }
 
     struct ApplicationState {
         CoreState core;
         Manager manager;
         SceneState scene;
         GuiState gui;
+        Platform platform;
         Presets presets;
     };
-
 
     struct ApplicationId {
         ApplicationState *id = nullptr;
@@ -136,10 +217,10 @@ namespace rise::rendering {
         flecs::ref<ApplicationId> ref;
     };
 
-    inline ApplicationState* getApp(flecs::entity e) {
+    inline ApplicationState *getApp(flecs::entity e) {
         auto ref = e.get<ApplicationRef>()->ref;
         return ref->id;
     }
 
-    void importApplication(flecs::world &ecs);
+    struct Initialized {};
 }

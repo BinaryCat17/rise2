@@ -1,8 +1,5 @@
 #include "mesh.hpp"
-#include "state.hpp"
-#include "pipeline.hpp"
-#include "../core/utils.hpp"
-#include "../core/state.hpp"
+#include "utils.hpp"
 #include <tiny_obj_loader.h>
 
 namespace rise::rendering {
@@ -42,24 +39,28 @@ namespace rise::rendering {
     }
 
     void regMesh(flecs::entity e) {
-        if (!e.has<Path>()) e.set<Path>({});
-        e.set<MeshRes>({});
+        if (!e.has<Path>()) e.set<Path>({"cube.obj"});
+        e.set<MeshId>({});
+    }
+
+    void initMesh(flecs::entity e, MeshId& id) {
+        if(!e.owns<Initialized>()) {
+            id.id = getApp(e)->manager.mesh.states.push_back(std::tuple{MeshState{}});
+        }
     }
 
     void unregMesh(flecs::entity e) {
-        auto &core = *e.get<RegTo>()->e.get<CoreState>();
-        auto &mesh = *e.get_mut<MeshRes>();
-        core.queue->WaitIdle();
-        core.renderer->Release(*mesh.vertices);
-        core.renderer->Release(*mesh.indices);
-        mesh.vertices = nullptr;
-        mesh.indices = nullptr;
+        if(e.owns<Initialized>()) {
+            getApp(e)->manager.mesh.toRemove.push_back(*e.get<MeshId>());
+            e.remove<TextureId>();
+        }
     }
 
-    void updateMesh(flecs::entity e, RegTo state, MeshRes &mesh, Path const &path) {
-        auto &core = *state.e.get<CoreState>();
-        auto &scene = *state.e.get<SceneState>();
-        auto file = core.root + "/models/" + path.file;
+    void updateMesh(flecs::entity e, ApplicationRef ref, MeshId meshId, Path const &path) {
+        auto &core = ref.ref->id->core;
+        auto &scene = ref.ref->id->scene;
+        auto &manager = ref.ref->id->manager;
+        auto file = ref.ref.entity().get<Path>()->file + "/models/" + path.file;
 
         tinyobj::ObjReaderConfig readerConfig;
         readerConfig.triangulate = true;
@@ -85,6 +86,7 @@ namespace rise::rendering {
             return;
         }
 
+        MeshState mesh;
         if (mesh.vertices && mesh.indices) {
             core.renderer->Release(*mesh.vertices);
             core.renderer->Release(*mesh.indices);
@@ -93,12 +95,15 @@ namespace rise::rendering {
         mesh.vertices = createVertexBuffer(core.renderer.get(), scene.format, vertices);
         mesh.indices = createIndexBuffer(core.renderer.get(), indices);
         mesh.numIndices = static_cast<uint32_t>(indices.size());
+
+        manager.mesh.toInit.emplace_back(mesh, meshId);
     }
 
     void importMesh(flecs::world &ecs) {
         ecs.system<>("regMesh", "Mesh").kind(flecs::OnAdd).each(regMesh);
         ecs.system<>("unregMesh", "Mesh").kind(flecs::OnRemove).each(unregMesh);
-        ecs.system<const RegTo, MeshRes, const Path>("updateMesh", "Mesh").
-                kind(flecs::OnSet).each(updateMesh);
+        ecs.system<MeshId>("initMesh", "!Initialized").kind(flecs::OnSet).each(initMesh);
+        ecs.system<const ApplicationRef, const MeshId, const Path>("updateMesh",
+                "Mesh, Initialized").kind(flecs::OnSet).each(updateMesh);
     }
 }

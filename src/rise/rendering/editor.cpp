@@ -19,6 +19,7 @@ namespace rise::rendering {
         editor::regGuiComponent<Intensity>(ecs, GuiComponentType::DragFloat);
         editor::regGuiComponent<Distance>(ecs, GuiComponentType::DragFloat);
         editor::regGuiComponent<Path>(ecs, GuiComponentType::InputTextStdString);
+        editor::regGuiComponent<Title>(ecs, GuiComponentType::InputTextStdString);
         editor::regGuiTag<Mesh>(ecs);
         editor::regGuiTag<Texture>(ecs);
         editor::regGuiTag<Material>(ecs);
