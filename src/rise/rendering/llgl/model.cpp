@@ -7,21 +7,29 @@ namespace rise::rendering {
         if (!e.has<Position3D>()) e.set<Position3D>({0.0f, 0.0f, 0.0f});
         if (!e.has<Rotation3D>()) e.set<Rotation3D>({0.0f, 0.0f, 0.0f});
         if (!e.has<Scale3D>()) e.set<Scale3D>({1.0f, 1.0f, 1.0f});
+        e.set<ModelId>({});
+    }
 
-        auto app = getApp(e);
-        auto const &presets = app->presets;
-        if (!e.has<MaterialId>()) e.add_instanceof(presets.material);
-        if (!e.has<MeshId>()) e.add_instanceof(presets.mesh);
-        if (!e.has<DiffuseTexture>()) e.set<DiffuseTexture>({presets.texture});
+    void initModel(flecs::entity e, ApplicationRef app, ModelId &id) {
+        if (!e.owns<Initialized>()) {
+            auto const &presets = app.ref->id->presets;
+            if (!e.has<MaterialId>()) e.add_instanceof(presets.material);
+            if (!e.has<MeshId>()) e.add_instanceof(presets.mesh);
+            if (!e.has<DiffuseTexture>()) e.set<DiffuseTexture>({presets.texture});
 
-        auto uniform = createUniformBuffer<scenePipeline::PerObject>(app->core.renderer.get());
-        e.set<ModelId>({getApp(e)->manager.model.states.push_back(
-                std::tuple{ModelState{uniform}})});
+            auto uniform = createUniformBuffer<scenePipeline::PerObject>(app.ref->id->core.renderer.get());
+            e.set<ModelId>({getApp(e)->manager.model.states.push_back(
+                    std::tuple{ModelState{uniform}})});
+            e.add<Initialized>();
+        }
     }
 
     void unregModel(flecs::entity e) {
-        getApp(e)->manager.model.toRemove.push_back(*e.get<ModelId>());
-        e.remove<ModelId>();
+        if (e.owns<Initialized>()) {
+            getApp(e)->manager.model.toRemove.push_back(*e.get<ModelId>());
+            e.remove<ModelId>();
+            e.remove<Initialized>();
+        }
     }
 
     void clearDescriptors(flecs::entity, ApplicationId app) {
@@ -96,9 +104,11 @@ namespace rise::rendering {
     void importModel(flecs::world &ecs) {
         ecs.system<>("regModel", "Model").kind(flecs::OnAdd).each(regModel);
         ecs.system<>("unregModel", "Model").kind(flecs::OnRemove).each(unregModel);
+        ecs.system<const ApplicationRef, ModelId>("initModel", "!Initialized").
+                kind(flecs::OnSet).each(initModel);
 
         ecs.system<ApplicationRef>("catchUpdateTransform",
-                "Model,"
+                "Model, Initialized,"
                 "[in] ANY:rise.rendering.Position3D,"
                 "[in] ANY:rise.rendering.Scale3D,"
                 "[in] ANY:rise.rendering.Rotation3D").

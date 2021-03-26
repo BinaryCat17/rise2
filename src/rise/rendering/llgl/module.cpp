@@ -32,7 +32,7 @@ namespace rise::rendering {
         ecs.component<ApplicationId>("ApplicationId");
         ecs.component<ApplicationRef>("ApplicationRef");
         ecs.component<ViewportRef>("ViewportRef");
-        ecs.component<ViewportRef>("Initialized");
+        ecs.component<Initialized>("Initialized");
 
         ecs.system<const RenderTo>("AddRegTo", "!RegTo").kind(flecs::OnSet).each(
                 [](flecs::entity e, RenderTo state) {
@@ -42,14 +42,12 @@ namespace rise::rendering {
 
         ecs.system<const RegTo>("AddApplicationRef").kind(flecs::OnSet).each(
                 [](flecs::entity e, RegTo state) {
-                    auto p = state.e.get<RegTo>()->e;
-                    p.set<ApplicationRef>({p.get_ref<ApplicationId>()});
+                    e.set<ApplicationRef>({state.e.get_ref<ApplicationId>()});
                 });
 
         ecs.system<const RenderTo>("AddViewportRef").kind(flecs::OnSet).each(
                 [](flecs::entity e, RenderTo state) {
-                    auto p = state.e.get<RenderTo>()->e;
-                    p.set<ViewportRef>({p.get_ref<ViewportId>()});
+                    e.set<ViewportRef>({state.e.get_ref<ViewportId>()});
                 });
 
         ecs.system<>("initApplication", "Application").kind(flecs::OnAdd).each(
@@ -86,7 +84,7 @@ namespace rise::rendering {
 
         // On load --------------------------------------------------------------------------------
 
-        ecs.system<const ApplicationId, Extent2D>("pullInputEvents", "OWNED:Application").
+        ecs.system<const ApplicationId, Extent2D>("pullInputEvents", "Application").
                 kind(flecs::OnLoad).each(pullInputEvents);
 
         // Pre store ------------------------------------------------------------------------------
@@ -140,27 +138,27 @@ namespace rise::rendering {
         ecs.system<const ApplicationId>("updateTransform").kind(flecs::PreStore).each(
                 updateTransform);
 
-        ecs.system<const ApplicationRef, const ViewportId>("prepareViewport").
+        ecs.system<const ApplicationRef, const ViewportId>("prepareViewport", "Initialized").
                 kind(flecs::PreStore).each(prepareViewport);
 
         ecs.system<const ApplicationRef, const ViewportId, const Extent2D, const Position3D,
-                const Rotation3D>("updateViewportCamera").
+                const Rotation3D>("updateViewportCamera", "Initialized").
                 kind(flecs::PreStore).each(updateViewportCamera);
 
         ecs.system<const ApplicationRef, const ViewportRef, const Position3D, const DiffuseColor,
-                const Intensity, const Distance>("updateViewportLight").kind(flecs::PreStore).
-                each(updateViewportLight);
+                const Intensity, const Distance>("updateViewportLight", "Initialized").
+                kind(flecs::PreStore).each(updateViewportLight);
 
-        ecs.system<const ApplicationRef, const ViewportId>("finishViewport").
+        ecs.system<const ApplicationRef, const ViewportId>("finishViewport", "Initialized").
                 kind(flecs::PreStore).each(finishViewport);
 
         ecs.system<const ApplicationId>("prepareRender", "Application").kind(flecs::PreStore).
                 each(prepareRender);
 
         ecs.system<const ApplicationRef, const ViewportRef, const MeshId, const ModelId>(
-                "renderScene").kind(flecs::PreStore).each(renderScene);
+                "renderScene", "Initialized").kind(flecs::PreStore).each(renderScene);
 
-        ecs.system<const ApplicationId, const GuiContext>("prepareImgui", "OWNED:Application").
+        ecs.system<const ApplicationId, const GuiContext>("prepareImgui", "Application").
                 kind(flecs::PreStore).each(prepareImgui);
 
         // On store -------------------------------------------------------------------------------

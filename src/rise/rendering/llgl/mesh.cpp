@@ -102,7 +102,7 @@ namespace rise::rendering {
     void importMesh(flecs::world &ecs) {
         ecs.system<>("regMesh", "Mesh").kind(flecs::OnAdd).each(regMesh);
         ecs.system<>("unregMesh", "Mesh").kind(flecs::OnRemove).each(unregMesh);
-        ecs.system<MeshId>("initMesh", "!Initialized").kind(flecs::OnSet).each(initMesh);
+        ecs.system<MeshId>("initMesh", "OWNED:ApplicationRef, !Initialized").kind(flecs::OnSet).each(initMesh);
         ecs.system<const ApplicationRef, const MeshId, const Path>("updateMesh",
                 "Mesh, Initialized").kind(flecs::OnSet).each(updateMesh);
     }

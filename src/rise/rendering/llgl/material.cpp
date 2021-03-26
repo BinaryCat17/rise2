@@ -18,6 +18,7 @@ namespace rise::rendering {
             };
 
             id.id = getApp(e)->manager.material.states.push_back(std::move(init));
+            e.add<Initialized>();
         }
     }
 
@@ -25,6 +26,7 @@ namespace rise::rendering {
         if (e.owns<Initialized>()) {
             getApp(e)->manager.material.toRemove.push_back(*e.get<MaterialId>());
             e.remove<MaterialId>();
+            e.remove<Initialized>();
         }
     }
 

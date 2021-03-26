@@ -25,6 +25,7 @@ namespace rise::rendering {
 
             id.id = getApp(e)->manager.viewport.states.push_back(std::move(init));
             e.set<ViewportRef>({e.get_ref<ViewportId>()});
+            e.add<Initialized>();
         }
     }
 
@@ -39,6 +40,7 @@ namespace rise::rendering {
         if(e.owns<Initialized>()) {
             getApp(e)->manager.viewport.toRemove.push_back(*e.get<ViewportId>());
             e.remove<ViewportId>();
+            e.remove<Initialized>();
         }
     }
 
@@ -117,7 +119,7 @@ namespace rise::rendering {
         ecs.system<>("regViewport", "Viewport").kind(flecs::OnAdd).each(regViewport);
         ecs.system<>("regPointLight", "PointLight").kind(flecs::OnAdd).each(regPointLight);
         ecs.system<>("unregViewport", "Viewport").kind(flecs::OnRemove).each(unregViewport);
-        ecs.system<const ApplicationRef, ViewportId>("initMaterial", "!Initialized").
+        ecs.system<const ApplicationRef, ViewportId>("initViewport", "!Initialized").
                 kind(flecs::OnSet).each(initViewport);
         ecs.system<ApplicationRef, ViewportId>("catchCameraUpdate",
                 "Viewport, Initialized,"

@@ -53,7 +53,7 @@ namespace rise::rendering {
     void importTexture(flecs::world &ecs) {
         ecs.system<>("regTexture", "Texture").kind(flecs::OnAdd).each(regTexture);
         ecs.system<>("unregTexture", "Texture").kind(flecs::OnRemove).each(unregTexture);
-        ecs.system<TextureId>("initTexture", "!Initialized").kind(flecs::OnSet).each(initTexture);
+        ecs.system<TextureId>("initTexture", "OWNED:ApplicationRef, !Initialized").kind(flecs::OnSet).each(initTexture);
         ecs.system<const ApplicationRef, const TextureId, const Path>("updateTexture",
                 "Texture, Initialized").kind(flecs::OnSet).each(updateTexture);
     }
