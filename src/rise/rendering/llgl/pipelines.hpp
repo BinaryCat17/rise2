@@ -64,6 +64,27 @@ namespace rise::rendering::guiPipeline {
             LLGL::PipelineLayout *layout, LLGL::ShaderProgram *program);
 }
 
+namespace rise::rendering::shadowPipeline {
+    using Vertex = scenePipeline::Vertex;
+
+    const LLGL::Extent2D resolution;
+
+    static const size_t maxLightCount = 32;
+
+    struct PerLight {
+        alignas(16) glm::mat4 lightSpaceMatrix[6];
+    };
+
+    struct PerObject {
+        alignas(16) glm::mat4 transform = {};
+    };
+
+    LLGL::PipelineLayout *createLayout(LLGL::RenderSystem *renderer);
+
+    LLGL::PipelineState *createPipeline(LLGL::RenderSystem *renderer,
+            LLGL::PipelineLayout *layout, LLGL::ShaderProgram *program, LLGL::RenderPass* pass);
+}
+
 namespace std {
     template<>
     struct hash<rise::rendering::scenePipeline::Vertex> {

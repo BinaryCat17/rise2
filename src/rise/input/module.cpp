@@ -3,7 +3,6 @@
 #include "rendering/glm.hpp"
 #include "imgui.h"
 #include <SDL.h>
-#include <iostream>
 
 namespace rise::input {
     using namespace rendering;
@@ -23,7 +22,13 @@ namespace rise::input {
         return {position.x + direction.x, position.y + direction.y, position.z + direction.z};
     }
 
-    void processKeyboard(flecs::entity e, Relative &input, Position3D position, Rotation3D rotation) {
+    void processRelative(flecs::entity e) {
+        if (ImGui::IsKeyPressed(SDL_SCANCODE_F)) {
+            e.set<Relative>({!e.get<Relative>()->enabled});
+        }
+    }
+
+    void processKeyboard(flecs::entity e, Position3D position, Rotation3D rotation) {
         glm::vec3 origin = calcOrigin(toGlm(position), toGlm(rotation));
         glm::vec3 direction = glm::normalize(toGlm(position) - origin);
 
@@ -33,9 +38,6 @@ namespace rise::input {
 
         float const speed = 0.05f;
 
-        if (ImGui::IsKeyPressed(SDL_SCANCODE_F)) {
-            input.enabled = !input.enabled;
-        }
 
         if (ImGui::IsKeyDown(SDL_SCANCODE_D)) {
             move(position, right, speed, e.delta_time());
@@ -64,13 +66,13 @@ namespace rise::input {
         e.set<Position3D>(position);
     }
 
-    void processMouse(flecs::entity e, Relative relative, Rotation3D rotation) {
+    void processMouse(flecs::entity e, RegTo app, Rotation3D rotation) {
         float const speed = 0.05f;
 
         int x, y;
         SDL_GetRelativeMouseState(&x, &y);
 
-        if (relative.enabled) {
+        if (app.e.get<Relative>()->enabled) {
             rotation.x += static_cast<float>(x) * speed;
             rotation.z -= static_cast<float>(y) * speed;
         }
@@ -82,10 +84,13 @@ namespace rise::input {
         ecs.module<Module>("rise::input");
         ecs.component<Controllable>("Controllable");
 
-        ecs.system<Relative, Position3D, const Rotation3D>("processKeyboard", "Controllable").
+        ecs.system<Position3D, const Rotation3D>("processKeyboard", "Controllable").
                 kind(flecs::PostLoad).each(processKeyboard);
 
-        ecs.system<const Relative, Rotation3D>("processMouse", "Controllable").
+        ecs.system<>("processRelative", "OWNED:rise.rendering.Relative").
+                kind(flecs::OnLoad).each(processRelative);
+
+        ecs.system<const RegTo, Rotation3D>("processMouse", "Controllable").
                 kind(flecs::PostLoad).each(processMouse);
     }
 }

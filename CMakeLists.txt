@@ -60,6 +60,7 @@ add_library(rise
 
         src/rise/input/module.cpp
         src/rise/rendering/llgl/module.cpp
+        src/rise/rendering/llgl/shadows.cpp
         src/rise/rendering/llgl/platform.cpp
         src/rise/rendering/llgl/viewport.cpp
         src/rise/rendering/llgl/material.cpp

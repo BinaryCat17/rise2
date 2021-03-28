@@ -2,6 +2,7 @@
 
 #include <tuple>
 #include <SG14/slot_map.h>
+#include <limits>
 
 namespace rise {
 

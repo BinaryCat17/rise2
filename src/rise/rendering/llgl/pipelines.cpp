@@ -95,3 +95,41 @@ namespace rise::rendering::guiPipeline {
         return renderer->CreatePipelineState(pipelineDesc);
     }
 }
+
+namespace rise::rendering::shadowPipeline {
+    LLGL::PipelineLayout *createLayout(LLGL::RenderSystem *renderer) {
+        LLGL::PipelineLayoutDescriptor layoutDesc;
+        layoutDesc.bindings = {LLGL::BindingDescriptor{ // camera
+                LLGL::ResourceType::Buffer,
+                LLGL::BindFlags::ConstantBuffer,
+                LLGL::StageFlags::VertexStage | LLGL::StageFlags::FragmentStage,
+                0,
+        }, LLGL::BindingDescriptor{ // draw
+                LLGL::ResourceType::Buffer,
+                LLGL::BindFlags::ConstantBuffer,
+                LLGL::StageFlags::VertexStage | LLGL::StageFlags::FragmentStage,
+                1,
+        }};
+
+        return renderer->CreatePipelineLayout(layoutDesc);
+    }
+
+    LLGL::PipelineState *createPipeline(LLGL::RenderSystem *renderer,
+            LLGL::PipelineLayout *layout, LLGL::ShaderProgram *program, LLGL::RenderPass* pass) {
+        LLGL::GraphicsPipelineDescriptor pipelineDesc;
+        {
+            pipelineDesc.shaderProgram                          = program;
+            pipelineDesc.renderPass                             = pass;
+            pipelineDesc.pipelineLayout                         = layout;
+            pipelineDesc.depth.testEnabled                      = true;
+            pipelineDesc.depth.writeEnabled                     = true;
+            pipelineDesc.rasterizer.cullMode                    = LLGL::CullMode::Back;
+            pipelineDesc.rasterizer.depthBias.constantFactor    = 4.0f;
+            pipelineDesc.rasterizer.depthBias.slopeFactor       = 4.0f;
+            pipelineDesc.blend.targets[0].colorMask             = { false, false, false, false };
+            pipelineDesc.viewports                              = { resolution };
+        }
+
+        return renderer->CreatePipelineState(pipelineDesc);
+    }
+}

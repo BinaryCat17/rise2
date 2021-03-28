@@ -109,7 +109,7 @@ namespace rise::editor {
         ImGui::SetCurrentContext(context);
         auto ecs = e.world();
 
-        if (!e.name().empty() && ImGui::TreeNode(e.name().c_str())) {
+        if (e.name().size() && ImGui::TreeNode(e.name().c_str())) {
             writeEntityComponents(ecs, e);
             writeEntityTags(ecs, e);
 

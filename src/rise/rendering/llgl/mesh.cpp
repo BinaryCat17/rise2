@@ -43,17 +43,23 @@ namespace rise::rendering {
         e.set<MeshId>({});
     }
 
-    void initMesh(flecs::entity e, MeshId& id) {
-        if(!e.owns<Initialized>()) {
-            id.id = getApp(e)->manager.mesh.states.push_back(std::tuple{MeshState{}});
+    void initMesh(flecs::entity e, ApplicationRef app, MeshId &id) {
+        if (!e.has_trait<Initialized, MeshId>()) {
+            id.id = app.ref->id->manager.mesh.states.push_back(std::tuple{MeshState{}});
+            e.add_trait<Initialized, MeshId>();
+            e.patch<Path>([](auto) {});
         }
     }
 
     void unregMesh(flecs::entity e) {
-        if(e.owns<Initialized>()) {
-            getApp(e)->manager.mesh.toRemove.push_back(*e.get<MeshId>());
-            e.remove<TextureId>();
+        if (e.has_trait<Initialized, MeshId>()) {
+            e.remove<MeshId>();
+            e.remove_trait<Initialized, MeshId>();
         }
+    }
+
+    void removeMesh(flecs::entity, ApplicationRef app, MeshId id) {
+        app.ref->id->manager.mesh.toRemove.push_back(id);
     }
 
     void updateMesh(flecs::entity e, ApplicationRef ref, MeshId meshId, Path const &path) {
@@ -102,8 +108,11 @@ namespace rise::rendering {
     void importMesh(flecs::world &ecs) {
         ecs.system<>("regMesh", "Mesh").kind(flecs::OnAdd).each(regMesh);
         ecs.system<>("unregMesh", "Mesh").kind(flecs::OnRemove).each(unregMesh);
-        ecs.system<MeshId>("initMesh", "OWNED:ApplicationRef, !Initialized").kind(flecs::OnSet).each(initMesh);
+        ecs.system<const ApplicationRef, MeshId>("initMesh", "!TRAIT | Initialized > MeshId").
+                kind(flecs::OnSet).each(initMesh);
+        ecs.system<const ApplicationRef, const MeshId>("removeMesh").
+                kind(EcsUnSet).each(removeMesh);
         ecs.system<const ApplicationRef, const MeshId, const Path>("updateMesh",
-                "Mesh, Initialized").kind(flecs::OnSet).each(updateMesh);
+                "Mesh, TRAIT | Initialized > MeshId").kind(flecs::OnSet).each(updateMesh);
     }
 }

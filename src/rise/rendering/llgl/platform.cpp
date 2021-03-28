@@ -97,11 +97,12 @@ namespace rise::rendering {
     }
 
 
-    void initPlatformWindow(flecs::entity e, ApplicationState &state, Title const& title) {
-        state.platform.window = createGameWindow(title.title, *e.get<Extent2D>());
+    void initPlatformWindow(flecs::entity, ApplicationState &state, Title const& title,
+            Extent2D extent) {
+        state.platform.window = createGameWindow(title.title, extent);
     }
 
-    void initPlatformSurface(flecs::entity e, ApplicationState &state) {
+    void initPlatformSurface(flecs::entity, ApplicationState &state) {
         state.platform.context = createRenderingContext(state.core.renderer.get(),
                 state.platform.window);
     }

@@ -5,28 +5,33 @@ namespace rise::rendering {
     void regMaterial(flecs::entity e) {
         if (!e.has<Path>()) e.set<Path>({});
         if (!e.has<DiffuseColor>()) e.set<DiffuseColor>({1.0, 1.0f, 1.0f});
+        e.set<MaterialId>({});
     }
 
     void initMaterial(flecs::entity e, ApplicationRef app, MaterialId &id) {
-        if (!e.owns<Initialized>()) {
+        if (id.id == NullKey) {
             auto &core = app.ref->id->core;
+
+            std::tuple init{MaterialState{}, std::vector<flecs::entity>{}};
+
+            id.id = app.ref->id->manager.material.states.push_back(std::move(init));
+            e.add_trait<Initialized, MaterialId>();
             auto uniform = createUniformBuffer<scenePipeline::PerMaterial>(core.renderer.get());
-
-            std::tuple init{
-                    MaterialState{uniform},
-                    std::vector<flecs::entity>{}
-            };
-
-            id.id = getApp(e)->manager.material.states.push_back(std::move(init));
-            e.add<Initialized>();
+            app.ref->id->manager.material.toInit.emplace_back(MaterialState{uniform}, id);
+            app.ref->id->manager.material.toUpdate.push_back(e);
+        } else {
+            app.ref->id->manager.material.toRemove.push_back(id);
         }
     }
 
+    void removeMaterial(flecs::entity, ApplicationRef app, MaterialId id) {
+        app.ref->id->manager.material.toRemove.push_back(id);
+    }
+
     void unregMaterial(flecs::entity e) {
-        if (e.owns<Initialized>()) {
-            getApp(e)->manager.material.toRemove.push_back(*e.get<MaterialId>());
+        if (e.has_trait<Initialized, MaterialId>()) {
             e.remove<MaterialId>();
-            e.remove<Initialized>();
+            e.remove_trait<Initialized, MaterialId>();
         }
     }
 
@@ -39,23 +44,38 @@ namespace rise::rendering {
         auto &manager = app.id->manager;
 
         for (auto up : manager.material.toUpdate) {
-            auto &material = std::get<eMaterialState>(
-                    manager.material.states.at(up.get<MaterialId>()->id)).get();
+            auto id = up.get<MaterialId>()->id;
+            auto &material = std::get<eMaterialState>(manager.material.states.at(id)).get();
 
             auto color = *up.get<DiffuseColor>();
             scenePipeline::PerMaterial data;
             data.diffuseColor = glm::vec4(color.r, color.g, color.b, 1);
+            // костылище
+            if (id == app.id->presets.material.get<MaterialId>()->id) {
+                data.diffuseColor = glm::vec4(1.0f);
+            }
             updateUniformBuffer(app.id->core.renderer.get(), material.uniform, data);
         }
+    }
+
+    void regMaterialToModel(flecs::entity e, ApplicationRef app, MaterialId material) {
+        auto &manager = app.ref->id->manager;
+        std::get<eMaterialModels>(manager.material.states.at(material.id)).
+                get().push_back(e);
     }
 
     void importMaterial(flecs::world &ecs) {
         ecs.system<>("regMaterial", "Material").kind(flecs::OnAdd).each(regMaterial);
         ecs.system<>("unregMaterial", "Material").kind(flecs::OnRemove).each(unregMaterial);
-        ecs.system<const ApplicationRef, MaterialId>("initMaterial", "!Initialized").
+        ecs.system<const ApplicationRef, MaterialId>("initMaterial",
+                "Material").
                 kind(flecs::OnSet).each(initMaterial);
+        ecs.system<const ApplicationRef, const MaterialId>("removeMaterial").
+                kind(EcsUnSet).each(removeMaterial);
+        ecs.system<const ApplicationRef, const MaterialId>("regMaterialToModel", "ModelId").
+                kind(flecs::OnSet).each(regMaterialToModel);
         ecs.system<const ApplicationRef>("catchMaterialUpdate",
-                "Material, Initialized, [in] rise.rendering.DiffuseColor").
+                "Material, TRAIT | Initialized > MaterialId, [in] rise.rendering.DiffuseColor").
                 kind(flecs::OnSet).each(catchMaterialUpdate);
     }
 }

@@ -2,20 +2,18 @@
 #include <flecs.h>
 #include <rise/util/soa.hpp>
 
+struct Position {
+    float x;
+    float y;
+};
+
+struct SomeRef {
+    flecs::entity e;
+};
 
 int main() {
-    rise::SoaSlotMap<double, int> table;
-    stdext::slot_map<int> map;
+    flecs::world ecs;
+    auto e = ecs.entity().set<Position>({5, 5});
 
-    auto e = table.push_back(std::tuple{1.0, 1});
-
-     table.push_back(std::tuple{1.0, 1});
-
-    table.push_back(std::tuple{2.0, 1});
-    table.push_back(std::tuple{10.0, 1});
-
-    for(auto && t : table) {
-        auto v = std::get<0>(t);
-        std::cout << v << std::endl;
-    }
+    auto d =
 }

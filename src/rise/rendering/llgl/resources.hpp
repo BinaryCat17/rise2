@@ -68,6 +68,19 @@ namespace rise::rendering {
         return {ref->id};
     }
 
+    struct LightState {
+        LLGL::Buffer *uniform = nullptr;
+        size_t id = 0;
+    };
+
+    struct LightId {
+        Key id;
+    };
+
+    struct ShadowModel {
+        LLGL::ResourceHeap *heap = nullptr;
+    };
+
     struct CoreState {
         std::unique_ptr<LLGL::RenderSystem> renderer = nullptr;
         LLGL::CommandQueue *queue = nullptr;
@@ -84,6 +97,13 @@ namespace rise::rendering {
         LLGL::PipelineLayout *layout = nullptr;
         LLGL::PipelineState *pipeline = nullptr;
         LLGL::VertexFormat format;
+    };
+
+    struct ShadowState {
+        LLGL::PipelineLayout *layout = nullptr;
+        LLGL::PipelineState *pipeline = nullptr;
+        LLGL::Texture *cubeMaps = nullptr;
+        std::array<LLGL::RenderTarget *, scenePipeline::maxLightCount> cubeTarget{};
     };
 
     struct GuiState {
@@ -124,6 +144,20 @@ namespace rise::rendering {
         std::vector<ViewportId> toRemove;
     };
 
+    enum LightSlots : int {
+        eLightState,
+        eLightShadowModels,
+    };
+
+    struct LightResources {
+        SoaSlotMap<LightState, std::map<Key, ShadowModel>> states;
+        std::vector<std::pair<LightState, LightId>> toInit;
+        std::vector<ModelId> toInitShadowModels;
+        std::vector<ModelId> toRemoveShadowModels;
+        std::vector<flecs::entity> toUpdate;
+        std::vector<LightId> toRemove;
+    };
+
     enum MaterialSlots : int {
         eMaterialState,
         eMaterialModels
@@ -142,6 +176,7 @@ namespace rise::rendering {
 
     struct ModelResources {
         SoaSlotMap<ModelState> states;
+        std::vector<Mo
         std::vector<std::pair<ModelState, ModelId>> toInit;
         std::vector<ModelId> toRemove;
         std::vector<flecs::entity> toUpdateDescriptors;
@@ -164,11 +199,21 @@ namespace rise::rendering {
         ModelResources model;
         MeshResources mesh;
         MaterialResources material;
+        LightResources light;
     };
 
     template<auto n, typename T>
     void prepareRemove(Manager &manager, T &res) {
         // добавляем в очередь все модели для обновления наборов дескрипторов
+        for (auto rm : res.toInit) {
+            auto elem = res.states.at(rm.second.id);
+            auto &models = std::get<n>(std::move(elem)).get();
+
+            for (auto model : models) {
+                manager.model.toUpdateDescriptors.push_back(model);
+            }
+        }
+
         for (auto rm : res.toRemove) {
             auto elem = res.states.at(rm.id);
             auto &models = std::get<n>(std::move(elem)).get();
@@ -200,6 +245,16 @@ namespace rise::rendering {
         }
     }
 
+    template<typename T>
+    T const *getOrDefault(flecs::entity e, T init) {
+        static T d{init};
+        if (auto v = e.get<T>()) {
+            return v;
+        } else {
+            return &d;
+        }
+    }
+
     struct ApplicationState {
         CoreState core;
         Manager manager;
@@ -207,6 +262,7 @@ namespace rise::rendering {
         GuiState gui;
         Platform platform;
         Presets presets;
+        ShadowState shadows;
     };
 
     struct ApplicationId {

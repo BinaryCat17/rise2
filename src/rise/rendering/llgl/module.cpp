@@ -11,7 +11,7 @@
 
 namespace rise::rendering {
     template<typename T>
-    T* getOrInit(flecs::entity e, T const& val) {
+    T *getOrInit(flecs::entity e, T const &val) {
         bool is_added;
         auto m = e.get_mut<T>(&is_added);
         if (is_added) {
@@ -42,7 +42,9 @@ namespace rise::rendering {
 
         ecs.system<const RegTo>("AddApplicationRef").kind(flecs::OnSet).each(
                 [](flecs::entity e, RegTo state) {
-                    e.set<ApplicationRef>({state.e.get_ref<ApplicationId>()});
+                    if (state.e.has<ApplicationId>()) {
+                        e.set<ApplicationRef>({state.e.get_ref<ApplicationId>()});
+                    }
                 });
 
         ecs.system<const RenderTo>("AddViewportRef").kind(flecs::OnSet).each(
@@ -54,9 +56,11 @@ namespace rise::rendering {
                 [](flecs::entity e) {
                     auto title = getOrInit(e, Title{"Minecraft 2"});
                     auto path = getOrInit(e, Path{"./rendering"});
+                    auto extent = getOrInit(e, Extent2D{1600, 1000});
+                    e.set<Relative>({false});
 
                     auto application = new ApplicationState;
-                    initPlatformWindow(e, *application, *title);
+                    initPlatformWindow(e, *application, *title, *extent);
                     initCoreRenderer(e, *application);
                     initPlatformSurface(e, *application);
                     initCoreState(e, *application);
@@ -64,6 +68,23 @@ namespace rise::rendering {
                     initSceneState(e, *application, *path);
                     e.set<ApplicationId>({application});
                     e.set<ApplicationRef>({e.get_ref<ApplicationId>()});
+                });
+
+        ecs.system<ApplicationId>("initApplicationPresets").kind(flecs::OnSet).each(
+                [](flecs::entity e, ApplicationId app) {
+                    auto ecs = e.world();
+                    flecs::filter filter(ecs);
+                    filter.include<RegTo>();
+
+                    for (auto it : ecs.filter(filter)) {
+                        for (auto row : it) {
+                            auto p = it.entity(row);
+                            auto ref = e.get_ref<ApplicationId>();
+                            if (ref.entity() == e) {
+                                p.mut(it).set<ApplicationRef>({ref});
+                            }
+                        }
+                    }
                 });
 
         ecs.system<>("removeApplication", "Application").kind(flecs::OnRemove).each(
@@ -89,6 +110,7 @@ namespace rise::rendering {
 
         // Pre store ------------------------------------------------------------------------------
 
+
         ecs.system<const ApplicationId>("prepareResourcesRemove").kind(flecs::PreStore).each(
                 [](flecs::entity e, ApplicationId app) {
                     auto &manager = app.id->manager;
@@ -104,28 +126,45 @@ namespace rise::rendering {
                 [](flecs::entity e, ApplicationId app) {
                     auto &manager = app.id->manager;
                     auto renderer = app.id->core.renderer.get();
+                    auto queue = app.id->core.queue;
 
                     processRemoveInit<eTextureState>(manager, manager.texture,
-                            [renderer](TextureState &state) {
-                                renderer->Release(*state.val);
+                            [renderer, queue](TextureState &state) {
+                                if (state.val != nullptr) {
+                                    queue->WaitIdle();
+                                    renderer->Release(*state.val);
+                                }
                             });
                     processRemoveInit<eMeshState>(manager, manager.mesh,
-                            [renderer](MeshState &state) {
-                                renderer->Release(*state.vertices);
-                                renderer->Release(*state.indices);
+                            [renderer, queue](MeshState &state) {
+                                if (state.vertices != nullptr) {
+                                    queue->WaitIdle();
+                                    renderer->Release(*state.vertices);
+                                    renderer->Release(*state.indices);
+                                }
                             });
                     processRemoveInit<eMaterialState>(manager, manager.material,
-                            [renderer](MaterialState &state) {
-                                renderer->Release(*state.uniform);
+                            [renderer, queue](MaterialState &state) {
+                                if (state.uniform != nullptr) {
+                                    queue->WaitIdle();
+                                    renderer->Release(*state.uniform);
+                                }
                             });
                     processRemoveInit<eViewportState>(manager, manager.viewport,
-                            [renderer](ViewportState &state) {
+                            [renderer, queue](ViewportState &state) {
+                                queue->WaitIdle();
                                 renderer->Release(*state.uniform);
                             });
                     processRemoveInit<eModelState>(manager, manager.model,
-                            [renderer](ModelState &state) {
+                            [renderer, queue](ModelState &state) {
+                                queue->WaitIdle();
                                 renderer->Release(*state.uniform);
                                 renderer->Release(*state.heap);
+                            });
+                    processRemoveInit<eLightState>(manager, manager.light,
+                            [renderer, queue](LightState &state) {
+                                queue->WaitIdle();
+                                renderer->Release(*state.uniform);
                             });
                 });
 
@@ -138,25 +177,30 @@ namespace rise::rendering {
         ecs.system<const ApplicationId>("updateTransform").kind(flecs::PreStore).each(
                 updateTransform);
 
-        ecs.system<const ApplicationRef, const ViewportId>("prepareViewport", "Initialized").
+        ecs.system<const ApplicationRef, const ViewportId>("prepareViewport",
+                "TRAIT | Initialized > ViewportId").
                 kind(flecs::PreStore).each(prepareViewport);
 
         ecs.system<const ApplicationRef, const ViewportId, const Extent2D, const Position3D,
-                const Rotation3D>("updateViewportCamera", "Initialized").
+                const Rotation3D>("updateViewportCamera", "TRAIT | Initialized > ViewportId").
                 kind(flecs::PreStore).each(updateViewportCamera);
 
         ecs.system<const ApplicationRef, const ViewportRef, const Position3D, const DiffuseColor,
-                const Intensity, const Distance>("updateViewportLight", "Initialized").
+                const Intensity, const Distance>("updateViewportLight", "PointLight").
                 kind(flecs::PreStore).each(updateViewportLight);
 
-        ecs.system<const ApplicationRef, const ViewportId>("finishViewport", "Initialized").
+        ecs.system<const ApplicationRef, const ViewportId>("finishViewport",
+                "TRAIT | Initialized > ViewportId").
                 kind(flecs::PreStore).each(finishViewport);
 
         ecs.system<const ApplicationId>("prepareRender", "Application").kind(flecs::PreStore).
                 each(prepareRender);
 
         ecs.system<const ApplicationRef, const ViewportRef, const MeshId, const ModelId>(
-                "renderScene", "Initialized").kind(flecs::PreStore).each(renderScene);
+                "renderScene",
+                "ANY: TRAIT | Initialized > MeshId,"
+                "ANY: TRAIT | Initialized > ModelId"
+        ).kind(flecs::PreStore).each(renderScene);
 
         ecs.system<const ApplicationId, const GuiContext>("prepareImgui", "Application").
                 kind(flecs::PreStore).each(prepareImgui);
@@ -174,5 +218,23 @@ namespace rise::rendering {
 
         ecs.system<const ApplicationId>("submitRender", "Application").kind(flecs::OnStore).
                 each(submitRender);
+
+        ecs.system<const ApplicationId>("clearCommands").kind(flecs::OnStore).each(
+                [](flecs::entity e, ApplicationId app) {
+                    auto &manager = app.id->manager;
+                    manager.texture.toInit.clear();
+                    manager.texture.toRemove.clear();
+                    manager.viewport.toInit.clear();
+                    manager.viewport.toRemove.clear();
+                    manager.mesh.toInit.clear();
+                    manager.mesh.toRemove.clear();
+                    manager.model.toInit.clear();
+                    manager.model.toUpdateDescriptors.clear();
+                    manager.model.toUpdateTransform.clear();
+                    manager.model.toRemove.clear();
+                    manager.material.toRemove.clear();
+                    manager.material.toUpdate.clear();
+                    manager.material.toInit.clear();
+                });
     }
 }

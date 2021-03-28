@@ -21,7 +21,7 @@ flecs::world initWorld() {
 int main() {
     auto ecs = initWorld();
 
-    auto windowSize = ecs.entity("WindowSize").set<rendering::Extent2D>({1000, 800});
+    auto windowSize = ecs.entity("WindowSize").set<rendering::Extent2D>({1600, 1000});
 
     auto application = ecs.entity("Minecraft2").
             add_instanceof(windowSize).
@@ -51,7 +51,7 @@ int main() {
     ecs.entity("Cube").
             set<rendering::RenderTo>({camera}).
             add_instanceof(mesh).
-            set(rendering::DiffuseTexture{texture}).
+            set<rendering::DiffuseTexture>({texture}).
             set<rendering::Position3D>({0, 0, 0}).
             set<rendering::Scale3D>({5.f, 0.2f, 5.f}).
             add<rendering::Model>();

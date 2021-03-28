@@ -11,5 +11,9 @@ namespace rise::rendering {
 
     void prepareRender(flecs::entity, ApplicationId app);
 
+    void prepareColorPass(flecs::entity, ApplicationId app);
+
+    void endColorPass(flecs::entity, ApplicationId app);
+
     void submitRender(flecs::entity, ApplicationId app);
 }

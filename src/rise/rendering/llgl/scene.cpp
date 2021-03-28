@@ -40,8 +40,9 @@ namespace rise::rendering {
         auto cmdBuf = applicationRef.ref->id->core.cmdBuf;
         cmdBuf->SetPipelineState(*applicationRef.ref->id->scene.pipeline);
 
-        auto position = *viewportRef.ref.entity().get<Position2D>();
-        auto size = *viewportRef.ref.entity().get<Extent2D>();
+        auto position = *getOrDefault(viewportRef.ref.entity(), Position2D{0, 0});
+        auto size = *getOrDefault(viewportRef.ref.entity(),
+                *applicationRef.ref.entity().get<Extent2D>());
         LLGL::Viewport viewport{position.x, position.y, size.width, size.height};
         cmdBuf->SetViewport(viewport);
 

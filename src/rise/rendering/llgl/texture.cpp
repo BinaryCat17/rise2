@@ -6,24 +6,28 @@
 
 namespace rise::rendering {
     void regTexture(flecs::entity e) {
-        if (!e.owns<Initialized>()) {
-            if (!e.has<Path>()) e.set<Path>({});
-            e.set<TextureId>({});
-        }
+        if (!e.has<Path>()) e.set<Path>({});
+        e.set<TextureId>({});
     }
 
-    void initTexture(flecs::entity e, TextureId &id) {
-        std::tuple init{TextureState{}, std::vector<flecs::entity>{}};
-        id.id = getApp(e)->manager.texture.states.push_back(std::move(init));
-        e.add<Initialized>();
+    void initTexture(flecs::entity e, ApplicationRef app, TextureId &id) {
+        if (!e.has_trait<Initialized, TextureId>()) {
+            std::tuple init{TextureState{}, std::vector<flecs::entity>{}};
+            id.id = app.ref->id->manager.texture.states.push_back(std::move(init));
+            e.add_trait<Initialized, TextureId>();
+            e.patch<Path>([](auto) {});
+        }
     }
 
     void unregTexture(flecs::entity e) {
-        if (e.owns<Initialized>()) {
-            getApp(e)->manager.texture.toRemove.push_back(*e.get<TextureId>());
+        if (e.has_trait<Initialized, TextureId>()) {
             e.remove<TextureId>();
-            e.remove<Initialized>();
+            e.remove_trait<Initialized, TextureId>();
         }
+    }
+
+    void removeTexture(flecs::entity, ApplicationRef app, TextureId id) {
+        app.ref->id->manager.texture.toRemove.push_back(id);
     }
 
     // при изменении пути до файла отложенно обновляем текстуру
@@ -50,11 +54,26 @@ namespace rise::rendering {
         }
     }
 
+    void regTextureToModel(flecs::entity e, ApplicationRef app, DiffuseTexture texture) {
+        auto &manager = app.ref->id->manager;
+        auto tId = texture.e.get<TextureId>();
+        if(tId) {
+            std::get<eTextureModels>(manager.texture.states.at(tId->id)).
+                    get().push_back(e);
+        }
+    }
+
     void importTexture(flecs::world &ecs) {
         ecs.system<>("regTexture", "Texture").kind(flecs::OnAdd).each(regTexture);
         ecs.system<>("unregTexture", "Texture").kind(flecs::OnRemove).each(unregTexture);
-        ecs.system<TextureId>("initTexture", "OWNED:ApplicationRef, !Initialized").kind(flecs::OnSet).each(initTexture);
+        ecs.system<const ApplicationRef, TextureId>("initTexture",
+                "!TRAIT | Initialized > TextureId").kind(
+                flecs::OnSet).each(initTexture);
+        ecs.system<const ApplicationRef, const TextureId>("removeTexture").
+                kind(EcsUnSet).each(removeTexture);
+        ecs.system<const ApplicationRef, const DiffuseTexture>("regTextureToModel", "ModelId").
+                kind(flecs::OnSet).each(regTextureToModel);
         ecs.system<const ApplicationRef, const TextureId, const Path>("updateTexture",
-                "Texture, Initialized").kind(flecs::OnSet).each(updateTexture);
+                "Texture, TRAIT | Initialized > TextureId").kind(flecs::OnSet).each(updateTexture);
     }
 }
