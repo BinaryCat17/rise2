@@ -35,7 +35,7 @@ namespace rise::rendering {
         if (!e.has<DiffuseColor>()) e.set<DiffuseColor>({1.0f, 1.0f, 1.0f});
         if (!e.has<Intensity>()) e.set<Intensity>({1.0f});
         if (!e.has<Distance>()) e.set<Distance>({15.f});
-        //e.set<LightId>({});
+        e.set<LightId>({});
     }
 
     void initShadowModels(flecs::entity, ApplicationId app) {
@@ -135,29 +135,29 @@ namespace rise::rendering {
                 glm::vec3(0.0, -1.0, 0.0));
     }
 
-    void updateViewportLight(flecs::entity, ApplicationRef ref, ViewportRef viewportRef, LightId lightId,
-            Position3D position, DiffuseColor color, Intensity intensity, Distance distance) {
+    void updateShadowMaps(flecs::entity, ApplicationRef ref, ViewportRef viewportRef,
+            LightId lightId) {
         auto& manager = ref.ref->id->manager;
         auto &&row = manager.viewport.states.at(viewportRef.ref->id);
         auto &updated = std::get<eViewportUpdated>(row).get();
+        auto &shadow = ref.ref->id->shadows;
+        auto cmd = ref.ref->id->core.cmdBuf;
 
         if (updated.currentLight < scenePipeline::maxLightCount) {
             auto& light = std::get<eLightState>(manager.light.states.at(lightId.id)).get();
-            updated.currentLight++;
+            light.id = updated.currentLight++;
+
+            cmd->BeginRenderPass(*shadow.cubeTarget[light.id]);
+            cmd->SetPipelineState(*shadow.pipeline);
+            cmd->Clear(LLGL::ClearFlags::Depth);
+            cmd->SetViewport(LLGL::Viewport(shadowPipeline::resolution));
+
+
+
+            cmd->DrawIndexed()
+
+            core.cmdBuf->EndRenderPass();
         }
-    }
-
-    void prepareShadowPass(flecs::entity, ApplicationId app, size_t lightId) {
-        auto &core = app.id->core;
-        auto cmd = core.cmdBuf;
-        //cmd->BeginRenderPass(app.id->shadows.cubeTarget[lightId]);
-        cmd->SetViewport(LLGL::Viewport(shadowPipeline::resolution));
-        cmd->Clear(LLGL::ClearFlags::Depth);
-    }
-
-    void endShadowPass(flecs::entity, ApplicationId app) {
-        auto &core = app.id->core;
-        core.cmdBuf->EndRenderPass();
     }
 
     void importShadowsState(flecs::world &ecs) {

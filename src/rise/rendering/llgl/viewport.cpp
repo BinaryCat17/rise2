@@ -20,7 +20,7 @@ namespace rise::rendering {
             std::tuple init{
                     ViewportState{uniform},
                     UpdatedViewportState{},
-                    std::vector<flecs::entity>{}
+                    std::set<Key>{}
             };
 
             id.id = getApp(e)->manager.viewport.states.push_back(std::move(init));

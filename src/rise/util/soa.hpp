@@ -186,12 +186,12 @@ namespace rise {
 
     template<template<typename> class TContainer, DataLayout TDataLayout, typename TItem>
     struct BaseContainer {
-        using policy_t = policy_t<TContainer, TDataLayout, TItem>;
+        using mpolicy_t = policy_t<TContainer, TDataLayout, TItem>;
         using iterator = Iterator<BaseContainer<TContainer, TDataLayout, TItem>>;
-        using Key = typename policy_t::Key;
+        using Key = typename mpolicy_t::Key;
         using difference_type = std::ptrdiff_t;
-        using value_type = typename policy_t::value_type;
-        using reference = typename policy_t::value_type &;
+        using value_type = typename mpolicy_t::value_type;
+        using reference = typename mpolicy_t::value_type &;
         using size_type = std::size_t;
         auto static constexpr data_layout = TDataLayout;
 
@@ -203,32 +203,32 @@ namespace rise {
 
         template<typename Fwd>
         auto push_back(Fwd &&val) {
-            return policy_t::push_back(mValues, std::forward<Fwd>(val));
+            return mpolicy_t::push_back(mValues, std::forward<Fwd>(val));
         }
 
         void erase(Key v) {
-            policy_t::erase(mValues, v);
+            mpolicy_t::erase(mValues, v);
         }
 
         std::size_t size() {
-            return policy_t::size(mValues);
+            return mpolicy_t::size(mValues);
         }
 
         value_type operator[](std::size_t position_) {
-            return policy_t::get(mValues, position_);
+            return mpolicy_t::get(mValues, position_);
         }
 
         value_type at(Key position_) {
             assert(contains(position_) && "Element doesn't exist");
-            return policy_t::at(mValues, position_);
+            return mpolicy_t::at(mValues, position_);
         }
 
         size_t find(Key position_) {
-            return policy_t::find(mValues, position_);
+            return mpolicy_t::find(mValues, position_);
         }
 
         void resize(size_t size_) {
-            policy_t::resize(mValues, size_);
+            mpolicy_t::resize(mValues, size_);
         }
 
         iterator begin() { return iterator(this, 0); }
@@ -242,7 +242,7 @@ namespace rise {
 
     private:
 
-        typename policy_t::type mValues;
+        typename mpolicy_t::type mValues;
 
     };
 
@@ -252,7 +252,7 @@ namespace rise {
     private:
         using container_t = TContainer;
     public:
-        using policy_t = typename container_t::policy_t;
+        using policy_t = typename container_t::mpolicy_t;
         using difference_type = std::ptrdiff_t;
         using value_type = typename policy_t::value_type;
         using reference = value_type &;

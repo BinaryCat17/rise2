@@ -12,7 +12,7 @@ namespace rise::rendering {
 
     void initTexture(flecs::entity e, ApplicationRef app, TextureId &id) {
         if (!e.has_trait<Initialized, TextureId>()) {
-            std::tuple init{TextureState{}, std::vector<flecs::entity>{}};
+            std::tuple init{TextureState{}, std::set<Key>{}};
             id.id = app.ref->id->manager.texture.states.push_back(std::move(init));
             e.add_trait<Initialized, TextureId>();
             e.patch<Path>([](auto) {});
@@ -58,9 +58,24 @@ namespace rise::rendering {
         auto &manager = app.ref->id->manager;
         auto tId = texture.e.get<TextureId>();
         if(tId) {
-            std::get<eTextureModels>(manager.texture.states.at(tId->id)).
-                    get().push_back(e);
+            auto &models = std::get<eTextureModels>(manager.material.states.at(tId->id)).get();
+
+            auto& prev = *e.get_mut<Previous, MaterialId>();
+            if (prev.id != NullKey) {
+                models.erase(prev.id);
+            }
+
+            models.insert(tId->id);
+            prev.id = tId->id;
+
         }
+    }
+
+    void unregMaterialFromModel(flecs::entity, ApplicationRef app, DiffuseTexture texture) {
+        auto &manager = app.ref->id->manager;
+        auto tId = texture.e.get<TextureId>();
+        auto &models = std::get<eTextureModels>(manager.material.states.at(tId->id)).get();
+        models.erase(tId->id);
     }
 
     void importTexture(flecs::world &ecs) {

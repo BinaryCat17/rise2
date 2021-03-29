@@ -6,13 +6,14 @@ namespace rise::rendering {
         if (!e.has<Path>()) e.set<Path>({});
         if (!e.has<DiffuseColor>()) e.set<DiffuseColor>({1.0, 1.0f, 1.0f});
         e.set<MaterialId>({});
+        e.set<Previous>({NullKey});
     }
 
     void initMaterial(flecs::entity e, ApplicationRef app, MaterialId &id) {
         if (id.id == NullKey) {
             auto &core = app.ref->id->core;
 
-            std::tuple init{MaterialState{}, std::vector<flecs::entity>{}};
+            std::tuple init{MaterialState{}, std::set<Key>{}};
 
             id.id = app.ref->id->manager.material.states.push_back(std::move(init));
             e.add_trait<Initialized, MaterialId>();
@@ -60,8 +61,21 @@ namespace rise::rendering {
 
     void regMaterialToModel(flecs::entity e, ApplicationRef app, MaterialId material) {
         auto &manager = app.ref->id->manager;
-        std::get<eMaterialModels>(manager.material.states.at(material.id)).
-                get().push_back(e);
+        auto &models = std::get<eMaterialModels>(manager.material.states.at(material.id)).get();
+
+        auto& prev = *e.get_mut<Previous, MaterialId>();
+        if (prev.id != NullKey) {
+            models.erase(prev.id);
+        }
+
+        models.insert(material.id);
+        prev.id = material.id;
+    }
+
+    void unregMaterialFromModel(flecs::entity, ApplicationRef app, MaterialId material) {
+        auto &manager = app.ref->id->manager;
+        auto &models = std::get<eMaterialModels>(manager.material.states.at(material.id)).get();
+        models.erase(material.id);
     }
 
     void importMaterial(flecs::world &ecs) {
@@ -74,6 +88,8 @@ namespace rise::rendering {
                 kind(EcsUnSet).each(removeMaterial);
         ecs.system<const ApplicationRef, const MaterialId>("regMaterialToModel", "ModelId").
                 kind(flecs::OnSet).each(regMaterialToModel);
+        ecs.system<const ApplicationRef, const MaterialId>("unregMaterialFromModel", "ModelId").
+                kind(EcsUnSet).each(unregMaterialFromModel);
         ecs.system<const ApplicationRef>("catchMaterialUpdate",
                 "Material, TRAIT | Initialized > MaterialId, [in] rise.rendering.DiffuseColor").
                 kind(flecs::OnSet).each(catchMaterialUpdate);

@@ -27,6 +27,7 @@ namespace rise::rendering {
         ecs.component<LLGLApplication>("Application");
         ecs.component<TextureId>("TextureId");
         ecs.component<MeshId>("MeshId");
+        ecs.component<LightId>("LightId");
         ecs.component<MaterialId>("MaterialId");
         ecs.component<ViewportId>("ViewportId");
         ecs.component<ModelId>("ModelId");
@@ -34,6 +35,7 @@ namespace rise::rendering {
         ecs.component<ApplicationRef>("ApplicationRef");
         ecs.component<ViewportRef>("ViewportRef");
         ecs.component<Initialized>("Initialized");
+        ecs.component<Previous>("Previous");
 
         ecs.system<const RenderTo>("AddRegTo", "!RegTo").kind(flecs::OnSet).each(
                 [](flecs::entity e, RenderTo state) {
@@ -111,7 +113,6 @@ namespace rise::rendering {
                 kind(flecs::OnLoad).each(pullInputEvents);
 
         // Pre store ------------------------------------------------------------------------------
-
 
         ecs.system<const ApplicationId>("prepareResourcesRemove").kind(flecs::PreStore).each(
                 [](flecs::entity e, ApplicationId app) {

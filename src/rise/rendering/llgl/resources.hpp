@@ -3,11 +3,16 @@
 #include <SDL.h>
 #include <LLGL/LLGL.h>
 #include <flecs.h>
+#include <set>
 #include "../module.hpp"
 #include "pipelines.hpp"
 #include "util/soa.hpp"
 
 namespace rise::rendering {
+    struct Previous {
+        Key id;
+    };
+
     struct TextureId {
         Key id = NullKey;
     };
@@ -55,6 +60,8 @@ namespace rise::rendering {
     struct ViewportState {
         LLGL::Buffer *uniform = nullptr;
         scenePipeline::PerViewport *pData = nullptr;
+        LLGL::Texture *cubeMaps = nullptr;
+        std::array<LLGL::RenderTarget *, scenePipeline::maxLightCount> cubeTarget{};
     };
 
     struct UpdatedViewportState {
@@ -102,8 +109,6 @@ namespace rise::rendering {
     struct ShadowState {
         LLGL::PipelineLayout *layout = nullptr;
         LLGL::PipelineState *pipeline = nullptr;
-        LLGL::Texture *cubeMaps = nullptr;
-        std::array<LLGL::RenderTarget *, scenePipeline::maxLightCount> cubeTarget{};
     };
 
     struct GuiState {
@@ -127,7 +132,7 @@ namespace rise::rendering {
     };
 
     struct TextureResources {
-        SoaSlotMap<TextureState, std::vector<flecs::entity>> states;
+        SoaSlotMap<TextureState, std::set<Key>> states;
         std::vector<std::pair<TextureState, TextureId>> toInit;
         std::vector<TextureId> toRemove;
     };
@@ -139,7 +144,7 @@ namespace rise::rendering {
     };
 
     struct ViewportResources {
-        SoaSlotMap<ViewportState, UpdatedViewportState, std::vector<flecs::entity>> states;
+        SoaSlotMap<ViewportState, UpdatedViewportState, std::set<Key>> states;
         std::vector<std::pair<ViewportState, ViewportId>> toInit;
         std::vector<ViewportId> toRemove;
     };
@@ -164,7 +169,7 @@ namespace rise::rendering {
     };
 
     struct MaterialResources {
-        SoaSlotMap<MaterialState, std::vector<flecs::entity>> states;
+        SoaSlotMap<MaterialState, std::set<Key>> states;
         std::vector<std::pair<MaterialState, MaterialId>> toInit;
         std::vector<flecs::entity> toUpdate;
         std::vector<MaterialId> toRemove;
@@ -176,7 +181,6 @@ namespace rise::rendering {
 
     struct ModelResources {
         SoaSlotMap<ModelState> states;
-        stdext::slot_map<ModelId> allModels;
         std::vector<std::pair<ModelState, ModelId>> toInit;
         std::vector<ModelId> toRemove;
         std::vector<flecs::entity> toUpdateDescriptors;
