@@ -31,6 +31,7 @@ namespace rise::rendering {
                 model.emplace(id.id, ShadowModel{});
                 app->manager.light.toInitShadowModels.push_back(id);
             }
+            app->manager.model.allModels.insert(id);
         }
     }
 
@@ -43,6 +44,7 @@ namespace rise::rendering {
 
     void removeModel(flecs::entity, ApplicationRef ref, ModelId id) {
         auto app = ref.ref->id;
+        app->manager.model.allModels.erase(id.id);
         app->manager.model.toRemove.push_back(id);
         app->manager.light.toRemoveShadowModels.push_back(id);
     }

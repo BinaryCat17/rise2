@@ -146,6 +146,8 @@ namespace rise::rendering {
         auto& core = app.id->core;
         auto& gui = app.id->gui;
 
+        //core.cmdBuf->BeginRenderPass(*app.id->platform.context);
+
         ImGui::SetCurrentContext(context.context);
 
         LLGL::Viewport viewport;
@@ -200,5 +202,7 @@ namespace rise::rendering {
                 indexOffset += cmd_list->IdxBuffer.Size;
             }
         }
+
+        //core.cmdBuf->EndRenderPass();
     }
 }

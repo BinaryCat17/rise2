@@ -176,7 +176,7 @@ namespace rise::rendering {
 
     struct ModelResources {
         SoaSlotMap<ModelState> states;
-        std::vector<Mo
+        stdext::slot_map<ModelId> allModels;
         std::vector<std::pair<ModelState, ModelId>> toInit;
         std::vector<ModelId> toRemove;
         std::vector<flecs::entity> toUpdateDescriptors;

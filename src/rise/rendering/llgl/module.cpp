@@ -8,6 +8,7 @@
 #include "scene.hpp"
 #include "texture.hpp"
 #include "viewport.hpp"
+#include "shadows.hpp"
 
 namespace rise::rendering {
     template<typename T>
@@ -101,6 +102,7 @@ namespace rise::rendering {
         importTexture(ecs);
         importMaterial(ecs);
         importModel(ecs);
+        importShadowsState(ecs);
         importViewport(ecs);
 
         // On load --------------------------------------------------------------------------------
@@ -168,6 +170,8 @@ namespace rise::rendering {
                             });
                 });
 
+
+
         ecs.system<const ApplicationId>("recreateDescriptors").kind(flecs::PreStore).each(
                 recreateDescriptors);
 
@@ -196,10 +200,12 @@ namespace rise::rendering {
         ecs.system<const ApplicationId>("prepareRender", "Application").kind(flecs::PreStore).
                 each(prepareRender);
 
+        ecs.system<const ApplicationId>("colorPass", "Application").kind(flecs::PreStore).
+                each(prepareColorPass);
+
         ecs.system<const ApplicationRef, const ViewportRef, const MeshId, const ModelId>(
                 "renderScene",
-                "ANY: TRAIT | Initialized > MeshId,"
-                "ANY: TRAIT | Initialized > ModelId"
+                "ANY: TRAIT | Initialized > MeshId," "ANY: TRAIT | Initialized > ModelId"
         ).kind(flecs::PreStore).each(renderScene);
 
         ecs.system<const ApplicationId, const GuiContext>("prepareImgui", "Application").
@@ -214,7 +220,10 @@ namespace rise::rendering {
                 kind(flecs::OnStore).each(updateResources);
 
         ecs.system<const ApplicationId, const GuiContext, const Extent2D>("renderGui",
-                "Application").kind(flecs::OnStore).each(renderGui);
+                "OWNED:Application").kind(flecs::OnStore).each(renderGui);
+
+        ecs.system<const ApplicationId>("endColorPass", "Application").kind(flecs::OnStore).
+                each(endColorPass);
 
         ecs.system<const ApplicationId>("submitRender", "Application").kind(flecs::OnStore).
                 each(submitRender);

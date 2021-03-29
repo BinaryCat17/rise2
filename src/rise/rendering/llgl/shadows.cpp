@@ -35,7 +35,7 @@ namespace rise::rendering {
         if (!e.has<DiffuseColor>()) e.set<DiffuseColor>({1.0f, 1.0f, 1.0f});
         if (!e.has<Intensity>()) e.set<Intensity>({1.0f});
         if (!e.has<Distance>()) e.set<Distance>({15.f});
-        e.set<LightId>({});
+        //e.set<LightId>({});
     }
 
     void initShadowModels(flecs::entity, ApplicationId app) {
@@ -72,20 +72,21 @@ namespace rise::rendering {
         if (id.id == NullKey) {
             auto &core = app.ref->id->core;
             auto &shadows = app.ref->id->shadows;
+            auto &light = app.ref->id->manager.light;
 
-            std::tuple init{LightState{}, std::map<Key, ShadowModel>{}};
+            std::map<Key, ShadowModel> shadowModels;
+            for (auto model : app.ref->id->manager.model.allModels) {
+                shadowModels.emplace(model.id, ShadowModel{});
+                light.toInitShadowModels.push_back(model);
+            }
 
+            std::tuple init{LightState{}, std::move(shadowModels)};
             id.id = app.ref->id->manager.light.states.push_back(std::move(init));
             e.add_trait<Initialized, LightId>();
             auto renderer = core.renderer.get();
             auto uniform = createUniformBuffer<shadowPipeline::PerLight>(renderer);
-            app.ref->id->manager.light.toInit.emplace_back(LightState{uniform, 0}, id);
-            app.ref->id->manager.light.toUpdate.push_back(e);
-
-            stdext::slot_map<int>().z
-            for(app.ref->id->manager.model.states.) {
-
-            }
+            light.toInit.emplace_back(LightState{uniform, 0}, id);
+            light.toUpdate.push_back(e);
 
         } else {
             app.ref->id->manager.light.toRemove.push_back(id);
@@ -134,10 +135,22 @@ namespace rise::rendering {
                 glm::vec3(0.0, -1.0, 0.0));
     }
 
+    void updateViewportLight(flecs::entity, ApplicationRef ref, ViewportRef viewportRef, LightId lightId,
+            Position3D position, DiffuseColor color, Intensity intensity, Distance distance) {
+        auto& manager = ref.ref->id->manager;
+        auto &&row = manager.viewport.states.at(viewportRef.ref->id);
+        auto &updated = std::get<eViewportUpdated>(row).get();
+
+        if (updated.currentLight < scenePipeline::maxLightCount) {
+            auto& light = std::get<eLightState>(manager.light.states.at(lightId.id)).get();
+            updated.currentLight++;
+        }
+    }
+
     void prepareShadowPass(flecs::entity, ApplicationId app, size_t lightId) {
         auto &core = app.id->core;
         auto cmd = core.cmdBuf;
-        cmd->BeginRenderPass(app.id->shadows.cubeTarget[lightId]);
+        //cmd->BeginRenderPass(app.id->shadows.cubeTarget[lightId]);
         cmd->SetViewport(LLGL::Viewport(shadowPipeline::resolution));
         cmd->Clear(LLGL::ClearFlags::Depth);
     }
@@ -149,8 +162,8 @@ namespace rise::rendering {
 
     void importShadowsState(flecs::world &ecs) {
         ecs.system<>("regPointLight", "PointLight").kind(flecs::OnAdd).each(regPointLight);
-        ecs.system<const ApplicationRef, const ViewportRef>("removePointLight", "PointLight").
-                kind(EcsUnSet).each(removePointLight);
+//        ecs.system<const ApplicationRef, const ViewportRef>("removePointLight", "PointLight").
+//                kind(EcsUnSet).each(removePointLight);
     }
 
     void initShadowsState(flecs::entity, ApplicationState &state) {
