@@ -8,9 +8,9 @@ namespace rise::rendering {
         if (!e.has<Rotation3D>()) e.set<Rotation3D>({0.0f, 0.0f, 0.0f});
         if (!e.has<Scale3D>()) e.set<Scale3D>({1.0f, 1.0f, 1.0f});
         e.set<ModelId>({});
-        e.set_trait<Previous, MaterialId>({flecs::entity(nullptr)});
-        e.set_trait<Previous, TextureId>({flecs::entity(nullptr)});
-        e.set_trait<Previous, ViewportId>({flecs::entity(nullptr)});
+        e.set_trait<Previous, MaterialId>({flecs::entity(0)});
+        e.set_trait<Previous, TextureId>({flecs::entity(0)});
+        e.set_trait<Previous, ViewportId>({flecs::entity(0)});
         e.set_trait<PreviousKey, MeshId>({NullKey});
     }
 
@@ -27,8 +27,8 @@ namespace rise::rendering {
             id.id = app->manager.model.states.push_back(
                     std::tuple{ModelState{uniform}, std::set<Key>{}});
             e.add_trait<Initialized, ModelId>();
-            app->manager.model.toUpdateTransform.push_back(e);
-            app->manager.model.toUpdateDescriptors.push_back(e);
+            app->manager.model.toUpdateTransform.push_back(e.id());
+            app->manager.model.toUpdateDescriptors.push_back(e.id());
 
             for (auto &&light : app->manager.light.states) {
                 auto &model = std::get<eLightShadowModels>(light).get();
@@ -51,11 +51,12 @@ namespace rise::rendering {
         app->manager.light.toRemoveShadowModels.push_back(id);
     }
 
-    void clearDescriptors(flecs::entity, ApplicationId app) {
+    void clearDescriptors(flecs::entity e, ApplicationId app) {
         auto &manager = app.id->manager;
         auto &core = app.id->core;
 
-        for (auto rm : manager.model.toUpdateDescriptors) {
+        for (auto irm : manager.model.toUpdateDescriptors) {
+            flecs::entity rm(e.world(), irm);
             auto &model = std::get<eModelState>(
                     manager.model.states.at(rm.get<ModelId>()->id)).get();
             if (model.heap) {
@@ -69,7 +70,8 @@ namespace rise::rendering {
         auto &manager = app.id->manager;
         auto &core = app.id->core;
 
-        for (auto up : manager.model.toUpdateDescriptors) {
+        for (auto iup : manager.model.toUpdateDescriptors) {
+            flecs::entity up(e.world(), iup);
             auto &model = std::get<eModelState>(
                     manager.model.states.at(up.get<ModelId>()->id)).get();
             if (!model.heap) {
@@ -101,17 +103,18 @@ namespace rise::rendering {
         }
     }
 
-    void updateTransform(flecs::entity, ApplicationId app) {
+    void updateTransform(flecs::entity e, ApplicationId app) {
         auto &manager = app.id->manager;
 
-        for (auto e : manager.model.toUpdateTransform) {
-            if (e.has_trait<Initialized, ModelId>()) {
+        for (auto iup : manager.model.toUpdateTransform) {
+            flecs::entity up(e.world(), iup);
+            if (up.has_trait<Initialized, ModelId>()) {
                 auto &model = std::get<eModelState>(
-                        manager.model.states.at(e.get<ModelId>()->id)).get();
+                        manager.model.states.at(up.get<ModelId>()->id)).get();
 
-                auto position = *getOrDefault(e, Position3D{0, 0, 0});
-                auto rotation = *getOrDefault(e, Rotation3D{0, 0, 0});
-                auto scale = *getOrDefault(e, Scale3D{1, 1, 1});
+                auto position = *getOrDefault(up, Position3D{0, 0, 0});
+                auto rotation = *getOrDefault(up, Rotation3D{0, 0, 0});
+                auto scale = *getOrDefault(up, Scale3D{1, 1, 1});
 
                 glm::mat4 mat = glm::translate(glm::mat4(1), toGlm(position));
                 float angle = std::max({rotation.x, rotation.y, rotation.z});
@@ -127,7 +130,7 @@ namespace rise::rendering {
     }
 
     void catchUpdateTransform(flecs::entity e, ApplicationRef ref) {
-        ref.ref->id->manager.model.toUpdateTransform.push_back(e);
+        ref.ref->id->manager.model.toUpdateTransform.push_back(e.id());
     }
 
     void importModel(flecs::world &ecs) {

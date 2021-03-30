@@ -24,7 +24,7 @@ namespace rise::rendering {
             textureDesc.extent.depth = 1;
             textureDesc.bindFlags = LLGL::BindFlags::Sampled |
                     LLGL::BindFlags::DepthStencilAttachment;
-            textureDesc.arrayLayers = 6 * scenePipeline::maxLightCount;
+            textureDesc.arrayLayers = scenePipeline::maxLightCount * 6;
         }
         return renderer->CreateTexture(textureDesc);
     }
@@ -42,13 +42,18 @@ namespace rise::rendering {
     void initViewport(flecs::entity e, ApplicationRef app, ViewportId &id) {
         if (!e.has_trait<Initialized, ViewportId>()) {
             auto &core = app.ref->id->core;
+            auto &shadows = app.ref->id->shadows;
             ViewportState state;
 
             state.uniform = createUniformBuffer<scenePipeline::PerViewport>(core.renderer.get());
             state.cubeMaps = createDepthTexture(core.renderer.get());
             for (size_t i = 0; i != scenePipeline::maxLightCount; ++i) {
-                state.cubeTarget[i] = createDepthTarget(core.renderer.get(),
+                auto &target = state.cubeTarget[i];
+                target.target = createDepthTarget(core.renderer.get(),
                         state.cubeMaps, i * 6);
+                auto pass = target.target->GetRenderPass();
+                target.pipeline = shadowPipeline::createPipeline(core.renderer.get(),
+                        shadows.layout, shadows.program, pass);
             }
 
             std::tuple init{
@@ -112,14 +117,15 @@ namespace rise::rendering {
 
     void updateViewportLight(flecs::entity, ApplicationRef ref, ViewportRef viewportRef,
             Position3D position, DiffuseColor color, Intensity intensity, Distance distance,
-            LightId lightId) {
-        auto& manager = ref.ref->id->manager;
+            LightId &lightId) {
+        auto &manager = ref.ref->id->manager;
         auto &&row = manager.viewport.states.at(viewportRef.ref->id);
         auto &viewport = std::get<eViewportState>(row).get();
         auto &updated = std::get<eViewportUpdated>(row).get();
 
         if (updated.currentLight < scenePipeline::maxLightCount) {
-            auto& lightState = std::get<eLightState>(manager.light.states.at(lightId.id)).get();
+            auto &lightState = std::get<eLightState>(manager.light.states.at(lightId.id)).get();
+            lightState.id = updated.currentLight++;
             auto &light = viewport.pData->pointLights[lightState.id];
             light.position = toGlm(position);
             light.diffuse = toGlm(color);
@@ -133,11 +139,16 @@ namespace rise::rendering {
         auto &viewport = std::get<eViewportState>(row).get();
         auto &updated = std::get<eViewportUpdated>(row).get();
 
-        for (; updated.currentLight != scenePipeline::maxLightCount; ++updated.currentLight) {
-            viewport.pData->pointLights[updated.currentLight].intensity = 0;
+        if (updated.currentLight) {
+            for (; updated.currentLight != scenePipeline::maxLightCount; ++updated.currentLight) {
+                viewport.pData->pointLights[updated.currentLight].intensity = 0;
+            }
         }
 
-        ref.ref->id->core.renderer->UnmapBuffer(*viewport.uniform);
+        if (updated.currentLight || updated.camera) {
+            ref.ref->id->core.renderer->UnmapBuffer(*viewport.uniform);
+        }
+
         viewport.pData = nullptr;
         updated.currentLight = 0;
         updated.camera = false;

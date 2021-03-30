@@ -137,6 +137,7 @@ namespace rise::rendering {
                                 if (state.val != nullptr) {
                                     queue->WaitIdle();
                                     renderer->Release(*state.val);
+                                    state.val = nullptr;
                                 }
                             });
                     processRemoveInit<eMeshState>(manager, manager.mesh,
@@ -145,6 +146,8 @@ namespace rise::rendering {
                                     queue->WaitIdle();
                                     renderer->Release(*state.vertices);
                                     renderer->Release(*state.indices);
+                                    state.vertices = nullptr;
+                                    state.indices = nullptr;
                                 }
                             });
                     processRemoveInit<eMaterialState>(manager, manager.material,
@@ -152,6 +155,7 @@ namespace rise::rendering {
                                 if (state.uniform != nullptr) {
                                     queue->WaitIdle();
                                     renderer->Release(*state.uniform);
+                                    state.uniform = nullptr;
                                 }
                             });
                     processRemoveInit<eViewportState>(manager, manager.viewport,
@@ -159,10 +163,14 @@ namespace rise::rendering {
                                 queue->WaitIdle();
                                 renderer->Release(*state.cubeMaps);
                                 for (size_t i = 0; i != scenePipeline::maxLightCount; ++i) {
-                                    renderer->Release(*state.cubeTarget[i]);
+                                    renderer->Release(*state.cubeTarget[i].target);
+                                    renderer->Release(*state.cubeTarget[i].pipeline);
+                                    state.cubeTarget[i].target = nullptr;
+                                    state.cubeTarget[i].pipeline = nullptr;
                                 }
 
                                 renderer->Release(*state.uniform);
+                                state.uniform = nullptr;
                             });
                     processRemoveInit<eModelState>(manager, manager.model,
                             [renderer, queue](ModelState &state) {
@@ -170,12 +178,18 @@ namespace rise::rendering {
 
                                 renderer->Release(*state.uniform);
                                 renderer->Release(*state.heap);
+                                state.uniform = nullptr;
+                                state.heap = nullptr;
                             });
                     processRemoveInit<eLightState>(manager, manager.light,
                             [renderer, queue](LightState &state) {
                                 queue->WaitIdle();
-                                renderer->Release(*state.parameters);
-                                renderer->Release(*state.matrices);
+                                if(state.parameters != nullptr) {
+                                    renderer->Release(*state.parameters);
+                                    renderer->Release(*state.matrices);
+                                    state.parameters = nullptr;
+                                    state.matrices = nullptr;
+                                }
                             });
                 });
 
@@ -206,19 +220,18 @@ namespace rise::rendering {
                 kind(flecs::PreStore).each(updateViewportCamera);
 
         ecs.system<const ApplicationRef, const ViewportRef, const Position3D, const DiffuseColor,
-                const Intensity, const Distance, const LightId>("updateViewportLight", "PointLight").
+                const Intensity, const Distance, LightId>("updateViewportLight", "PointLight").
                 kind(flecs::PreStore).each(updateViewportLight);
 
         ecs.system<const ApplicationRef, const ViewportId>("finishViewport",
                 "TRAIT | Initialized > ViewportId").
                 kind(flecs::PreStore).each(finishViewport);
 
-
         ecs.system<const ApplicationId>("prepareRender", "Application").kind(flecs::PreStore).
                 each(prepareRender);
 
         ecs.system<const ApplicationRef, const ViewportRef, const LightId>("updateShadowMaps",
-                "Application").kind(flecs::PreStore).each(updateShadowMaps);
+                "PointLight").kind(flecs::PreStore).each(updateShadowMaps);
 
         ecs.system<const ApplicationId>("colorPass", "Application").kind(flecs::PreStore).
                 each(prepareColorPass);
@@ -255,6 +268,11 @@ namespace rise::rendering {
                     manager.texture.toRemove.clear();
                     manager.viewport.toInit.clear();
                     manager.viewport.toRemove.clear();
+                    manager.light.toInitShadowModels.clear();
+                    manager.light.toRemoveShadowModels.clear();
+                    manager.light.toInit.clear();
+                    manager.light.toUpdate.clear();
+                    manager.light.toRemove.clear();
                     manager.mesh.toInit.clear();
                     manager.mesh.toRemove.clear();
                     manager.model.toInit.clear();

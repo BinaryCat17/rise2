@@ -106,23 +106,27 @@ namespace rise::rendering {
         manager.mesh.toInit.emplace_back(mesh, meshId);
     }
 
-    void regMeshToModel(flecs::entity e, ApplicationRef app, MeshId mesh) {
-        auto &manager = app.ref->id->manager;
-        auto &models = std::get<eModelMeshes>(manager.model.states.at(mesh.id)).get();
+    void regMeshToModel(flecs::entity e, ApplicationRef app, ModelId model) {
+        if(model.id != NullKey) {
+            auto &manager = app.ref->id->manager;
+            auto &meshes = std::get<eModelMeshes>(manager.model.states.at(model.id)).get();
 
-        auto& prev = *e.get_trait_mut<PreviousKey, MeshId>();
-        if (prev.id != NullKey) {
-            models.erase(prev.id);
+            auto &prev = *e.get_trait_mut<Previous, MeshId>();
+            if (prev.e != flecs::entity(0)) {
+                meshes.erase(prev.e.id());
+            }
+
+            meshes.insert(e.id());
+            prev.e = e;
         }
-
-        models.insert(mesh.id);
-        prev.id = mesh.id;
     }
 
-    void unregMeshFromModel(flecs::entity, ApplicationRef app, MeshId mesh) {
-        auto &manager = app.ref->id->manager;
-        auto &models = std::get<eModelMeshes>(manager.model.states.at(mesh.id)).get();
-        models.erase(mesh.id);
+    void unregMeshFromModel(flecs::entity e, ApplicationRef app, ModelId model) {
+        if(model.id != NullKey) {
+            auto &manager = app.ref->id->manager;
+            auto &models = std::get<eModelMeshes>(manager.model.states.at(model.id)).get();
+            models.erase(e);
+        }
     }
 
     void importMesh(flecs::world &ecs) {
@@ -132,9 +136,9 @@ namespace rise::rendering {
                 kind(flecs::OnSet).each(initMesh);
         ecs.system<const ApplicationRef, const MeshId>("removeMesh").
                 kind(EcsUnSet).each(removeMesh);
-        ecs.system<const ApplicationRef, const MeshId>("regMeshToModel", "ModelId").
+        ecs.system<const ApplicationRef, const ModelId>("regMeshToModel", "[in] MeshId").
                 kind(flecs::OnSet).each(regMeshToModel);
-        ecs.system<const ApplicationRef, const MeshId>("unregMesFromModel", "ModelId").
+        ecs.system<const ApplicationRef, const ModelId>("unregMesFromModel", "[in] MeshId").
                 kind(EcsUnSet).each(unregMeshFromModel);
         ecs.system<const ApplicationRef, const MeshId, const Path>("updateMesh",
                 "Mesh, TRAIT | Initialized > MeshId").kind(flecs::OnSet).each(updateMesh);

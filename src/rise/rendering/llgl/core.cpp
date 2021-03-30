@@ -6,11 +6,11 @@ namespace rise::rendering {
     public:
     protected:
         void OnError(LLGL::ErrorType type, Message &message) override {
-            //std::cout << message.GetText() << std::endl;
+            //      std::cout << message.GetText() << std::endl;
         }
 
         void OnWarning(LLGL::WarningType type, Message &message) override {
-            //std::cout << message.GetText() << std::endl;
+            //     std::cout << message.GetText() << std::endl;
         }
     };
 
@@ -21,11 +21,11 @@ namespace rise::rendering {
                         const std::string &contextInfo, void *userData) {
                     switch (type) {
                         case LLGL::Log::ReportType::Error:
-                            std::cout << "Error: ";
+                            std::cerr << "Error: ";
                             std::cerr << message << std::endl;
                             break;
                         case LLGL::Log::ReportType::Warning:
-                            std::cout << "Warning: ";
+                            std::cerr << "Warning: ";
                             std::cerr << message << std::endl;
                             break;
                         case LLGL::Log::ReportType::Information:

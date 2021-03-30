@@ -13,10 +13,6 @@ namespace rise::rendering {
         flecs::entity e;
     };
 
-    struct PreviousKey {
-        Key id;
-    };
-
     struct TextureId {
         Key id = NullKey;
     };
@@ -61,11 +57,16 @@ namespace rise::rendering {
         flecs::ref<ViewportId> ref;
     };
 
+    struct ShadowTarget {
+        LLGL::RenderTarget *target = nullptr;
+        LLGL::PipelineState *pipeline = nullptr;
+    };
+
     struct ViewportState {
         LLGL::Buffer *uniform = nullptr;
         scenePipeline::PerViewport *pData = nullptr;
         LLGL::Texture *cubeMaps = nullptr;
-        std::array<LLGL::RenderTarget *, scenePipeline::maxLightCount> cubeTarget{};
+        std::array<ShadowTarget, scenePipeline::maxLightCount> cubeTarget{};
     };
 
     struct UpdatedViewportState {
@@ -86,7 +87,7 @@ namespace rise::rendering {
     };
 
     struct LightId {
-        Key id;
+        Key id = NullKey;
     };
 
     struct ShadowModel {
@@ -113,7 +114,7 @@ namespace rise::rendering {
 
     struct ShadowState {
         LLGL::PipelineLayout *layout = nullptr;
-        LLGL::PipelineState *pipeline = nullptr;
+        LLGL::ShaderProgram *program = nullptr;
         LLGL::VertexFormat format;
     };
 
@@ -187,11 +188,11 @@ namespace rise::rendering {
     };
 
     struct ModelResources {
-        SoaSlotMap<ModelState, std::set<Key>> states;
+        SoaSlotMap<ModelState, std::set<flecs::entity_t>> states;
         std::vector<std::pair<ModelState, ModelId>> toInit;
         std::vector<ModelId> toRemove;
-        std::vector<flecs::entity> toUpdateDescriptors;
-        std::vector<flecs::entity> toUpdateTransform;
+        std::vector<flecs::entity_t> toUpdateDescriptors;
+        std::vector<flecs::entity_t> toUpdateTransform;
     };
 
     enum MeshSlots : int {

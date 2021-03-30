@@ -2,7 +2,7 @@
 
 layout(location = 0) in vec4 FragPos;
 
-layout(binding = 3) uniform LightParams {
+layout(binding = 2) uniform LightParams {
     vec3 lightPos;
     float farPlane;
 };

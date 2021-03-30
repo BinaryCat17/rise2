@@ -21,6 +21,7 @@ namespace rise::rendering {
                 auto &shadowModel = std::get<eLightShadowModels>(light).get();
                 auto &lightState = std::get<eLightState>(light).get();
                 LLGL::ResourceHeapDescriptor resourceHeapDesc;
+
                 resourceHeapDesc.pipelineLayout = app.id->shadows.layout;
                 resourceHeapDesc.resourceViews.emplace_back(
                         std::get<eModelState>(manager.model.states.at(model.id)).get().uniform);
@@ -54,7 +55,7 @@ namespace rise::rendering {
 
             std::map<Key, ShadowModel> shadowModels;
             for (auto model : viewportModels) {
-                auto& pm = *flecs::entity(e.world(), model).get<ModelId>();
+                auto &pm = *flecs::entity(e.world(), model).get<ModelId>();
                 shadowModels.emplace(pm.id, ShadowModel{});
                 light.toInitShadowModels.push_back({pm});
             }
@@ -88,18 +89,15 @@ namespace rise::rendering {
     }
 
     void updateLightUniforms(flecs::entity, ApplicationId app) {
-        auto& manager = app.id->manager;
-        auto& core = app.id->core;
+        auto &manager = app.id->manager;
+        auto &core = app.id->core;
 
-        for(auto eLight : manager.light.toUpdate) {
+        for (auto eLight : manager.light.toUpdate) {
             auto lightId = eLight.get<LightId>();
-            if(lightId->id != NullKey) {
+            if (lightId->id != NullKey) {
                 auto &lightState = std::get<eLightState>(
                         manager.light.states.at(lightId->id)).get();
-                auto matrices = mapUniformBuffer<shadowPipeline::PerLightMatrices>(
-                        core.renderer.get(), lightState.matrices);
-                auto parameters = mapUniformBuffer<shadowPipeline::PerLightParameters>(
-                        core.renderer.get(), lightState.parameters);
+
 
                 float aspect = (float) shadowPipeline::resolution.width /
                         (float) shadowPipeline::resolution.height;
@@ -107,29 +105,43 @@ namespace rise::rendering {
                 float far = 25.0f;
                 glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), aspect, near, far);
 
-                auto position = getOrDefault(eLight, Position3D{0,0,0});
+                auto position = getOrDefault(eLight, Position3D{0, 0, 0});
 
                 auto lightPos = toGlm(*position);
-                auto &transforms = matrices->lightSpaceMatrix;
 
-                transforms[0] = shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(1.0, 0.0, 0.0),
-                        glm::vec3(0.0, -1.0, 0.0));
-                transforms[1] = shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(-1.0, 0.0, 0.0),
-                        glm::vec3(0.0, -1.0, 0.0));
-                transforms[2] = shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0, 1.0, 0.0),
-                        glm::vec3(0.0, 0.0, 1.0));
-                transforms[3] = shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0, -1.0, 0.0),
-                        glm::vec3(0.0, 0.0, -1.0));
-                transforms[4] = shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0, 0.0, 1.0),
-                        glm::vec3(0.0, -1.0, 0.0));
-                transforms[5] = shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0, 0.0, -1.0),
-                        glm::vec3(0.0, -1.0, 0.0));
+                auto parameters = mapUniformBuffer<shadowPipeline::PerLightParameters>(
+                        core.renderer.get(), lightState.parameters);
 
                 parameters->lightPos = lightPos;
                 parameters->farPlane = far;
 
-                core.renderer->UnmapBuffer(*lightState.matrices);
                 core.renderer->UnmapBuffer(*lightState.parameters);
+
+                auto matrices = mapUniformBuffer<shadowPipeline::PerLightMatrices>(
+                        core.renderer.get(), lightState.matrices);
+
+                auto &transforms = matrices->lightSpaceMatrix;
+
+                transforms[0] =
+                        shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(1.0, 0.0, 0.0),
+                                glm::vec3(0.0, -1.0, 0.0));
+                transforms[1] =
+                        shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(-1.0, 0.0, 0.0),
+                                glm::vec3(0.0, -1.0, 0.0));
+                transforms[2] =
+                        shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0, 1.0, 0.0),
+                                glm::vec3(0.0, 0.0, 1.0));
+                transforms[3] =
+                        shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0, -1.0, 0.0),
+                                glm::vec3(0.0, 0.0, -1.0));
+                transforms[4] =
+                        shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0, 0.0, 1.0),
+                                glm::vec3(0.0, -1.0, 0.0));
+                transforms[5] =
+                        shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0, 0.0, -1.0),
+                                glm::vec3(0.0, -1.0, 0.0));
+
+                core.renderer->UnmapBuffer(*lightState.matrices);
             }
         }
     }
@@ -142,36 +154,32 @@ namespace rise::rendering {
         auto &viewport = std::get<eViewportState>(row).get();
         auto cmd = ref.ref->id->core.cmdBuf;
 
-        if (updated.currentLight < scenePipeline::maxLightCount) {
-            auto &light = std::get<eLightState>(manager.light.states.at(lightId.id)).get();
-            auto &shadowModels = std::get<eLightShadowModels>(manager.light.states.at(lightId.id)).get();
+        auto &light = std::get<eLightState>(manager.light.states.at(lightId.id)).get();
+        auto &shadowModels = std::get<eLightShadowModels>(
+                manager.light.states.at(lightId.id)).get();
 
-            cmd->BeginRenderPass(*viewport.cubeTarget[updated.currentLight]);
-            cmd->SetPipelineState(*ref.ref->id->shadows.pipeline);
-            cmd->Clear(LLGL::ClearFlags::Depth);
-            cmd->SetViewport(LLGL::Viewport(shadowPipeline::resolution));
+        cmd->BeginRenderPass(*viewport.cubeTarget[light.id].target);
+        cmd->SetPipelineState(*viewport.cubeTarget[light.id].pipeline);
+        cmd->Clear(LLGL::ClearFlags::Depth);
+        cmd->SetViewport(LLGL::Viewport(shadowPipeline::resolution));
 
-            for (auto p : shadowModels) {
-                cmd->SetResourceHeap(*p.second.heap);
-                auto &meshes = std::get<eModelMeshes>(manager.model.states.at(p.first)).get();
-                for (auto &mesh : meshes) {
-                    auto &meshState = std::get<eMeshState>(manager.mesh.states.at(mesh)).get();
-                    cmd->SetVertexBuffer(*meshState.vertices);
-                    cmd->SetIndexBuffer(*meshState.indices);
-                    cmd->DrawIndexed(meshState.numIndices, 0);
-                }
+        for (auto p : shadowModels) {
+            cmd->SetResourceHeap(*p.second.heap);
+            auto &meshes = std::get<eModelMeshes>(manager.model.states.at(p.first)).get();
+            for (auto &mesh : meshes) {
+                auto &meshState = std::get<eMeshState>(manager.mesh.states.at(mesh)).get();
+                cmd->SetVertexBuffer(*meshState.vertices);
+                cmd->SetIndexBuffer(*meshState.indices);
+                cmd->DrawIndexed(meshState.numIndices, 0);
             }
-
-            cmd->EndRenderPass();
-
-            light.id = updated.currentLight++;
         }
+        cmd->EndRenderPass();
     }
 
     void importShadowsState(flecs::world &ecs) {
         ecs.system<>("regPointLight", "PointLight").kind(flecs::OnAdd).each(regPointLight);
         ecs.system<>("unregPointLight", "PointLight").kind(flecs::OnRemove).each(unregPointLight);
-        ecs.system<const ApplicationRef, const ViewportRef, LightId>("initLight", "Light").
+        ecs.system<const ApplicationRef, const ViewportRef, LightId>("initLight", "PointLight").
                 kind(flecs::OnSet).each(initPointLight);
         ecs.system<const ApplicationRef, const LightId, const ViewportRef>("removeLight").
                 kind(EcsUnSet).each(removePointLight);
@@ -186,9 +194,9 @@ namespace rise::rendering {
         shadows.format.AppendAttribute({"position", LLGL::Format::RGB32Float});
         shadows.format.SetStride(sizeof(float) * (3 + 3 + 2));
 
-        shadows.layout = scenePipeline::createLayout(core.renderer.get());
-        auto program = createShaderProgram(core.renderer.get(),
+        shadows.layout = shadowPipeline::createLayout(core.renderer.get());
+        shadows.program = createShaderProgram(core.renderer.get(),
                 root + "/shaders/shadows", shadows.format);
-        shadows.pipeline = scenePipeline::createPipeline(core.renderer.get(), shadows.layout, program);
+
     }
 }

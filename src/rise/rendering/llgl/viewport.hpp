@@ -11,7 +11,7 @@ namespace rise::rendering {
 
     void updateViewportLight(flecs::entity, ApplicationRef ref, ViewportRef viewportRef,
             Position3D position, DiffuseColor color, Intensity intensity, Distance distance,
-            LightId lightId);
+            LightId& lightId);
 
     void finishViewport(flecs::entity, ApplicationRef ref, ViewportId viewportId);
 }

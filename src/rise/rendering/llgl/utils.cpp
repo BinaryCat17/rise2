@@ -65,10 +65,13 @@ namespace rise::rendering {
                     LLGL::ShaderDescFromFile(LLGL::ShaderType::Geometry, geomPath.data()));
         }
 
-        for (auto shader : {programDesc.vertexShader, programDesc.fragmentShader, programDesc.geometryShader}) {
-            std::string log = shader->GetReport();
-            if (!log.empty()) {
-                std::cerr << log << std::endl;
+        for (auto shader : {programDesc.vertexShader, programDesc.fragmentShader,
+                programDesc.geometryShader}) {
+            if (shader) {
+                std::string log = shader->GetReport();
+                if (!log.empty()) {
+                    std::cerr << log << std::endl;
+                }
             }
         }
 

@@ -120,19 +120,20 @@ namespace rise::rendering::shadowPipeline {
     }
 
     LLGL::PipelineState *createPipeline(LLGL::RenderSystem *renderer,
-            LLGL::PipelineLayout *layout, LLGL::ShaderProgram *program, LLGL::RenderPass* pass) {
+            LLGL::PipelineLayout *layout, LLGL::ShaderProgram *program,
+            LLGL::RenderPass const *pass) {
         LLGL::GraphicsPipelineDescriptor pipelineDesc;
         {
-            pipelineDesc.shaderProgram                          = program;
-            pipelineDesc.renderPass                             = pass;
-            pipelineDesc.pipelineLayout                         = layout;
-            pipelineDesc.depth.testEnabled                      = true;
-            pipelineDesc.depth.writeEnabled                     = true;
-            pipelineDesc.rasterizer.cullMode                    = LLGL::CullMode::Back;
-            pipelineDesc.rasterizer.depthBias.constantFactor    = 4.0f;
-            pipelineDesc.rasterizer.depthBias.slopeFactor       = 4.0f;
-            pipelineDesc.blend.targets[0].colorMask             = { false, false, false, false };
-            pipelineDesc.viewports                              = { resolution };
+            pipelineDesc.shaderProgram = program;
+            pipelineDesc.renderPass = pass;
+            pipelineDesc.pipelineLayout = layout;
+            pipelineDesc.depth.testEnabled = true;
+            pipelineDesc.depth.writeEnabled = true;
+            pipelineDesc.rasterizer.cullMode = LLGL::CullMode::Back;
+            pipelineDesc.rasterizer.depthBias.constantFactor = 4.0f;
+            pipelineDesc.rasterizer.depthBias.slopeFactor = 4.0f;
+            pipelineDesc.blend.targets[0].colorMask = {false, false, false, false};
+            pipelineDesc.viewports = {resolution};
         }
 
         return renderer->CreatePipelineState(pipelineDesc);

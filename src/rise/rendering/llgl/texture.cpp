@@ -58,10 +58,10 @@ namespace rise::rendering {
         auto &manager = app.ref->id->manager;
         auto tId = texture.e.get<TextureId>();
         if(tId) {
-            auto &models = std::get<eTextureModels>(manager.material.states.at(tId->id)).get();
+            auto &models = std::get<eTextureModels>(manager.texture.states.at(tId->id)).get();
 
             auto& prev = *e.get_trait_mut<Previous, TextureId>();
-            if (prev.e != flecs::entity(nullptr)) {
+            if (prev.e != flecs::entity(0)) {
                 models.erase(prev.e.id());
             }
 
@@ -74,7 +74,7 @@ namespace rise::rendering {
     void unregTextureFromModel(flecs::entity e, ApplicationRef app, DiffuseTexture texture) {
         auto &manager = app.ref->id->manager;
         auto tId = texture.e.get<TextureId>();
-        auto &models = std::get<eTextureModels>(manager.material.states.at(tId->id)).get();
+        auto &models = std::get<eTextureModels>(manager.texture.states.at(tId->id)).get();
         models.erase(e.id());
     }
 
