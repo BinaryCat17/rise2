@@ -10,6 +10,10 @@
 
 namespace rise::rendering {
     struct Previous {
+        flecs::entity e;
+    };
+
+    struct PreviousKey {
         Key id;
     };
 
@@ -76,7 +80,8 @@ namespace rise::rendering {
     }
 
     struct LightState {
-        LLGL::Buffer *uniform = nullptr;
+        LLGL::Buffer *matrices = nullptr;
+        LLGL::Buffer *parameters = nullptr;
         size_t id = 0;
     };
 
@@ -109,6 +114,7 @@ namespace rise::rendering {
     struct ShadowState {
         LLGL::PipelineLayout *layout = nullptr;
         LLGL::PipelineState *pipeline = nullptr;
+        LLGL::VertexFormat format;
     };
 
     struct GuiState {
@@ -132,7 +138,7 @@ namespace rise::rendering {
     };
 
     struct TextureResources {
-        SoaSlotMap<TextureState, std::set<Key>> states;
+        SoaSlotMap<TextureState, std::set<flecs::entity_t>> states;
         std::vector<std::pair<TextureState, TextureId>> toInit;
         std::vector<TextureId> toRemove;
     };
@@ -144,7 +150,7 @@ namespace rise::rendering {
     };
 
     struct ViewportResources {
-        SoaSlotMap<ViewportState, UpdatedViewportState, std::set<Key>> states;
+        SoaSlotMap<ViewportState, UpdatedViewportState, std::set<flecs::entity_t>> states;
         std::vector<std::pair<ViewportState, ViewportId>> toInit;
         std::vector<ViewportId> toRemove;
     };
@@ -169,7 +175,7 @@ namespace rise::rendering {
     };
 
     struct MaterialResources {
-        SoaSlotMap<MaterialState, std::set<Key>> states;
+        SoaSlotMap<MaterialState, std::set<flecs::entity_t>> states;
         std::vector<std::pair<MaterialState, MaterialId>> toInit;
         std::vector<flecs::entity> toUpdate;
         std::vector<MaterialId> toRemove;
@@ -177,10 +183,11 @@ namespace rise::rendering {
 
     enum ModelSlots : int {
         eModelState,
+        eModelMeshes,
     };
 
     struct ModelResources {
-        SoaSlotMap<ModelState> states;
+        SoaSlotMap<ModelState, std::set<Key>> states;
         std::vector<std::pair<ModelState, ModelId>> toInit;
         std::vector<ModelId> toRemove;
         std::vector<flecs::entity> toUpdateDescriptors;
