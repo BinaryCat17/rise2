@@ -69,6 +69,7 @@ namespace rise::rendering {
                     initCoreState(e, *application);
                     initGuiState(e, *application, *path);
                     initSceneState(e, *application, *path);
+                    initShadowsState(e, *application, *path);
                     e.set<ApplicationId>({application});
                     e.set<ApplicationRef>({e.get_ref<ApplicationId>()});
                 });
@@ -156,28 +157,42 @@ namespace rise::rendering {
                     processRemoveInit<eViewportState>(manager, manager.viewport,
                             [renderer, queue](ViewportState &state) {
                                 queue->WaitIdle();
+                                renderer->Release(*state.cubeMaps);
+                                for (size_t i = 0; i != scenePipeline::maxLightCount; ++i) {
+                                    renderer->Release(*state.cubeTarget[i]);
+                                }
+
                                 renderer->Release(*state.uniform);
                             });
                     processRemoveInit<eModelState>(manager, manager.model,
                             [renderer, queue](ModelState &state) {
                                 queue->WaitIdle();
+
                                 renderer->Release(*state.uniform);
                                 renderer->Release(*state.heap);
                             });
                     processRemoveInit<eLightState>(manager, manager.light,
                             [renderer, queue](LightState &state) {
                                 queue->WaitIdle();
-                                renderer->Release(*state.uniform);
+                                renderer->Release(*state.parameters);
+                                renderer->Release(*state.matrices);
                             });
                 });
 
+        ecs.system<const ApplicationId>("initShadowModels").kind(flecs::PreStore).
+                each(initShadowModels);
 
+        ecs.system<const ApplicationId>("removeShadowModels").kind(flecs::PreStore).
+                each(removeShadowModels);
 
         ecs.system<const ApplicationId>("recreateDescriptors").kind(flecs::PreStore).each(
                 recreateDescriptors);
 
         ecs.system<const ApplicationId>("updateMaterial").kind(flecs::PreStore).each(
                 updateMaterial);
+
+        ecs.system<const ApplicationId>("updateLightUniforms").kind(flecs::PreStore).each(
+                updateLightUniforms);
 
         ecs.system<const ApplicationId>("updateTransform").kind(flecs::PreStore).each(
                 updateTransform);
@@ -191,15 +206,19 @@ namespace rise::rendering {
                 kind(flecs::PreStore).each(updateViewportCamera);
 
         ecs.system<const ApplicationRef, const ViewportRef, const Position3D, const DiffuseColor,
-                const Intensity, const Distance>("updateViewportLight", "PointLight").
+                const Intensity, const Distance, const LightId>("updateViewportLight", "PointLight").
                 kind(flecs::PreStore).each(updateViewportLight);
 
         ecs.system<const ApplicationRef, const ViewportId>("finishViewport",
                 "TRAIT | Initialized > ViewportId").
                 kind(flecs::PreStore).each(finishViewport);
 
+
         ecs.system<const ApplicationId>("prepareRender", "Application").kind(flecs::PreStore).
                 each(prepareRender);
+
+        ecs.system<const ApplicationRef, const ViewportRef, const LightId>("updateShadowMaps",
+                "Application").kind(flecs::PreStore).each(updateShadowMaps);
 
         ecs.system<const ApplicationId>("colorPass", "Application").kind(flecs::PreStore).
                 each(prepareColorPass);

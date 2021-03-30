@@ -5,11 +5,15 @@
 namespace rise::rendering {
     void importShadowsState(flecs::world &ecs);
 
-    void initShadowsState(flecs::entity e, ApplicationState &state);
+    void initShadowsState(flecs::entity, ApplicationState &state, Path const &path);
 
-    void prepareShadowPass(flecs::entity, ApplicationId app);
+    void initShadowModels(flecs::entity, ApplicationId app);
 
-    void endShadowPass(flecs::entity, ApplicationId app);
+    void removeShadowModels(flecs::entity, ApplicationId app);
 
-    void updateLightMatrices(flecs::entity, ApplicationRef ref, LightId light, Position3D position);
+    void updateShadowMaps(flecs::entity, ApplicationRef ref, ViewportRef viewportRef,
+            LightId lightId);
+
+    void updateLightUniforms(flecs::entity, ApplicationId app);
+
 }

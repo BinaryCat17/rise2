@@ -99,16 +99,21 @@ namespace rise::rendering::guiPipeline {
 namespace rise::rendering::shadowPipeline {
     LLGL::PipelineLayout *createLayout(LLGL::RenderSystem *renderer) {
         LLGL::PipelineLayoutDescriptor layoutDesc;
-        layoutDesc.bindings = {LLGL::BindingDescriptor{ // camera
+        layoutDesc.bindings = {LLGL::BindingDescriptor{
                 LLGL::ResourceType::Buffer,
                 LLGL::BindFlags::ConstantBuffer,
-                LLGL::StageFlags::VertexStage | LLGL::StageFlags::FragmentStage,
+                LLGL::StageFlags::VertexStage,
                 0,
-        }, LLGL::BindingDescriptor{ // draw
+        }, LLGL::BindingDescriptor{
                 LLGL::ResourceType::Buffer,
                 LLGL::BindFlags::ConstantBuffer,
-                LLGL::StageFlags::VertexStage | LLGL::StageFlags::FragmentStage,
+                LLGL::StageFlags::GeometryStage,
                 1,
+        }, LLGL::BindingDescriptor{
+                LLGL::ResourceType::Buffer,
+                LLGL::BindFlags::ConstantBuffer,
+                LLGL::StageFlags::FragmentStage,
+                2,
         }};
 
         return renderer->CreatePipelineLayout(layoutDesc);

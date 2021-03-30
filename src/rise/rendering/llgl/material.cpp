@@ -6,14 +6,13 @@ namespace rise::rendering {
         if (!e.has<Path>()) e.set<Path>({});
         if (!e.has<DiffuseColor>()) e.set<DiffuseColor>({1.0, 1.0f, 1.0f});
         e.set<MaterialId>({});
-        e.set<Previous>({NullKey});
     }
 
     void initMaterial(flecs::entity e, ApplicationRef app, MaterialId &id) {
         if (id.id == NullKey) {
             auto &core = app.ref->id->core;
 
-            std::tuple init{MaterialState{}, std::set<Key>{}};
+            std::tuple init{MaterialState{}, std::set<flecs::entity_t>{}};
 
             id.id = app.ref->id->manager.material.states.push_back(std::move(init));
             e.add_trait<Initialized, MaterialId>();
@@ -63,26 +62,25 @@ namespace rise::rendering {
         auto &manager = app.ref->id->manager;
         auto &models = std::get<eMaterialModels>(manager.material.states.at(material.id)).get();
 
-        auto& prev = *e.get_mut<Previous, MaterialId>();
-        if (prev.id != NullKey) {
-            models.erase(prev.id);
+        auto& prev = *e.get_trait_mut<Previous, MaterialId>();
+        if (prev.e != flecs::entity(nullptr)) {
+            models.erase(prev.e.id());
         }
 
-        models.insert(material.id);
-        prev.id = material.id;
+        models.insert(e.id());
+        prev.e = e;
     }
 
-    void unregMaterialFromModel(flecs::entity, ApplicationRef app, MaterialId material) {
+    void unregMaterialFromModel(flecs::entity e, ApplicationRef app, MaterialId material) {
         auto &manager = app.ref->id->manager;
         auto &models = std::get<eMaterialModels>(manager.material.states.at(material.id)).get();
-        models.erase(material.id);
+        models.erase(e.id());
     }
 
     void importMaterial(flecs::world &ecs) {
         ecs.system<>("regMaterial", "Material").kind(flecs::OnAdd).each(regMaterial);
         ecs.system<>("unregMaterial", "Material").kind(flecs::OnRemove).each(unregMaterial);
-        ecs.system<const ApplicationRef, MaterialId>("initMaterial",
-                "Material").
+        ecs.system<const ApplicationRef, MaterialId>("initMaterial", "Material").
                 kind(flecs::OnSet).each(initMaterial);
         ecs.system<const ApplicationRef, const MaterialId>("removeMaterial").
                 kind(EcsUnSet).each(removeMaterial);

@@ -3,6 +3,7 @@
 #define LLGL_ENABLE_UTILITY
 
 #include <LLGL/Utility.h>
+#include <filesystem>
 
 namespace rise::rendering {
     LLGL::Texture *createTextureFromData(LLGL::RenderSystem *renderer, LLGL::ImageFormat format,
@@ -42,20 +43,29 @@ namespace rise::rendering {
 
     LLGL::ShaderProgram *createShaderProgram(LLGL::RenderSystem *renderer, std::string const &root,
             LLGL::VertexFormat const &format) {
+
         std::string vertPath = root + "/shader.vert.spv";
-        std::string fragPath = root + "/shader.frag.spv";
-
-        LLGL::ShaderDescriptor VSDesc, FSDesc;
-        VSDesc = LLGL::ShaderDescFromFile(LLGL::ShaderType::Vertex, vertPath.data());
-        FSDesc = LLGL::ShaderDescFromFile(LLGL::ShaderType::Fragment, fragPath.data());
-
-        VSDesc.vertex.inputAttribs = format.attributes;
-
         LLGL::ShaderProgramDescriptor programDesc;
-        programDesc.vertexShader = renderer->CreateShader(VSDesc);
-        programDesc.fragmentShader = renderer->CreateShader(FSDesc);
 
-        for (auto shader : {programDesc.vertexShader, programDesc.fragmentShader}) {
+        if (std::filesystem::exists(vertPath)) {
+            auto desc = LLGL::ShaderDescFromFile(LLGL::ShaderType::Vertex, vertPath.data());
+            desc.vertex.inputAttribs = format.attributes;
+            programDesc.vertexShader = renderer->CreateShader(desc);
+        }
+
+        std::string fragPath = root + "/shader.frag.spv";
+        if (std::filesystem::exists(fragPath)) {
+            programDesc.fragmentShader = renderer->CreateShader(
+                    LLGL::ShaderDescFromFile(LLGL::ShaderType::Fragment, fragPath.data()));
+        }
+
+        std::string geomPath = root + "/shader.geom.spv";
+        if (std::filesystem::exists(geomPath)) {
+            programDesc.geometryShader = renderer->CreateShader(
+                    LLGL::ShaderDescFromFile(LLGL::ShaderType::Geometry, geomPath.data()));
+        }
+
+        for (auto shader : {programDesc.vertexShader, programDesc.fragmentShader, programDesc.geometryShader}) {
             std::string log = shader->GetReport();
             if (!log.empty()) {
                 std::cerr << log << std::endl;

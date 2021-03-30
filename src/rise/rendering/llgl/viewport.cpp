@@ -12,15 +12,49 @@ namespace rise::rendering {
         e.set<ViewportId>({});
     }
 
+    LLGL::Texture *createDepthTexture(LLGL::RenderSystem *renderer) {
+        LLGL::TextureDescriptor textureDesc;
+        {
+            textureDesc.type = LLGL::TextureType::TextureCubeArray;
+            textureDesc.bindFlags =
+                    LLGL::BindFlags::DepthStencilAttachment | LLGL::BindFlags::Sampled;
+            textureDesc.format = LLGL::Format::D32Float;
+            textureDesc.extent.width = shadowPipeline::resolution.width;
+            textureDesc.extent.height = shadowPipeline::resolution.height;
+            textureDesc.extent.depth = 1;
+            textureDesc.bindFlags = LLGL::BindFlags::Sampled |
+                    LLGL::BindFlags::DepthStencilAttachment;
+            textureDesc.arrayLayers = 6 * scenePipeline::maxLightCount;
+        }
+        return renderer->CreateTexture(textureDesc);
+    }
+
+    LLGL::RenderTarget *createDepthTarget(LLGL::RenderSystem *renderer, LLGL::Texture *map,
+            uint32_t layer) {
+        LLGL::RenderTargetDescriptor renderTargetDesc;
+        renderTargetDesc.resolution = shadowPipeline::resolution;
+        renderTargetDesc.attachments = {
+                LLGL::AttachmentDescriptor{LLGL::AttachmentType::Depth, map, 0, layer}
+        };
+        return renderer->CreateRenderTarget(renderTargetDesc);
+    }
+
     void initViewport(flecs::entity e, ApplicationRef app, ViewportId &id) {
         if (!e.has_trait<Initialized, ViewportId>()) {
             auto &core = app.ref->id->core;
-            auto uniform = createUniformBuffer<scenePipeline::PerViewport>(core.renderer.get());
+            ViewportState state;
+
+            state.uniform = createUniformBuffer<scenePipeline::PerViewport>(core.renderer.get());
+            state.cubeMaps = createDepthTexture(core.renderer.get());
+            for (size_t i = 0; i != scenePipeline::maxLightCount; ++i) {
+                state.cubeTarget[i] = createDepthTarget(core.renderer.get(),
+                        state.cubeMaps, i * 6);
+            }
 
             std::tuple init{
-                    ViewportState{uniform},
+                    state,
                     UpdatedViewportState{},
-                    std::set<Key>{}
+                    std::set<flecs::entity_t>{}
             };
 
             id.id = getApp(e)->manager.viewport.states.push_back(std::move(init));
@@ -77,18 +111,20 @@ namespace rise::rendering {
     }
 
     void updateViewportLight(flecs::entity, ApplicationRef ref, ViewportRef viewportRef,
-            Position3D position, DiffuseColor color, Intensity intensity, Distance distance) {
-        auto &&row = ref.ref->id->manager.viewport.states.at(viewportRef.ref->id);
+            Position3D position, DiffuseColor color, Intensity intensity, Distance distance,
+            LightId lightId) {
+        auto& manager = ref.ref->id->manager;
+        auto &&row = manager.viewport.states.at(viewportRef.ref->id);
         auto &viewport = std::get<eViewportState>(row).get();
         auto &updated = std::get<eViewportUpdated>(row).get();
 
         if (updated.currentLight < scenePipeline::maxLightCount) {
-            auto &light = viewport.pData->pointLights[updated.currentLight];
+            auto& lightState = std::get<eLightState>(manager.light.states.at(lightId.id)).get();
+            auto &light = viewport.pData->pointLights[lightState.id];
             light.position = toGlm(position);
             light.diffuse = toGlm(color);
             light.distance = distance.meters;
             light.intensity = intensity.factor;
-            ++updated.currentLight;
         }
     }
 

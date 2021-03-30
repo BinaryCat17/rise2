@@ -8,6 +8,10 @@ namespace rise::rendering {
         if (!e.has<Rotation3D>()) e.set<Rotation3D>({0.0f, 0.0f, 0.0f});
         if (!e.has<Scale3D>()) e.set<Scale3D>({1.0f, 1.0f, 1.0f});
         e.set<ModelId>({});
+        e.set_trait<Previous, MaterialId>({flecs::entity(nullptr)});
+        e.set_trait<Previous, TextureId>({flecs::entity(nullptr)});
+        e.set_trait<Previous, ViewportId>({flecs::entity(nullptr)});
+        e.set_trait<PreviousKey, MeshId>({NullKey});
     }
 
     void initModel(flecs::entity e, ApplicationRef ref, ModelId &id) {
@@ -21,7 +25,7 @@ namespace rise::rendering {
             auto uniform = createUniformBuffer<scenePipeline::PerObject>(
                     app->core.renderer.get());
             id.id = app->manager.model.states.push_back(
-                    std::tuple{ModelState{uniform}});
+                    std::tuple{ModelState{uniform}, std::set<Key>{}});
             e.add_trait<Initialized, ModelId>();
             app->manager.model.toUpdateTransform.push_back(e);
             app->manager.model.toUpdateDescriptors.push_back(e);

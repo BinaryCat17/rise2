@@ -71,12 +71,17 @@ namespace rise::rendering::shadowPipeline {
 
     static const size_t maxLightCount = 32;
 
-    struct PerLight {
+    struct PerObject {
+        alignas(16) glm::mat4 transform = {};
+    };
+
+    struct PerLightMatrices {
         alignas(16) glm::mat4 lightSpaceMatrix[6];
     };
 
-    struct PerObject {
-        alignas(16) glm::mat4 transform = {};
+    struct PerLightParameters {
+        alignas(16) glm::vec3 lightPos;
+        alignas(4) float farPlane;
     };
 
     LLGL::PipelineLayout *createLayout(LLGL::RenderSystem *renderer);

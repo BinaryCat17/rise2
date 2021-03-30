@@ -41,6 +41,7 @@ namespace rise::rendering {
     void regMesh(flecs::entity e) {
         if (!e.has<Path>()) e.set<Path>({"cube.obj"});
         e.set<MeshId>({});
+
     }
 
     void initMesh(flecs::entity e, ApplicationRef app, MeshId &id) {
@@ -105,6 +106,25 @@ namespace rise::rendering {
         manager.mesh.toInit.emplace_back(mesh, meshId);
     }
 
+    void regMeshToModel(flecs::entity e, ApplicationRef app, MeshId mesh) {
+        auto &manager = app.ref->id->manager;
+        auto &models = std::get<eModelMeshes>(manager.model.states.at(mesh.id)).get();
+
+        auto& prev = *e.get_trait_mut<PreviousKey, MeshId>();
+        if (prev.id != NullKey) {
+            models.erase(prev.id);
+        }
+
+        models.insert(mesh.id);
+        prev.id = mesh.id;
+    }
+
+    void unregMeshFromModel(flecs::entity, ApplicationRef app, MeshId mesh) {
+        auto &manager = app.ref->id->manager;
+        auto &models = std::get<eModelMeshes>(manager.model.states.at(mesh.id)).get();
+        models.erase(mesh.id);
+    }
+
     void importMesh(flecs::world &ecs) {
         ecs.system<>("regMesh", "Mesh").kind(flecs::OnAdd).each(regMesh);
         ecs.system<>("unregMesh", "Mesh").kind(flecs::OnRemove).each(unregMesh);
@@ -112,6 +132,10 @@ namespace rise::rendering {
                 kind(flecs::OnSet).each(initMesh);
         ecs.system<const ApplicationRef, const MeshId>("removeMesh").
                 kind(EcsUnSet).each(removeMesh);
+        ecs.system<const ApplicationRef, const MeshId>("regMeshToModel", "ModelId").
+                kind(flecs::OnSet).each(regMeshToModel);
+        ecs.system<const ApplicationRef, const MeshId>("unregMesFromModel", "ModelId").
+                kind(EcsUnSet).each(unregMeshFromModel);
         ecs.system<const ApplicationRef, const MeshId, const Path>("updateMesh",
                 "Mesh, TRAIT | Initialized > MeshId").kind(flecs::OnSet).each(updateMesh);
     }

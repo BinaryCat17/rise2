@@ -12,7 +12,7 @@ namespace rise::rendering {
 
     void initTexture(flecs::entity e, ApplicationRef app, TextureId &id) {
         if (!e.has_trait<Initialized, TextureId>()) {
-            std::tuple init{TextureState{}, std::set<Key>{}};
+            std::tuple init{TextureState{}, std::set<flecs::entity_t>{}};
             id.id = app.ref->id->manager.texture.states.push_back(std::move(init));
             e.add_trait<Initialized, TextureId>();
             e.patch<Path>([](auto) {});
@@ -60,22 +60,22 @@ namespace rise::rendering {
         if(tId) {
             auto &models = std::get<eTextureModels>(manager.material.states.at(tId->id)).get();
 
-            auto& prev = *e.get_mut<Previous, MaterialId>();
-            if (prev.id != NullKey) {
-                models.erase(prev.id);
+            auto& prev = *e.get_trait_mut<Previous, TextureId>();
+            if (prev.e != flecs::entity(nullptr)) {
+                models.erase(prev.e.id());
             }
 
-            models.insert(tId->id);
-            prev.id = tId->id;
+            models.insert(e.id());
+            prev.e = e;
 
         }
     }
 
-    void unregMaterialFromModel(flecs::entity, ApplicationRef app, DiffuseTexture texture) {
+    void unregTextureFromModel(flecs::entity e, ApplicationRef app, DiffuseTexture texture) {
         auto &manager = app.ref->id->manager;
         auto tId = texture.e.get<TextureId>();
         auto &models = std::get<eTextureModels>(manager.material.states.at(tId->id)).get();
-        models.erase(tId->id);
+        models.erase(e.id());
     }
 
     void importTexture(flecs::world &ecs) {
@@ -88,6 +88,8 @@ namespace rise::rendering {
                 kind(EcsUnSet).each(removeTexture);
         ecs.system<const ApplicationRef, const DiffuseTexture>("regTextureToModel", "ModelId").
                 kind(flecs::OnSet).each(regTextureToModel);
+        ecs.system<const ApplicationRef, const DiffuseTexture>("unregTextureToModel", "ModelId").
+                kind(EcsUnSet).each(unregTextureFromModel);
         ecs.system<const ApplicationRef, const TextureId, const Path>("updateTexture",
                 "Texture, TRAIT | Initialized > TextureId").kind(flecs::OnSet).each(updateTexture);
     }
