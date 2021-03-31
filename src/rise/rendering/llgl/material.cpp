@@ -63,7 +63,7 @@ namespace rise::rendering {
         auto &models = std::get<eMaterialModels>(manager.material.states.at(material.id)).get();
 
         auto& prev = *e.get_trait_mut<Previous, MaterialId>();
-        if (prev.e != flecs::entity(0)) {
+        if (prev.e != flecs::entity(nullptr)) {
             models.erase(prev.e.id());
         }
 

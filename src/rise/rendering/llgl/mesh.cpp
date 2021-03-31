@@ -112,7 +112,7 @@ namespace rise::rendering {
             auto &meshes = std::get<eModelMeshes>(manager.model.states.at(model.id)).get();
 
             auto &prev = *e.get_trait_mut<Previous, MeshId>();
-            if (prev.e != flecs::entity(0)) {
+            if (prev.e != flecs::entity(nullptr)) {
                 meshes.erase(prev.e.id());
             }
 
@@ -125,7 +125,7 @@ namespace rise::rendering {
         if(model.id != NullKey) {
             auto &manager = app.ref->id->manager;
             auto &models = std::get<eModelMeshes>(manager.model.states.at(model.id)).get();
-            models.erase(e);
+            models.erase(e.id());
         }
     }
 
@@ -136,9 +136,9 @@ namespace rise::rendering {
                 kind(flecs::OnSet).each(initMesh);
         ecs.system<const ApplicationRef, const MeshId>("removeMesh").
                 kind(EcsUnSet).each(removeMesh);
-        ecs.system<const ApplicationRef, const ModelId>("regMeshToModel", "[in] MeshId").
+        ecs.system<const ApplicationRef, const ModelId>("regMeshToModel", "[in] ANY: MeshId, ANY: ModelInitialized").
                 kind(flecs::OnSet).each(regMeshToModel);
-        ecs.system<const ApplicationRef, const ModelId>("unregMesFromModel", "[in] MeshId").
+        ecs.system<const ApplicationRef, const ModelId>("unregMesFromModel", "[in] ANY: MeshId, ANY: ModelInitialized").
                 kind(EcsUnSet).each(unregMeshFromModel);
         ecs.system<const ApplicationRef, const MeshId, const Path>("updateMesh",
                 "Mesh, TRAIT | Initialized > MeshId").kind(flecs::OnSet).each(updateMesh);

@@ -8,10 +8,10 @@ namespace rise::rendering {
         if (!e.has<Rotation3D>()) e.set<Rotation3D>({0.0f, 0.0f, 0.0f});
         if (!e.has<Scale3D>()) e.set<Scale3D>({1.0f, 1.0f, 1.0f});
         e.set<ModelId>({});
-        e.set_trait<Previous, MaterialId>({flecs::entity(0)});
-        e.set_trait<Previous, TextureId>({flecs::entity(0)});
-        e.set_trait<Previous, ViewportId>({flecs::entity(0)});
-        e.set_trait<PreviousKey, MeshId>({NullKey});
+        e.set_trait<Previous, MaterialId>({flecs::entity(nullptr)});
+        e.set_trait<Previous, TextureId>({flecs::entity(nullptr)});
+        e.set_trait<Previous, ViewportId>({flecs::entity(nullptr)});
+        e.set_trait<Previous, MeshId>({flecs::entity(nullptr)});
     }
 
     void initModel(flecs::entity e, ApplicationRef ref, ModelId &id) {
@@ -25,7 +25,7 @@ namespace rise::rendering {
             auto uniform = createUniformBuffer<scenePipeline::PerObject>(
                     app->core.renderer.get());
             id.id = app->manager.model.states.push_back(
-                    std::tuple{ModelState{uniform}, std::set<Key>{}});
+                    std::tuple{ModelState{uniform}, std::set<flecs::entity_t>{}});
             e.add_trait<Initialized, ModelId>();
             app->manager.model.toUpdateTransform.push_back(e.id());
             app->manager.model.toUpdateDescriptors.push_back(e.id());
@@ -35,6 +35,7 @@ namespace rise::rendering {
                 model.emplace(id.id, ShadowModel{});
                 app->manager.light.toInitShadowModels.push_back(id);
             }
+            e.set<ModelInitialized>({true});
         }
     }
 
@@ -42,6 +43,7 @@ namespace rise::rendering {
         if (e.has_trait<Initialized, ModelId>()) {
             e.remove<ModelId>();
             e.remove_trait<Initialized, ModelId>();
+            e.remove<ModelInitialized>();
         }
     }
 

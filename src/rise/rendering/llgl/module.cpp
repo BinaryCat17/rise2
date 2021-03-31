@@ -36,6 +36,7 @@ namespace rise::rendering {
         ecs.component<ViewportRef>("ViewportRef");
         ecs.component<Initialized>("Initialized");
         ecs.component<Previous>("Previous");
+        ecs.component<ModelInitialized>("ModelInitialized");
 
         ecs.system<const RenderTo>("AddRegTo", "!RegTo").kind(flecs::OnSet).each(
                 [](flecs::entity e, RenderTo state) {

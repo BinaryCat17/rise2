@@ -146,7 +146,7 @@ namespace rise::rendering {
         }
     }
 
-    void updateShadowMaps(flecs::entity, ApplicationRef ref, ViewportRef viewportRef,
+    void updateShadowMaps(flecs::entity e, ApplicationRef ref, ViewportRef viewportRef,
             LightId lightId) {
         auto &manager = ref.ref->id->manager;
         auto &&row = manager.viewport.states.at(viewportRef.ref->id);
@@ -167,7 +167,9 @@ namespace rise::rendering {
             cmd->SetResourceHeap(*p.second.heap);
             auto &meshes = std::get<eModelMeshes>(manager.model.states.at(p.first)).get();
             for (auto &mesh : meshes) {
-                auto &meshState = std::get<eMeshState>(manager.mesh.states.at(mesh)).get();
+                auto meshE = flecs::entity(e.world(), mesh);
+                auto meshId = meshE.get<MeshId>();
+                auto &meshState = std::get<eMeshState>(manager.mesh.states.at(meshId->id)).get();
                 cmd->SetVertexBuffer(*meshState.vertices);
                 cmd->SetIndexBuffer(*meshState.indices);
                 cmd->DrawIndexed(meshState.numIndices, 0);

@@ -13,6 +13,10 @@ namespace rise::rendering {
         flecs::entity e;
     };
 
+    struct ModelInitialized {
+        bool dummy;
+    };
+
     struct TextureId {
         Key id = NullKey;
     };
