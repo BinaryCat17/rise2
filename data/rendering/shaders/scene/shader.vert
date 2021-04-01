@@ -19,10 +19,14 @@ struct PointLight {
 	float intensity;
 };
 
+const uint maxLightCount = 8;
+
 layout(binding = 0) uniform Viewport {
 	mat4 view;
 	mat4 projection;
-    PointLight pointLights[32];
+    PointLight pointLights[maxLightCount];
+	vec3 viewPos;
+	float farPlane;
 } viewport;
 
 layout(binding = 1) uniform Material {

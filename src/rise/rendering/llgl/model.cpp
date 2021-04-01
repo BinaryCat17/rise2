@@ -8,10 +8,11 @@ namespace rise::rendering {
         if (!e.has<Rotation3D>()) e.set<Rotation3D>({0.0f, 0.0f, 0.0f});
         if (!e.has<Scale3D>()) e.set<Scale3D>({1.0f, 1.0f, 1.0f});
         e.set<ModelId>({});
-        e.set_trait<Previous, MaterialId>({flecs::entity(nullptr)});
-        e.set_trait<Previous, TextureId>({flecs::entity(nullptr)});
-        e.set_trait<Previous, ViewportId>({flecs::entity(nullptr)});
-        e.set_trait<Previous, MeshId>({flecs::entity(nullptr)});
+        e.set_trait<Previous, MaterialId>({flecs::entity(0)});
+        e.set_trait<Previous, TextureId>({flecs::entity(0)});
+        e.set_trait<Previous, ViewportId>({flecs::entity(0)});
+        e.set_trait<Previous, MeshId>({flecs::entity(0)});
+        e.set_trait<Previous, ModelId>({flecs::entity(0)});
     }
 
     void initModel(flecs::entity e, ApplicationRef ref, ModelId &id) {
@@ -100,6 +101,8 @@ namespace rise::rendering {
                 resourceHeapDesc.resourceViews.emplace_back(model.uniform);
                 resourceHeapDesc.resourceViews.emplace_back(core.sampler);
                 resourceHeapDesc.resourceViews.emplace_back(diffuse.val);
+                resourceHeapDesc.resourceViews.emplace_back(viewport.cubeMaps);
+                resourceHeapDesc.resourceViews.emplace_back(app.id->shadows.sampler);
                 model.heap = core.renderer->CreateResourceHeap(resourceHeapDesc);
             }
         }
@@ -135,6 +138,31 @@ namespace rise::rendering {
         ref.ref->id->manager.model.toUpdateTransform.push_back(e.id());
     }
 
+    void regModelToViewport(flecs::entity e, ApplicationRef app, ViewportRef viewport) {
+        if (viewport.ref->id != NullKey) {
+            auto &manager = app.ref->id->manager;
+            auto &models = std::get<eViewportModels>(
+                    manager.viewport.states.at(viewport.ref->id)).get();
+
+            auto &prev = *e.get_trait_mut<Previous, ViewportId>();
+            if (prev.e != flecs::entity(0)) {
+                models.erase(prev.e.id());
+            }
+
+            models.insert(e.id());
+            prev.e = e;
+        }
+    }
+
+    void unregModelFromViewport(flecs::entity e, ApplicationRef app, ViewportRef viewport) {
+        if (viewport.ref->id != NullKey) {
+            auto &manager = app.ref->id->manager;
+            auto &models = std::get<eViewportModels>(
+                    manager.viewport.states.at(viewport.ref->id)).get();
+            models.erase(e.id());
+        }
+    }
+
     void importModel(flecs::world &ecs) {
         ecs.system<>("regModel", "Model").kind(flecs::OnAdd).each(regModel);
         ecs.system<>("unregModel", "Model").kind(flecs::OnRemove).each(unregModel);
@@ -149,5 +177,12 @@ namespace rise::rendering {
                 "[in] ANY:rise.rendering.Scale3D,"
                 "[in] ANY:rise.rendering.Rotation3D").
                 kind(flecs::OnSet).each(catchUpdateTransform);
+
+        ecs.system<const ApplicationRef, const ViewportRef>("regModelToViewport",
+                "[in] ANY: ModelId").
+                kind(flecs::OnSet).each(regModelToViewport);
+        ecs.system<const ApplicationRef, const ViewportRef>("unregModelFromViewport",
+                "[in] ANY: ModelId").
+                kind(EcsUnSet).each(unregModelFromViewport);
     }
 }

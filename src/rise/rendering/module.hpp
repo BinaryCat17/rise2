@@ -99,6 +99,8 @@ namespace rise::rendering {
 
     struct Viewport {};
 
+    struct Shadow {};
+
     struct Module {
         explicit Module(flecs::world &ecs);
     };

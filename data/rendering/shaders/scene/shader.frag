@@ -17,28 +17,65 @@ struct PointLight {
     float intensity;
 };
 
-const uint maxLightCount = 32;
+const uint maxLightCount = 8;
 
 layout(binding = 0) uniform Viewport {
-	mat4 view;
-	mat4 projection;
-    PointLight pointLights[32];
+    mat4 view;
+    mat4 projection;
+    PointLight pointLights[maxLightCount];
+    vec3 viewPos;
+    float farPlane;
 } viewport;
 
 layout(binding = 1) uniform Material {
-	vec4 diffuseColor;
+    vec4 diffuseColor;
 } material;
 
 layout(binding = 2) uniform Model {
-	mat4 transform;
+    mat4 transform;
 } model;
 
 layout(binding = 3) uniform sampler modelSampler;
 layout(binding = 4) uniform texture2D modelTexture;
+layout(binding = 5) uniform textureCubeArray depthMap;
+layout(binding = 6) uniform sampler shadowSampler;
 
 const float constantFactor = 1.0f;
 const float linearFactor = 4.5;
 const float quadraticFactor = 80.0;
+
+
+vec3 sampleOffsetDirections[20] = vec3[]
+(
+vec3(1, 1, 1), vec3(1, -1, 1), vec3(-1, -1, 1), vec3(-1, 1, 1),
+vec3(1, 1, -1), vec3(1, -1, -1), vec3(-1, -1, -1), vec3(-1, 1, -1),
+vec3(1, 1, 0), vec3(1, -1, 0), vec3(-1, -1, 0), vec3(-1, 1, 0),
+vec3(1, 0, 1), vec3(-1, 0, 1), vec3(1, 0, -1), vec3(-1, 0, -1),
+vec3(0, 1, 1), vec3(0, -1, 1), vec3(0, -1, -1), vec3(0, 1, -1)
+);
+
+float shadowCalculation(vec3 fragPos, int lightId) {
+    vec3 fragToLight = inPosition - viewport.pointLights[lightId].position;
+    float currentDepth = length(fragToLight);
+
+    float shadow = 0.0;
+    float bias   = 0.15;
+    int samples  = 20;
+    float farPlane = viewport.farPlane;
+    float viewDistance = length(viewport.viewPos - fragPos);
+    float diskRadius = (1.0 + (viewDistance / farPlane)) / 25.0;
+    for (int i = 0; i < samples; ++i)
+    {
+        float closestDepth = texture(samplerCubeArray(depthMap, shadowSampler), vec4(fragToLight + sampleOffsetDirections[i] * diskRadius, lightId)).r;
+        closestDepth *= farPlane;// undo mapping [0;1]
+        if (currentDepth - bias > closestDepth) {
+            shadow += 1.0;
+        }
+    }
+    shadow /= float(samples);
+
+    return shadow;
+}
 
 void main()
 {
@@ -51,7 +88,7 @@ void main()
         vec3 lightDir = normalize(light.position - inPosition);
 
         float attenuation = 1.f;
-        if (light.distance != 0) {
+        if (light.distance != -1 && light.intensity != 0) {
             float distance  = length(light.position - inPosition);
             float constant = constantFactor * light.intensity;
             float linear = linearFactor / light.distance;
@@ -60,9 +97,14 @@ void main()
 
             resultColor += max(dot(norm, lightDir), 0.0) * attenuation * light.diffuse
             * light.intensity;
+
+            float shadow = shadowCalculation(inPosition, i);
+            resultColor *= (1.0f - shadow);
         }
     }
 
+    vec3 ambient = 0.1 * (diffuseTex + material.diffuseColor.xyz);
+    resultColor += ambient;
     resultColor *= diffuseTex;
     resultColor *= material.diffuseColor.xyz;
 

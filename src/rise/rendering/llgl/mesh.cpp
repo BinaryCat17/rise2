@@ -63,7 +63,7 @@ namespace rise::rendering {
         app.ref->id->manager.mesh.toRemove.push_back(id);
     }
 
-    void updateMesh(flecs::entity e, ApplicationRef ref, MeshId meshId, Path const &path) {
+    void updateMesh(flecs::entity, ApplicationRef ref, MeshId meshId, Path const &path) {
         auto &core = ref.ref->id->core;
         auto &scene = ref.ref->id->scene;
         auto &manager = ref.ref->id->manager;
@@ -112,7 +112,7 @@ namespace rise::rendering {
             auto &meshes = std::get<eModelMeshes>(manager.model.states.at(model.id)).get();
 
             auto &prev = *e.get_trait_mut<Previous, MeshId>();
-            if (prev.e != flecs::entity(nullptr)) {
+            if (prev.e != flecs::entity(0)) {
                 meshes.erase(prev.e.id());
             }
 

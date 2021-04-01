@@ -27,8 +27,18 @@ namespace rise::rendering::scenePipeline {
                 LLGL::ResourceType::Texture,
                 LLGL::BindFlags::Sampled,
                 LLGL::StageFlags::FragmentStage,
-                4},
-        };
+                4,
+        }, LLGL::BindingDescriptor{
+                LLGL::ResourceType::Texture,
+                LLGL::BindFlags::Sampled,
+                LLGL::StageFlags::FragmentStage,
+                5,
+        }, LLGL::BindingDescriptor{
+                LLGL::ResourceType::Sampler,
+                0,
+                LLGL::StageFlags::FragmentStage,
+                6
+        }};
 
         return renderer->CreatePipelineLayout(layoutDesc);
     }
@@ -133,7 +143,18 @@ namespace rise::rendering::shadowPipeline {
             pipelineDesc.rasterizer.depthBias.constantFactor = 4.0f;
             pipelineDesc.rasterizer.depthBias.slopeFactor = 4.0f;
             pipelineDesc.blend.targets[0].colorMask = {false, false, false, false};
-            pipelineDesc.viewports = {resolution};
+            LLGL::Viewport viewport;
+            viewport.x = 0;
+            viewport.width = static_cast<float>(resolution.width);
+            viewport.y = static_cast<float>(resolution.height);
+            viewport.height = -static_cast<float>(resolution.height);
+
+            pipelineDesc.viewports = {viewport};
+            pipelineDesc.rasterizer.polygonMode = LLGL::PolygonMode::Fill;
+            pipelineDesc.rasterizer.cullMode = LLGL::CullMode::Disabled;
+            pipelineDesc.rasterizer.frontCCW = true;
+            pipelineDesc.rasterizer.multiSampleEnabled = true;
+            pipelineDesc.primitiveTopology = LLGL::PrimitiveTopology::TriangleList;
         }
 
         return renderer->CreatePipelineState(pipelineDesc);

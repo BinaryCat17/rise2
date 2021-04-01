@@ -26,6 +26,7 @@ namespace rise::rendering {
         ecs.component<Texture>("Texture");
         ecs.component<Material>("Material");
         ecs.component<Model>("Model");
+        ecs.component<Shadow>("Shadow");
         ecs.component<PointLight>("PointLight");
         ecs.component<Viewport>("Viewport");
         ecs.component<RegTo>("RegTo");

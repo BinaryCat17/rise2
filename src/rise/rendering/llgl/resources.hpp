@@ -17,6 +17,10 @@ namespace rise::rendering {
         bool dummy;
     };
 
+    struct ViewportInitialized {
+        bool dummy;
+    };
+
     struct TextureId {
         Key id = NullKey;
     };
@@ -71,6 +75,7 @@ namespace rise::rendering {
         scenePipeline::PerViewport *pData = nullptr;
         LLGL::Texture *cubeMaps = nullptr;
         std::array<ShadowTarget, scenePipeline::maxLightCount> cubeTarget{};
+
     };
 
     struct UpdatedViewportState {
@@ -120,6 +125,8 @@ namespace rise::rendering {
         LLGL::PipelineLayout *layout = nullptr;
         LLGL::ShaderProgram *program = nullptr;
         LLGL::VertexFormat format;
+        LLGL::RenderPass* renderPass = nullptr;
+        LLGL::Sampler* sampler = nullptr;
     };
 
     struct GuiState {

@@ -98,11 +98,10 @@ namespace rise::rendering {
                 auto &lightState = std::get<eLightState>(
                         manager.light.states.at(lightId->id)).get();
 
-
                 float aspect = (float) shadowPipeline::resolution.width /
                         (float) shadowPipeline::resolution.height;
-                float near = 1.0f;
-                float far = 25.0f;
+                float near = 0.1f;
+                float far = scenePipeline::farPlane;
                 glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), aspect, near, far);
 
                 auto position = getOrDefault(eLight, Position3D{0, 0, 0});
@@ -146,9 +145,15 @@ namespace rise::rendering {
         }
     }
 
+    void catchShadowsLightUpdate(flecs::entity e, ApplicationRef app) {
+        auto &manager = app.ref->id->manager;
+        manager.light.toUpdate.push_back(e);
+    }
+
     void updateShadowMaps(flecs::entity e, ApplicationRef ref, ViewportRef viewportRef,
             LightId lightId) {
         auto &manager = ref.ref->id->manager;
+        auto &shadows = ref.ref->id->shadows;
         auto &&row = manager.viewport.states.at(viewportRef.ref->id);
         auto &updated = std::get<eViewportUpdated>(row).get();
         auto &viewport = std::get<eViewportState>(row).get();
@@ -158,21 +163,26 @@ namespace rise::rendering {
         auto &shadowModels = std::get<eLightShadowModels>(
                 manager.light.states.at(lightId.id)).get();
 
-        cmd->BeginRenderPass(*viewport.cubeTarget[light.id].target);
+        std::array<LLGL::ClearValue, 6> clearValues = {};
+        cmd->BeginRenderPass(*viewport.cubeTarget[light.id].target, shadows.renderPass, 6,
+                clearValues.data());
         cmd->SetPipelineState(*viewport.cubeTarget[light.id].pipeline);
-        cmd->Clear(LLGL::ClearFlags::Depth);
-        cmd->SetViewport(LLGL::Viewport(shadowPipeline::resolution));
+        cmd->Clear(LLGL::ClearFlags::Depth, 0, true);
+
 
         for (auto p : shadowModels) {
             cmd->SetResourceHeap(*p.second.heap);
             auto &meshes = std::get<eModelMeshes>(manager.model.states.at(p.first)).get();
             for (auto &mesh : meshes) {
                 auto meshE = flecs::entity(e.world(), mesh);
-                auto meshId = meshE.get<MeshId>();
-                auto &meshState = std::get<eMeshState>(manager.mesh.states.at(meshId->id)).get();
-                cmd->SetVertexBuffer(*meshState.vertices);
-                cmd->SetIndexBuffer(*meshState.indices);
-                cmd->DrawIndexed(meshState.numIndices, 0);
+                if (meshE.owns<Shadow>()) {
+                    auto meshId = meshE.get<MeshId>();
+                    auto &meshState = std::get<eMeshState>(
+                            manager.mesh.states.at(meshId->id)).get();
+                    cmd->SetVertexBuffer(*meshState.vertices);
+                    cmd->SetIndexBuffer(*meshState.indices);
+                    cmd->DrawIndexed(meshState.numIndices, 0);
+                }
             }
         }
         cmd->EndRenderPass();
@@ -185,6 +195,19 @@ namespace rise::rendering {
                 kind(flecs::OnSet).each(initPointLight);
         ecs.system<const ApplicationRef, const LightId, const ViewportRef>("removeLight").
                 kind(EcsUnSet).each(removePointLight);
+        ecs.system<ApplicationRef>("catchShadowsUpdate",
+                "PointLight, TRAIT | Initialized > LightId, [in] ANY:rise.rendering.Position3D,").
+                kind(flecs::OnSet).each(catchShadowsLightUpdate);
+    }
+
+    LLGL::RenderPass *createDepthRenderPass(LLGL::RenderSystem *renderer) {
+        LLGL::RenderPassDescriptor renderPass;
+        renderPass.depthAttachment.format = LLGL::Format::D32Float;
+        renderPass.samples = 1;
+        renderPass.depthAttachment.loadOp = LLGL::AttachmentLoadOp::Clear;
+        renderPass.depthAttachment.storeOp = LLGL::AttachmentStoreOp::Store;
+        renderPass.depthAttachment.inShaderUse = true;
+        return renderer->CreateRenderPass(renderPass);
     }
 
     void initShadowsState(flecs::entity, ApplicationState &state, Path const &path) {
@@ -199,6 +222,18 @@ namespace rise::rendering {
         shadows.layout = shadowPipeline::createLayout(core.renderer.get());
         shadows.program = createShaderProgram(core.renderer.get(),
                 root + "/shaders/shadows", shadows.format);
+        shadows.renderPass = createDepthRenderPass(state.core.renderer.get());
 
+        LLGL::SamplerDescriptor samplerInfo = {};
+        samplerInfo.compareEnabled = true;
+        //samplerInfo.compareOp = LLGL::CompareOp::Greater;
+        samplerInfo.magFilter = LLGL::SamplerFilter::Linear;
+        samplerInfo.minFilter = LLGL::SamplerFilter::Linear;
+        samplerInfo.mipMapFilter = LLGL::SamplerFilter::Linear;
+        samplerInfo.addressModeU = LLGL::SamplerAddressMode::Clamp;
+        samplerInfo.addressModeV = LLGL::SamplerAddressMode::Clamp;
+        samplerInfo.addressModeW = LLGL::SamplerAddressMode::Clamp;
+        samplerInfo.borderColor = {1, 1, 1, 1};
+        shadows.sampler = state.core.renderer->CreateSampler(samplerInfo);
     }
 }

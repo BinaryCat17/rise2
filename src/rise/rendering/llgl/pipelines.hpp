@@ -7,6 +7,8 @@
 #include <glm/gtx/hash.hpp>
 
 namespace rise::rendering::scenePipeline {
+    const float farPlane = 100.0f;
+
     struct Vertex {
         glm::vec3 pos{};
         glm::vec3 normal{};
@@ -30,12 +32,14 @@ namespace rise::rendering::scenePipeline {
         alignas(4) float intensity = 0;
     };
 
-    static const size_t maxLightCount = 32;
+    static const size_t maxLightCount = 8;
 
     struct PerViewport {
         alignas(16) glm::mat4 view = {};
         alignas(16) glm::mat4 projection = {};
         alignas(16) PointLight pointLights[maxLightCount] = {};
+        alignas(16) glm::vec3 viewPos = {};
+        alignas(4) float farPlane = 0.0;
     };
 
     struct PerMaterial {
@@ -67,7 +71,7 @@ namespace rise::rendering::guiPipeline {
 namespace rise::rendering::shadowPipeline {
     using Vertex = scenePipeline::Vertex;
 
-    const LLGL::Extent2D resolution = {256, 256};
+    const LLGL::Extent2D resolution = {1024, 1024};
 
     struct PerObject {
         alignas(16) glm::mat4 transform = {};

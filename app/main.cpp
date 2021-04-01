@@ -21,7 +21,7 @@ flecs::world initWorld() {
 int main() {
     auto ecs = initWorld();
 
-    auto windowSize = ecs.entity("WindowSize").set<rendering::Extent2D>({1000, 800});
+    auto windowSize = ecs.entity("WindowSize").set<rendering::Extent2D>({1600, 1000});
 
     auto application = ecs.entity("Minecraft2").
             add_instanceof(windowSize).
@@ -45,15 +45,34 @@ int main() {
             set<rendering::Position3D>({-2, 2, 1}).
             set<rendering::Distance>({50.f}).
             add<input::Controllable>().
-            add<rendering::Viewport>().
-            add<rendering::PointLight>();
+            add<rendering::Viewport>();
 
     ecs.entity("Cube").
             set<rendering::RenderTo>({camera}).
             add_instanceof(mesh).
             set<rendering::DiffuseTexture>({texture}).
             set<rendering::Position3D>({0, 0, 0}).
-            set<rendering::Scale3D>({5.f, 0.2f, 5.f}).
+            set<rendering::Scale3D>({20.f, 0.2f, 20.f}).
+            add<rendering::Model>();
+
+    ecs.entity("Light").
+            set<rendering::RenderTo>({camera}).
+            add_instanceof(mesh).
+            set<rendering::DiffuseTexture>({texture}).
+            set<rendering::Position3D>({1, 4, 1}).
+            set<rendering::Scale3D>({0.5f, 0.5f, 0.5f}).
+            set<rendering::Distance>({50.f}).
+            add<rendering::PointLight>().
+            add<rendering::Model>();
+
+    ecs.entity("Light2").
+            set<rendering::RenderTo>({camera}).
+            add_instanceof(mesh).
+            set<rendering::DiffuseTexture>({texture}).
+            set<rendering::Position3D>({-1, 4, -1}).
+            set<rendering::Scale3D>({0.5f, 0.5f, 0.5f}).
+            set<rendering::Distance>({50.f}).
+            add<rendering::PointLight>().
             add<rendering::Model>();
 
     ecs.entity("Ball").
@@ -63,6 +82,7 @@ int main() {
             set<rendering::Scale3D>({0.01, 0.01, 0.01}).
             set<rendering::DiffuseColor>({0.8, 0, 0}).
             add<rendering::Mesh>().
+            add<rendering::Shadow>().
             add<rendering::Model>();
 
     ecs.set_target_fps(60);

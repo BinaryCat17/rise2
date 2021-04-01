@@ -30,12 +30,15 @@ namespace rise::rendering {
     }
 
     LLGL::RenderTarget *createDepthTarget(LLGL::RenderSystem *renderer, LLGL::Texture *map,
-            uint32_t layer) {
+            LLGL::RenderPass *renderPass, uint32_t layer) {
+
         LLGL::RenderTargetDescriptor renderTargetDesc;
+        renderTargetDesc.renderPass = renderPass;
         renderTargetDesc.resolution = shadowPipeline::resolution;
         renderTargetDesc.attachments = {
                 LLGL::AttachmentDescriptor{LLGL::AttachmentType::Depth, map, 0, layer}
         };
+
         return renderer->CreateRenderTarget(renderTargetDesc);
     }
 
@@ -50,7 +53,7 @@ namespace rise::rendering {
             for (size_t i = 0; i != scenePipeline::maxLightCount; ++i) {
                 auto &target = state.cubeTarget[i];
                 target.target = createDepthTarget(core.renderer.get(),
-                        state.cubeMaps, i * 6);
+                        state.cubeMaps, shadows.renderPass, i * 6);
                 auto pass = target.target->GetRenderPass();
                 target.pipeline = shadowPipeline::createPipeline(core.renderer.get(),
                         shadows.layout, shadows.program, pass);
@@ -65,6 +68,7 @@ namespace rise::rendering {
             id.id = getApp(e)->manager.viewport.states.push_back(std::move(init));
             e.set<ViewportRef>({e.get_ref<ViewportId>()});
             e.add_trait<Initialized, ViewportId>();
+            e.set<ViewportInitialized>({true});
         }
     }
 
@@ -73,6 +77,7 @@ namespace rise::rendering {
             getApp(e)->manager.viewport.toRemove.push_back(*e.get<ViewportId>());
             e.remove<ViewportId>();
             e.remove_trait<Initialized, ViewportId>();
+            e.remove<ViewportInitialized>();
         }
     }
 
@@ -105,10 +110,13 @@ namespace rise::rendering {
 
         if (updated.camera) {
             if (size.width != 0 && size.height != 0) {
+                float farPlane = scenePipeline::farPlane;
                 glm::vec3 origin = calcCameraOrigin(toGlm(position), toGlm(rotation));
                 viewport.pData->view = glm::lookAt(toGlm(position), origin, glm::vec3(0, 1, 0));
                 viewport.pData->projection = glm::perspective(glm::radians(45.0f),
-                        size.width / size.height, 0.1f, 100.0f);
+                        size.width / size.height, 0.1f, farPlane);
+                viewport.pData->farPlane = farPlane;
+                viewport.pData->viewPos = toGlm(position);
             } else {
                 std::cerr << "extent must not be null" << std::endl;
             }
