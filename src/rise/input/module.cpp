@@ -82,6 +82,7 @@ namespace rise::input {
 
     Module::Module(flecs::world &ecs) {
         ecs.module<Module>("rise::input");
+        ecs.import<rendering::Module>();
         ecs.component<Controllable>("Controllable");
 
         ecs.system<Position3D, const Rotation3D>("processKeyboard", "Controllable").

@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 add_subdirectory(submodules/LLGL)
 add_subdirectory(submodules/glm)
 add_subdirectory(submodules/tinyobjloader)
-add_subdirectory(submodules/SDL2)
+add_subdirectory(submodules/SDL)
 add_subdirectory(submodules/reactphysics3d)
 add_subdirectory(submodules/flecs)
 
@@ -78,7 +78,7 @@ add_library(rise
         )
 
 target_include_directories(rise PUBLIC src)
-target_include_directories(rise PUBLIC submodules/sg14/)
+target_include_directories(rise PUBLIC submodules/SG14/)
 target_include_directories(rise PUBLIC submodules/stb/)
 target_include_directories(rise PRIVATE src/rise)
 
@@ -100,5 +100,5 @@ target_link_libraries(rise PUBLIC
 target_link_libraries(riseapp PRIVATE rise)
 
 target_link_libraries(flecs_test PRIVATE flecs_static flecs_deps)
-target_include_directories(flecs_test PUBLIC submodules/sg14/)
+target_include_directories(flecs_test PUBLIC submodules/SG14/)
 target_include_directories(flecs_test PUBLIC src)

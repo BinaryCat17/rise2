@@ -10,10 +10,11 @@ flecs::world initWorld() {
     stdcpp_set_os_api();
 
     flecs::world ecs;
+    ecs.import<rise::rendering::Module>();
+    ecs.import<rise::input::Module>();
     ecs.import<rise::rendering::LLGLModule>();
     ecs.import<rise::editor::Module>();
     ecs.import<rise::rendering::EditorComponents>();
-    ecs.import<rise::input::Module>();
 
     return ecs;
 }

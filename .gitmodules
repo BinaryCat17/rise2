@@ -1,57 +1,55 @@
-[submodule "DiligentEngine"]
-	path = DiligentEngine
-	url = https://github.com/DiligentGraphics/DiligentEngine.git
-[submodule "submodules/glm"]
-	path = submodules/glm
-	url = https://github.com/g-truc/glm.git
-[submodule "submodules/tinyobjloader"]
-	path = submodules/tinyobjloader
-	url = https://github.com/tinyobjloader/tinyobjloader.git
-[submodule "submodules/imgui"]
-	path = submodules/imgui
-	url = https://github.com/ocornut/imgui.git
-[submodule "submodules/SDL2"]
-	path = submodules/SDL2
-	url = https://github.com/SDL-mirror/SDL.git
-[submodule "submodules/LLGL"]
-	path = submodules/LLGL
-	url = https://github.com/LukasBanana/LLGL.git
+
 [submodule "submodules/ImGuizmo"]
 	path = submodules/ImGuizmo
 	url = https://github.com/CedricGuillemet/ImGuizmo.git
-[submodule "submodules/reactphysics3d"]
-	path = submodules/reactphysics3d
-	url = https://github.com/DanielChappuis/reactphysics3d.git
+[submodule "submodules/LLGL"]
+	path = submodules/LLGL
+	url = https://github.com/ComradeStalin17/LLGL.git
+[submodule "submodules/SDL"]
+	path = submodules/SDL
+	url = https://github.com/SDL-mirror/SDL.git
 [submodule "submodules/flecs"]
 	path = submodules/flecs
 	url = https://github.com/SanderMertens/flecs.git
-[submodule "submodules/flecs-meta"]
-	path = submodules/flecs-meta
-	url = https://github.com/flecs-hub/flecs-meta.git
+[submodule "submodules/flecs-components-http"]
+	path = submodules/flecs-components-http
+	url = https://github.com/flecs-hub/flecs-components-http.git
+[submodule "submodules/flecs-dash"]
+	path = submodules/flecs-dash
+	url = https://github.com/flecs-hub/flecs-dash.git
 [submodule "submodules/flecs-json"]
 	path = submodules/flecs-json
 	url = https://github.com/flecs-hub/flecs-json.git
+[submodule "submodules/flecs-meta"]
+	path = submodules/flecs-meta
+	url = https://github.com/flecs-hub/flecs-meta.git
 [submodule "submodules/flecs-monitor"]
 	path = submodules/flecs-monitor
 	url = https://github.com/flecs-hub/flecs-monitor.git
 [submodule "submodules/flecs-player"]
 	path = submodules/flecs-player
 	url = https://github.com/flecs-hub/flecs-player.git
-[submodule "submodules/flecs-components-http"]
-	path = submodules/flecs-components-http
-	url = https://github.com/flecs-hub/flecs-components-http.git
-[submodule "submodules/flecs-systems-civetweb"]
-	path = submodules/flecs-systems-civetweb
-	url = https://github.com/flecs-hub/flecs-systems-civetweb.git
-[submodule "submodules/flecs-dash"]
-	path = submodules/flecs-dash
-	url = https://github.com/flecs-hub/flecs-dash.git
 [submodule "submodules/flecs-rest"]
 	path = submodules/flecs-rest
 	url = https://github.com/flecs-hub/flecs-rest.git
-[submodule "submodules/sg14"]
-	path = submodules/sg14
-	url = https://github.com/WG21-SG14/SG14
+[submodule "submodules/flecs-systems-civetweb"]
+	path = submodules/flecs-systems-civetweb
+	url = https://github.com/flecs-hub/flecs-systems-civetweb.git
+[submodule "submodules/glm"]
+	path = submodules/glm
+	url = https://github.com/g-truc/glm.git
+[submodule "submodules/imgui"]
+	path = submodules/imgui
+	url = https://github.com/ocornut/imgui.git
+[submodule "submodules/reactphysics3d"]
+	path = submodules/reactphysics3d
+	url = https://github.com/DanielChappuis/reactphysics3d.git
+[submodule "submodules/SG14"]
+	path = submodules/SG14
+	url = https://github.com/WG21-SG14/SG14.git
 [submodule "submodules/stb"]
 	path = submodules/stb
 	url = https://github.com/nothings/stb.git
+[submodule "submodules/tinyobjloader"]
+	path = submodules/tinyobjloader
+	url = https://github.com/tinyobjloader/tinyobjloader.git
