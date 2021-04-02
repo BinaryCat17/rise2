@@ -79,6 +79,7 @@ namespace rise::rendering {
         auto &manager = app.ref->id->manager;
         std::get<eViewportUpdated>(manager.viewport.states.at(viewport.ref->id)).get().light = true;
         app.ref->id->manager.light.toRemove.push_back(id);
+        auto& models = std::get<eLightShadowModels>(manager.light.states.at(id.id)).get();
     }
 
     void unregPointLight(flecs::entity e) {
@@ -97,50 +98,52 @@ namespace rise::rendering {
             if (lightId->id != NullKey) {
                 auto &lightState = std::get<eLightState>(
                         manager.light.states.at(lightId->id)).get();
+                if (lightState.matrices) {
+                    float aspect = (float) shadowPipeline::resolution.width /
+                            (float) shadowPipeline::resolution.height;
+                    float near = 0.1f;
+                    float far = scenePipeline::farPlane;
+                    glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), aspect, near, far);
 
-                float aspect = (float) shadowPipeline::resolution.width /
-                        (float) shadowPipeline::resolution.height;
-                float near = 0.1f;
-                float far = scenePipeline::farPlane;
-                glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), aspect, near, far);
+                    auto position = getOrDefault(eLight, Position3D{0, 0, 0});
 
-                auto position = getOrDefault(eLight, Position3D{0, 0, 0});
+                    auto lightPos = toGlm(*position);
 
-                auto lightPos = toGlm(*position);
+                    auto parameters = mapUniformBuffer<shadowPipeline::PerLightParameters>(
+                            core.renderer.get(), lightState.parameters);
 
-                auto parameters = mapUniformBuffer<shadowPipeline::PerLightParameters>(
-                        core.renderer.get(), lightState.parameters);
+                    parameters->lightPos = lightPos;
+                    parameters->farPlane = far;
 
-                parameters->lightPos = lightPos;
-                parameters->farPlane = far;
+                    core.renderer->UnmapBuffer(*lightState.parameters);
 
-                core.renderer->UnmapBuffer(*lightState.parameters);
+                    auto matrices = mapUniformBuffer<shadowPipeline::PerLightMatrices>(
+                            core.renderer.get(), lightState.matrices);
 
-                auto matrices = mapUniformBuffer<shadowPipeline::PerLightMatrices>(
-                        core.renderer.get(), lightState.matrices);
+                    auto &transforms = matrices->lightSpaceMatrix;
 
-                auto &transforms = matrices->lightSpaceMatrix;
+                    transforms[0] =
+                            shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(1.0, 0.0, 0.0),
+                                    glm::vec3(0.0, -1.0, 0.0));
+                    transforms[1] =
+                            shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(-1.0, 0.0, 0.0),
+                                    glm::vec3(0.0, -1.0, 0.0));
+                    transforms[2] =
+                            shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0, 1.0, 0.0),
+                                    glm::vec3(0.0, 0.0, 1.0));
+                    transforms[3] =
+                            shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0, -1.0, 0.0),
+                                    glm::vec3(0.0, 0.0, -1.0));
+                    transforms[4] =
+                            shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0, 0.0, 1.0),
+                                    glm::vec3(0.0, -1.0, 0.0));
+                    transforms[5] =
+                            shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0, 0.0, -1.0),
+                                    glm::vec3(0.0, -1.0, 0.0));
 
-                transforms[0] =
-                        shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(1.0, 0.0, 0.0),
-                                glm::vec3(0.0, -1.0, 0.0));
-                transforms[1] =
-                        shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(-1.0, 0.0, 0.0),
-                                glm::vec3(0.0, -1.0, 0.0));
-                transforms[2] =
-                        shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0, 1.0, 0.0),
-                                glm::vec3(0.0, 0.0, 1.0));
-                transforms[3] =
-                        shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0, -1.0, 0.0),
-                                glm::vec3(0.0, 0.0, -1.0));
-                transforms[4] =
-                        shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0, 0.0, 1.0),
-                                glm::vec3(0.0, -1.0, 0.0));
-                transforms[5] =
-                        shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0, 0.0, -1.0),
-                                glm::vec3(0.0, -1.0, 0.0));
+                    core.renderer->UnmapBuffer(*lightState.matrices);
+                }
 
-                core.renderer->UnmapBuffer(*lightState.matrices);
             }
         }
     }
@@ -160,6 +163,10 @@ namespace rise::rendering {
         auto cmd = ref.ref->id->core.cmdBuf;
 
         auto &light = std::get<eLightState>(manager.light.states.at(lightId.id)).get();
+        if(light.matrices == nullptr) {
+            return;
+        }
+
         auto &shadowModels = std::get<eLightShadowModels>(
                 manager.light.states.at(lightId.id)).get();
 

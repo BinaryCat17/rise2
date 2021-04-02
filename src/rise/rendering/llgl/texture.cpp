@@ -74,8 +74,10 @@ namespace rise::rendering {
     void unregTextureFromModel(flecs::entity e, ApplicationRef app, DiffuseTexture texture) {
         auto &manager = app.ref->id->manager;
         auto tId = texture.e.get<TextureId>();
-        auto &models = std::get<eTextureModels>(manager.texture.states.at(tId->id)).get();
-        models.erase(e.id());
+        if(tId) {
+            auto &models = std::get<eTextureModels>(manager.texture.states.at(tId->id)).get();
+            models.erase(e.id());
+        }
     }
 
     void importTexture(flecs::world &ecs) {
