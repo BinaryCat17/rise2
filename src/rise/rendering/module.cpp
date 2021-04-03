@@ -17,6 +17,7 @@ namespace rise::rendering {
         ecs.component<DiffuseColor>("DiffuseColor");
         ecs.component<Albedo>("Albedo");
         ecs.component<Metallic>("Metallic");
+        ecs.component<Ao>("Ao");
         ecs.component<Roughness>("Roughness");
         ecs.component<Distance>("Distance");
         ecs.component<Intensity>("Intensity");
@@ -25,6 +26,7 @@ namespace rise::rendering {
         ecs.component<Title>("Title");
         ecs.component<AlbedoTexture>("AlbedoTexture");
         ecs.component<MetallicTexture>("MetallicTexture");
+        ecs.component<AoTexture>("AoTexture");
         ecs.component<RoughnessTexture>("RoughnessTexture");
         ecs.component<GuiContext>("GuiContext");
         ecs.component<Mesh>("Mesh");

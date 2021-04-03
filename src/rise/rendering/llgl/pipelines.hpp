@@ -12,6 +12,7 @@ namespace rise::rendering::scenePipeline {
     struct Vertex {
         glm::vec3 pos{};
         glm::vec3 normal{};
+        glm::vec3 color{};
         glm::vec2 texCoord{};
     };
 
@@ -46,6 +47,7 @@ namespace rise::rendering::scenePipeline {
         alignas(16) glm::vec3 albedo = {};
         alignas(4) float metallic = {};
         alignas(4) float roughness = {};
+        alignas(4) float ao = {};
     };
 
     struct PerObject {
@@ -73,7 +75,7 @@ namespace rise::rendering::guiPipeline {
 namespace rise::rendering::shadowPipeline {
     using Vertex = scenePipeline::Vertex;
 
-    const LLGL::Extent2D resolution = {1024, 1024};
+    const LLGL::Extent2D resolution = {2048, 2048};
 
     struct PerObject {
         alignas(16) glm::mat4 transform = {};

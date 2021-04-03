@@ -34,10 +34,25 @@ namespace rise::rendering::scenePipeline {
                 LLGL::StageFlags::FragmentStage,
                 5,
         }, LLGL::BindingDescriptor{
+                LLGL::ResourceType::Texture,
+                LLGL::BindFlags::Sampled,
+                LLGL::StageFlags::FragmentStage,
+                6,
+        }, LLGL::BindingDescriptor{
+                LLGL::ResourceType::Texture,
+                LLGL::BindFlags::Sampled,
+                LLGL::StageFlags::FragmentStage,
+                7,
+        }, LLGL::BindingDescriptor{
+                LLGL::ResourceType::Texture,
+                LLGL::BindFlags::Sampled,
+                LLGL::StageFlags::FragmentStage,
+                8,
+        }, LLGL::BindingDescriptor{
                 LLGL::ResourceType::Sampler,
                 0,
                 LLGL::StageFlags::FragmentStage,
-                6
+                9
         }};
 
         return renderer->CreatePipelineLayout(layoutDesc);

@@ -104,6 +104,14 @@ namespace rise::rendering {
         unregTextureFromModel(e, app, t.e);
     }
 
+    void regAoTextureToModel(flecs::entity e, ApplicationRef app, AoTexture t) {
+        regTextureToModel(e, app, t.e);
+    }
+
+    void unregAoTextureFromModel(flecs::entity e, ApplicationRef app, AoTexture t) {
+        unregTextureFromModel(e, app, t.e);
+    }
+
     void importTexture(flecs::world &ecs) {
         ecs.system<>("regTexture", "Texture").kind(flecs::OnAdd).each(regTexture);
         ecs.system<>("unregTexture", "Texture").kind(flecs::OnRemove).each(unregTexture);
@@ -124,6 +132,10 @@ namespace rise::rendering {
                 kind(flecs::OnSet).each(regRoughTextureToModel);
         ecs.system<const ApplicationRef, const RoughnessTexture>("unregRoughTextureToModel", "ModelId").
                 kind(EcsUnSet).each(unregRoughTextureFromModel);
+        ecs.system<const ApplicationRef, const AoTexture>("regAoTextureToModel", "ModelId").
+                kind(flecs::OnSet).each(regAoTextureToModel);
+        ecs.system<const ApplicationRef, const AoTexture>("unregAoTextureToModel", "ModelId").
+                kind(EcsUnSet).each(unregAoTextureFromModel);
         ecs.system<const ApplicationRef, const TextureId, const Path>("updateTexture",
                 "Texture, TRAIT | Initialized > TextureId").kind(flecs::OnSet).each(updateTexture);
     }

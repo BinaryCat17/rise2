@@ -24,6 +24,7 @@ namespace rise::rendering {
             if (!e.has<AlbedoTexture>()) e.set<AlbedoTexture>({presets.texture});
             if (!e.has<MetallicTexture>()) e.set<MetallicTexture>({presets.texture});
             if (!e.has<RoughnessTexture>()) e.set<RoughnessTexture>({presets.texture});
+            if (!e.has<AoTexture>()) e.set<AoTexture>({presets.texture});
 
             auto uniform = createUniformBuffer<scenePipeline::PerObject>(
                     app->core.renderer.get());
@@ -98,6 +99,7 @@ namespace rise::rendering {
                 TextureId diffuseId = getTexId<AlbedoTexture>(up, e, app);
                 TextureId metallicId = getTexId<MetallicTexture>(up, e, app);
                 TextureId roughnessId = getTexId<RoughnessTexture>(up, e, app);
+                TextureId aoId = getTexId<AoTexture>(up, e, app);
 
                 auto const &diffuse = std::get<eTextureState>(
                         manager.texture.states.at(diffuseId.id)).get();
@@ -105,6 +107,8 @@ namespace rise::rendering {
                         manager.texture.states.at(metallicId.id)).get();
                 auto const &roughness = std::get<eTextureState>(
                         manager.texture.states.at(roughnessId.id)).get();
+                auto const &ao = std::get<eTextureState>(
+                        manager.texture.states.at(aoId.id)).get();
 
                 auto const &material = std::get<eMaterialState>(
                         manager.material.states.at(up.get<MaterialId>()->id)).get();
@@ -118,6 +122,7 @@ namespace rise::rendering {
                 resourceHeapDesc.resourceViews.emplace_back(diffuse.val);
                 resourceHeapDesc.resourceViews.emplace_back(metallic.val);
                 resourceHeapDesc.resourceViews.emplace_back(roughness.val);
+                resourceHeapDesc.resourceViews.emplace_back(ao.val);
                 resourceHeapDesc.resourceViews.emplace_back(viewport.cubeMaps);
                 resourceHeapDesc.resourceViews.emplace_back(app.id->shadows.sampler);
                 model.heap = core.renderer->CreateResourceHeap(resourceHeapDesc);

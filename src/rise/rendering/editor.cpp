@@ -18,6 +18,7 @@ namespace rise::rendering {
         editor::regGuiComponent<DiffuseColor>(ecs, GuiComponentType::DragFloat3);
         editor::regGuiComponent<Albedo>(ecs, GuiComponentType::DragFloat3);
         editor::regGuiComponent<Intensity>(ecs, GuiComponentType::DragFloat);
+        editor::regGuiComponent<Ao>(ecs, GuiComponentType::DragFloat);
         editor::regGuiComponent<Metallic>(ecs, GuiComponentType::DragFloat);
         editor::regGuiComponent<Roughness>(ecs, GuiComponentType::DragFloat);
         editor::regGuiComponent<Distance>(ecs, GuiComponentType::DragFloat);

@@ -142,6 +142,7 @@ namespace rise::rendering {
         ImGui::Render();
     }
 
+
     void renderGui(flecs::entity, ApplicationId app, GuiContext context, Extent2D size) {
         auto& core = app.id->core;
         auto& gui = app.id->gui;

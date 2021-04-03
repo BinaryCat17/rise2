@@ -1,5 +1,10 @@
 #include "gui.hpp"
 #include <misc/cpp/imgui_stdlib.h>
+#include "rendering/glm.hpp"
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/ext/matrix_clip_space.hpp>
+#include "rendering/llgl/math.hpp"
+#include <iostream>
 
 namespace rise::editor {
     struct GuiQuery {
@@ -35,6 +40,10 @@ namespace rise::editor {
                     case GuiComponentType::InputTextStdString:
                         written = ImGui::InputText("", reinterpret_cast<std::string *>(pVal));
                         size = sizeof(std::string);
+                        break;
+                    case GuiComponentType::BoolFlag:
+                        written = ImGui::Checkbox("", reinterpret_cast<bool *>(pVal));
+                        size = sizeof(bool);
                         break;
                 }
                 if (written) {
@@ -95,21 +104,95 @@ namespace rise::editor {
         }
     }
 
+    void imGuizmoSubmodule(flecs::entity e, rendering::RegTo app, rendering::RenderTo viewport,
+            rendering::Position3D position, rendering::Rotation3D rotation,
+            rendering::Scale3D scale) {
+
+        ImGuizmo::OPERATION *currentImGuizmoOp = nullptr;
+
+        if (!app.e.get<GuiState>()) {
+            return;
+        }
+        auto state = app.e.mut(e).get_mut<GuiState>();
+        if (state->selectedEntity.id() != e.id()) {
+            return;
+        }
+
+        currentImGuizmoOp = &state->currentOp;
+
+        ImGuizmo::Enable(true);
+        ImGuizmo::BeginFrame();
+
+        auto context = app.e.get<rendering::GuiContext>()->context;
+        ImGui::SetCurrentContext(context);
+
+        if (ImGui::RadioButton("Translate", *currentImGuizmoOp == ImGuizmo::TRANSLATE))
+            *currentImGuizmoOp = ImGuizmo::TRANSLATE;
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Rotate", *currentImGuizmoOp == ImGuizmo::ROTATE))
+            *currentImGuizmoOp = ImGuizmo::ROTATE;
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Scale", *currentImGuizmoOp == ImGuizmo::SCALE))
+            *currentImGuizmoOp = ImGuizmo::SCALE;
+        ImGui::SameLine();
+        if (ImGui::Button("Deselect")) {
+            state->selectedEntity = flecs::entity(0);
+        }
+
+        ImGuiIO &io = ImGui::GetIO();
+        ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+
+        glm::mat4 modelMatrix;
+        ImGuizmo::RecomposeMatrixFromComponents(&position.x, &rotation.x, &scale.x,
+                &modelMatrix[0][0]);
+
+        auto vPosition = *viewport.e.get<rendering::Position3D>();
+        auto vRotation = *viewport.e.get<rendering::Rotation3D>();
+        glm::vec3 origin = calcCameraOrigin(toGlm(vPosition), toGlm(vRotation));
+        auto view = glm::lookAt(toGlm(vPosition), origin, glm::vec3(0, 1, 0));
+        auto projection = glm::perspective(glm::radians(45.0f),
+                io.DisplaySize.x / io.DisplaySize.y, 0.1f, 100.f);
+
+        if (ImGuizmo::Manipulate(&view[0][0], &projection[0][0], *currentImGuizmoOp,
+                ImGuizmo::WORLD, &modelMatrix[0][0], nullptr, nullptr)) {
+            ImGuizmo::DecomposeMatrixToComponents(&modelMatrix[0][0], &position.x,
+                    &rotation.x, &scale.x);
+        }
+
+        e.set<rendering::Position3D>(position);
+        e.set<rendering::Rotation3D>(rotation);
+        e.set<rendering::Scale3D>(scale);
+    }
+
     Module::Module(flecs::world &ecs) {
         ecs.module<Module>("rise::editor");
         ecs.component<GuiComponentType>("GuiComponentType");
         ecs.component<GuiComponentDefault>("GuiComponentDefault");
         ecs.component<GuiQuery>("GuiQuery");
         ecs.component<GuiTag>("GuiTag");
+        ecs.component<GuiState>("GuiState");
         ecs.set<GuiQuery>({ecs.query<GuiComponentDefault>(), ecs.query<>("GuiTag")});
+        ecs.system<>("setGuiState", "rise.rendering.llgl.ApplicationId").kind(flecs::OnSet).
+                each([](flecs::entity e) {
+            e.set<GuiState>({ImGuizmo::TRANSLATE, flecs::entity(0)});
+        });
     }
 
-    void guiSubmodule(flecs::entity e, rendering::RegTo state) {
-        auto context = state.e.get<rendering::GuiContext>()->context;
+    void guiSubmodule(flecs::entity e, rendering::RegTo app) {
+        auto context = app.e.get<rendering::GuiContext>()->context;
         ImGui::SetCurrentContext(context);
-        auto ecs = e.world();
 
-        if (e.name().size() && ImGui::TreeNode(e.name().c_str())) {
+        auto name = e.name();
+        if (name.size() && ImGui::TreeNode(name.c_str())) {
+            auto ecs = e.world();
+            if (app.e.get<GuiState>()) {
+                auto state = app.e.mut(e).get_mut<GuiState>();
+
+                if (ImGui::Button("Select")) {
+                    state->selectedEntity = e;
+                }
+            }
+
             writeEntityComponents(ecs, e);
             writeEntityTags(ecs, e);
 

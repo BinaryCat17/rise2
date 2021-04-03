@@ -186,9 +186,11 @@ namespace rise::rendering {
                     auto meshId = meshE.get<MeshId>();
                     auto &meshState = std::get<eMeshState>(
                             manager.mesh.states.at(meshId->id)).get();
-                    cmd->SetVertexBuffer(*meshState.vertices);
-                    cmd->SetIndexBuffer(*meshState.indices);
-                    cmd->DrawIndexed(meshState.numIndices, 0);
+                    if(meshState.vertices) {
+                        cmd->SetVertexBuffer(*meshState.vertices);
+                        cmd->SetIndexBuffer(*meshState.indices);
+                        cmd->DrawIndexed(meshState.numIndices, 0);
+                    }
                 }
             }
         }
@@ -224,7 +226,7 @@ namespace rise::rendering {
         auto &presets = state.presets;
 
         shadows.format.AppendAttribute({"position", LLGL::Format::RGB32Float});
-        shadows.format.SetStride(sizeof(float) * (3 + 3 + 2));
+        shadows.format.SetStride(sizeof(float) * (3 + 3 + 3 + 2));
 
         shadows.layout = shadowPipeline::createLayout(core.renderer.get());
         shadows.program = createShaderProgram(core.renderer.get(),

@@ -3,7 +3,8 @@
 // Fragment input from the vertex shader
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNormal;
-layout(location = 2) in vec2 texCoord;
+layout(location = 2) in vec3 inColor;
+layout(location = 3) in vec2 texCoord;
 
 // Fragment output color
 layout(location = 0) out vec4 fragColor;
@@ -31,6 +32,7 @@ layout(binding = 1) uniform Material {
     vec3 albedo;
     float metallic;
     float roughness;
+    float ao;
 } material;
 
 layout(binding = 2) uniform Model {
@@ -38,9 +40,12 @@ layout(binding = 2) uniform Model {
 } model;
 
 layout(binding = 3) uniform sampler modelSampler;
-layout(binding = 4) uniform texture2D modelTexture;
-layout(binding = 5) uniform textureCubeArray depthMap;
-layout(binding = 6) uniform sampler shadowSampler;
+layout(binding = 4) uniform texture2D albedoTexture;
+layout(binding = 5) uniform texture2D metallicTexture;
+layout(binding = 6) uniform texture2D roughnessTexture;
+layout(binding = 7) uniform texture2D aoTexture;
+layout(binding = 8) uniform textureCubeArray depthMap;
+layout(binding = 9) uniform sampler shadowSampler;
 
 const float constantFactor = 1.0f;
 const float linearFactor = 4.5;
@@ -124,13 +129,21 @@ float shadowCalculation(vec3 fragPos, int lightId) {
 
 void main()
 {
-    vec3 diffuseTex = texture(sampler2D(modelTexture, modelSampler), texCoord).xyz;
+    vec3 albedoTex = texture(sampler2D(albedoTexture, modelSampler), texCoord).xyz;
+    float metallicTex = texture(sampler2D(metallicTexture, modelSampler), texCoord).x;
+    float roughnessTex = texture(sampler2D(roughnessTexture, modelSampler), texCoord).x;
+    float aoTex = texture(sampler2D(aoTexture, modelSampler), texCoord).x;
+    vec3 albedo = albedoTex * material.albedo * inColor;
+    float metallic = metallicTex * material.metallic;
+    float roughness = roughnessTex * material.roughness;
+    float ao = aoTex * material.ao;
+
     vec3 norm = normalize(inNormal);
     vec3 resultColor = vec3(0.0, 0.0, 0.0);
 
     vec3 V = normalize(viewport.viewPos - inPosition);
     vec3 F0 = vec3(0.04);
-    F0 = mix(F0, material.albedo, material.metallic);
+    F0 = mix(F0, albedo, metallic);
 
     for (int i = 0; i != maxLightCount; ++i) {
         PointLight light = viewport.pointLights[i];
@@ -148,30 +161,27 @@ void main()
 
             vec3 radiance     = light.diffuse * attenuation;
 
-            float NDF = DistributionGGX(norm, H, material.roughness);
-            float G   = GeometrySmith(norm, V, lightDir, material.roughness);
+            float NDF = DistributionGGX(norm, H, roughness);
+            float G   = GeometrySmith(norm, V, lightDir, roughness);
             vec3 F    = fresnelSchlick(max(dot(H, V), 0.0), F0);
 
             vec3 kS = F;
             vec3 kD = vec3(1.0) - kS;
-            kD *= 1.0 - material.metallic;
+            kD *= 1.0 - metallic;
 
             vec3 numerator    = NDF * G * F;
             float denominator = 4.0 * max(dot(norm, V), 0.0) * max(dot(norm, lightDir), 0.0);
             vec3 specular     = numerator / max(denominator, 0.001);
 
             float NdotL = max(dot(norm, lightDir), 0.0);
-            resultColor += (kD * material.albedo / PI + specular) * radiance * NdotL;
+            resultColor += (kD * albedo / PI + specular) * radiance * NdotL;
 
             float shadow = shadowCalculation(inPosition, i);
             resultColor *= (1.0f - shadow);
         }
     }
-
-    vec3 ambient = 0.1 * (diffuseTex + material.albedo.xyz);
+    vec3 ambient = vec3(0.03) * albedo * ao;
     resultColor += ambient;
-    resultColor *= diffuseTex;
-    resultColor *= material.albedo.xyz;
 
     fragColor = vec4(resultColor, 1);
 }

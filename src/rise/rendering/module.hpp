@@ -65,6 +65,10 @@ namespace rise::rendering {
         float val;
     };
 
+    struct Ao {
+        float val;
+    };
+
     struct Roughness {
         float val;
     };
@@ -98,6 +102,10 @@ namespace rise::rendering {
     };
 
     struct RoughnessTexture {
+        flecs::entity e;
+    };
+
+    struct AoTexture {
         flecs::entity e;
     };
 

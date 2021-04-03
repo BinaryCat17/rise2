@@ -80,6 +80,7 @@ add_library(rise
 target_include_directories(rise PUBLIC src)
 target_include_directories(rise PUBLIC submodules/SG14/)
 target_include_directories(rise PUBLIC submodules/stb/)
+target_include_directories(rise PUBLIC submodules/tinygltf/)
 target_include_directories(rise PRIVATE src/rise)
 
 add_executable(riseapp app/main.cpp)

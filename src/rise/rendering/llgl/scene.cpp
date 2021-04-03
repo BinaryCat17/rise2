@@ -14,6 +14,7 @@ namespace rise::rendering {
 
         scene.format.AppendAttribute({"position", LLGL::Format::RGB32Float});
         scene.format.AppendAttribute({"normal", LLGL::Format::RGB32Float});
+        scene.format.AppendAttribute({"color", LLGL::Format::RGB32Float});
         scene.format.AppendAttribute({"texCoord", LLGL::Format::RG32Float});
 
         scene.layout = scenePipeline::createLayout(core.renderer.get());
@@ -31,7 +32,7 @@ namespace rise::rendering {
                 add<Mesh>();
 
         presets.texture = ecs.entity().set<RegTo>({e}).
-                set<Path>({"default.jpg"}).
+                set<Path>({"white.jpg"}).
                 add<Texture>();
     };
 
@@ -50,10 +51,14 @@ namespace rise::rendering {
         auto const &model = std::get<eModelState>(manager.model.states.at(modelId.id)).get();
         auto const &mesh = std::get<eMeshState>(manager.mesh.states.at(meshId.id)).get();
 
-        cmdBuf->SetResourceHeap(*model.heap);
-        cmdBuf->SetVertexBuffer(*mesh.vertices);
-        cmdBuf->SetIndexBuffer(*mesh.indices);
-        cmdBuf->DrawIndexed(mesh.numIndices, 0);
+        if(mesh.vertices) {
+
+            cmdBuf->SetResourceHeap(*model.heap);
+            cmdBuf->SetVertexBuffer(*mesh.vertices);
+            cmdBuf->SetIndexBuffer(*mesh.indices);
+            cmdBuf->DrawIndexed(mesh.numIndices, 0);
+        }
+
     }
 
     void importSceneState(flecs::world &ecs) {

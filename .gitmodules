@@ -53,3 +53,6 @@
 [submodule "submodules/tinyobjloader"]
 	path = submodules/tinyobjloader
 	url = https://github.com/tinyobjloader/tinyobjloader.git
+[submodule "submodules/tinygltf"]
+	path = submodules/tinygltf
+	url = https://github.com/syoyo/tinygltf.git

@@ -6,6 +6,7 @@ namespace rise::rendering {
         if (!e.has<Albedo>()) e.set<Albedo>({1.0, 1.0f, 1.0f});
         if (!e.has<Metallic>()) e.set<Metallic>({0.0f});
         if (!e.has<Roughness>()) e.set<Roughness>({1.0f});
+        if (!e.has<Ao>()) e.set<Ao>({1.0f});
         e.set<MaterialId>({});
     }
 
@@ -54,10 +55,12 @@ namespace rise::rendering {
             data.albedo = glm::vec4(color.r, color.g, color.b, 1);
             data.metallic = up.get<Metallic>()->val;
             data.roughness = up.get<Roughness>()->val;
+            data.ao = up.get<Ao>()->val;
             if (id == app.id->presets.material.get<MaterialId>()->id) {
                 data.albedo = glm::vec4(1.0f);
                 data.metallic = 0.0;
                 data.roughness = 1.0;
+                data.ao = 1.0;
             }
 
             updateUniformBuffer(app.id->core.renderer.get(), material.uniform, data);
@@ -97,6 +100,7 @@ namespace rise::rendering {
         ecs.system<const ApplicationRef>("catchMaterialUpdate",
                 "Material, TRAIT | Initialized > ModelId,"
                 "[in] ANY:rise.rendering.Albedo,"
+                "[in] ANY:rise.rendering.Ao,"
                 "[in] ANY:rise.rendering.Metallic,"
                 "[in] ANY:rise.rendering.Roughness").
                 kind(flecs::OnSet).each(catchMaterialUpdate);
