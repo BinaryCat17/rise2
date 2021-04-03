@@ -22,7 +22,7 @@ flecs::world initWorld() {
 int main() {
     auto ecs = initWorld();
 
-    auto windowSize = ecs.entity("WindowSize").set<rendering::Extent2D>({1600, 1000});
+    auto windowSize = ecs.entity("WindowSize").set<rendering::Extent2D>({800, 600});
 
     auto application = ecs.entity("Minecraft2").
             add_instanceof(windowSize).

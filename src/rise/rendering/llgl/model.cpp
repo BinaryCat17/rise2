@@ -95,13 +95,17 @@ namespace rise::rendering {
             if (!model.heap) {
                 auto const &viewport = std::get<eViewportState>(
                         manager.viewport.states.at(getViewport(up).id)).get();
-                auto diffuseE = up.get<AlbedoTexture>()->e;
                 TextureId diffuseId = getTexId<AlbedoTexture>(up, e, app);
                 TextureId metallicId = getTexId<MetallicTexture>(up, e, app);
                 TextureId roughnessId = getTexId<RoughnessTexture>(up, e, app);
 
                 auto const &diffuse = std::get<eTextureState>(
                         manager.texture.states.at(diffuseId.id)).get();
+                auto const &metallic = std::get<eTextureState>(
+                        manager.texture.states.at(metallicId.id)).get();
+                auto const &roughness = std::get<eTextureState>(
+                        manager.texture.states.at(roughnessId.id)).get();
+
                 auto const &material = std::get<eMaterialState>(
                         manager.material.states.at(up.get<MaterialId>()->id)).get();
 
@@ -112,6 +116,8 @@ namespace rise::rendering {
                 resourceHeapDesc.resourceViews.emplace_back(model.uniform);
                 resourceHeapDesc.resourceViews.emplace_back(core.sampler);
                 resourceHeapDesc.resourceViews.emplace_back(diffuse.val);
+                resourceHeapDesc.resourceViews.emplace_back(metallic.val);
+                resourceHeapDesc.resourceViews.emplace_back(roughness.val);
                 resourceHeapDesc.resourceViews.emplace_back(viewport.cubeMaps);
                 resourceHeapDesc.resourceViews.emplace_back(app.id->shadows.sampler);
                 model.heap = core.renderer->CreateResourceHeap(resourceHeapDesc);

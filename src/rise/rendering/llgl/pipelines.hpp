@@ -7,7 +7,7 @@
 #include <glm/gtx/hash.hpp>
 
 namespace rise::rendering::scenePipeline {
-    const float farPlane = 100.0f;
+    const float farPlane = 300.0f;
 
     struct Vertex {
         glm::vec3 pos{};

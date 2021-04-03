@@ -54,9 +54,9 @@ namespace rise::rendering {
         }
     }
 
-    void regTextureToModel(flecs::entity e, ApplicationRef app, AlbedoTexture texture) {
+    void regTextureToModel(flecs::entity e, ApplicationRef app, flecs::entity te) {
         auto &manager = app.ref->id->manager;
-        auto tId = texture.e.get<TextureId>();
+        auto tId = te.get<TextureId>();
         if(tId) {
             auto &models = std::get<eTextureModels>(manager.texture.states.at(tId->id)).get();
 
@@ -71,13 +71,37 @@ namespace rise::rendering {
         }
     }
 
-    void unregTextureFromModel(flecs::entity e, ApplicationRef app, AlbedoTexture texture) {
+    void unregTextureFromModel(flecs::entity e, ApplicationRef app, flecs::entity te) {
         auto &manager = app.ref->id->manager;
-        auto tId = texture.e.get<TextureId>();
+        auto tId = te.get<TextureId>();
         if(tId) {
             auto &models = std::get<eTextureModels>(manager.texture.states.at(tId->id)).get();
             models.erase(e.id());
         }
+    }
+
+    void regDifTextureToModel(flecs::entity e, ApplicationRef app, AlbedoTexture t) {
+        regTextureToModel(e, app, t.e);
+    }
+
+    void unregDifTextureFromModel(flecs::entity e, ApplicationRef app, AlbedoTexture t) {
+        unregTextureFromModel(e, app, t.e);
+    }
+
+    void regMetTextureToModel(flecs::entity e, ApplicationRef app, MetallicTexture t) {
+        regTextureToModel(e, app, t.e);
+    }
+
+    void unregMetTextureFromModel(flecs::entity e, ApplicationRef app, MetallicTexture t) {
+        unregTextureFromModel(e, app, t.e);
+    }
+
+    void regRoughTextureToModel(flecs::entity e, ApplicationRef app, RoughnessTexture t) {
+        regTextureToModel(e, app, t.e);
+    }
+
+    void unregRoughTextureFromModel(flecs::entity e, ApplicationRef app, RoughnessTexture t) {
+        unregTextureFromModel(e, app, t.e);
     }
 
     void importTexture(flecs::world &ecs) {
@@ -88,10 +112,18 @@ namespace rise::rendering {
                 flecs::OnSet).each(initTexture);
         ecs.system<const ApplicationRef, const TextureId>("removeTexture").
                 kind(EcsUnSet).each(removeTexture);
-        ecs.system<const ApplicationRef, const AlbedoTexture>("regTextureToModel", "ModelId").
-                kind(flecs::OnSet).each(regTextureToModel);
-        ecs.system<const ApplicationRef, const AlbedoTexture>("unregTextureToModel", "ModelId").
-                kind(EcsUnSet).each(unregTextureFromModel);
+        ecs.system<const ApplicationRef, const AlbedoTexture>("regDifTextureToModel", "ModelId").
+                kind(flecs::OnSet).each(regDifTextureToModel);
+        ecs.system<const ApplicationRef, const AlbedoTexture>("unregDifTextureToModel", "ModelId").
+                kind(EcsUnSet).each(unregDifTextureFromModel);
+        ecs.system<const ApplicationRef, const MetallicTexture>("regMetTextureToModel", "ModelId").
+                kind(flecs::OnSet).each(regMetTextureToModel);
+        ecs.system<const ApplicationRef, const MetallicTexture>("unregMetTextureToModel", "ModelId").
+                kind(EcsUnSet).each(unregMetTextureFromModel);
+        ecs.system<const ApplicationRef, const RoughnessTexture>("regRoughTextureToModel", "ModelId").
+                kind(flecs::OnSet).each(regRoughTextureToModel);
+        ecs.system<const ApplicationRef, const RoughnessTexture>("unregRoughTextureToModel", "ModelId").
+                kind(EcsUnSet).each(unregRoughTextureFromModel);
         ecs.system<const ApplicationRef, const TextureId, const Path>("updateTexture",
                 "Texture, TRAIT | Initialized > TextureId").kind(flecs::OnSet).each(updateTexture);
     }
