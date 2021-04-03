@@ -54,7 +54,7 @@ namespace rise::rendering {
         }
     }
 
-    void regTextureToModel(flecs::entity e, ApplicationRef app, DiffuseTexture texture) {
+    void regTextureToModel(flecs::entity e, ApplicationRef app, AlbedoTexture texture) {
         auto &manager = app.ref->id->manager;
         auto tId = texture.e.get<TextureId>();
         if(tId) {
@@ -71,7 +71,7 @@ namespace rise::rendering {
         }
     }
 
-    void unregTextureFromModel(flecs::entity e, ApplicationRef app, DiffuseTexture texture) {
+    void unregTextureFromModel(flecs::entity e, ApplicationRef app, AlbedoTexture texture) {
         auto &manager = app.ref->id->manager;
         auto tId = texture.e.get<TextureId>();
         if(tId) {
@@ -88,9 +88,9 @@ namespace rise::rendering {
                 flecs::OnSet).each(initTexture);
         ecs.system<const ApplicationRef, const TextureId>("removeTexture").
                 kind(EcsUnSet).each(removeTexture);
-        ecs.system<const ApplicationRef, const DiffuseTexture>("regTextureToModel", "ModelId").
+        ecs.system<const ApplicationRef, const AlbedoTexture>("regTextureToModel", "ModelId").
                 kind(flecs::OnSet).each(regTextureToModel);
-        ecs.system<const ApplicationRef, const DiffuseTexture>("unregTextureToModel", "ModelId").
+        ecs.system<const ApplicationRef, const AlbedoTexture>("unregTextureToModel", "ModelId").
                 kind(EcsUnSet).each(unregTextureFromModel);
         ecs.system<const ApplicationRef, const TextureId, const Path>("updateTexture",
                 "Texture, TRAIT | Initialized > TextureId").kind(flecs::OnSet).each(updateTexture);

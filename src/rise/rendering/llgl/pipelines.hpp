@@ -43,7 +43,9 @@ namespace rise::rendering::scenePipeline {
     };
 
     struct PerMaterial {
-        alignas(16) glm::vec4 diffuseColor = {};
+        alignas(16) glm::vec3 albedo = {};
+        alignas(4) float metallic = {};
+        alignas(4) float roughness = {};
     };
 
     struct PerObject {

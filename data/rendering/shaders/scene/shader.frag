@@ -28,7 +28,9 @@ layout(binding = 0) uniform Viewport {
 } viewport;
 
 layout(binding = 1) uniform Material {
-    vec4 diffuseColor;
+    vec3 albedo;
+    float metallic;
+    float roughness;
 } material;
 
 layout(binding = 2) uniform Model {
@@ -43,7 +45,7 @@ layout(binding = 6) uniform sampler shadowSampler;
 const float constantFactor = 1.0f;
 const float linearFactor = 4.5;
 const float quadraticFactor = 80.0;
-
+const float PI = 3.14159265359;
 
 vec3 sampleOffsetDirections[20] = vec3[]
 (
@@ -53,6 +55,46 @@ vec3(1, 1, 0), vec3(1, -1, 0), vec3(-1, -1, 0), vec3(-1, 1, 0),
 vec3(1, 0, 1), vec3(-1, 0, 1), vec3(1, 0, -1), vec3(-1, 0, -1),
 vec3(0, 1, 1), vec3(0, -1, 1), vec3(0, -1, -1), vec3(0, 1, -1)
 );
+
+float DistributionGGX(vec3 N, vec3 H, float roughness)
+{
+    float a      = roughness*roughness;
+    float a2     = a*a;
+    float NdotH  = max(dot(N, H), 0.0);
+    float NdotH2 = NdotH*NdotH;
+
+    float num   = a2;
+    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+    denom = PI * denom * denom;
+
+    return num / denom;
+}
+
+float GeometrySchlickGGX(float NdotV, float roughness)
+{
+    float r = (roughness + 1.0);
+    float k = (r*r) / 8.0;
+
+    float num   = NdotV;
+    float denom = NdotV * (1.0 - k) + k;
+
+    return num / denom;
+}
+
+float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
+{
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
+    float ggx2  = GeometrySchlickGGX(NdotV, roughness);
+    float ggx1  = GeometrySchlickGGX(NdotL, roughness);
+
+    return ggx1 * ggx2;
+}
+
+vec3 fresnelSchlick(float cosTheta, vec3 F0)
+{
+    return F0 + (1.0 - F0) * pow(max(1.0 - cosTheta, 0.0), 5.0);
+}
 
 float shadowCalculation(vec3 fragPos, int lightId) {
     vec3 fragToLight = inPosition - viewport.pointLights[lightId].position;
@@ -68,7 +110,7 @@ float shadowCalculation(vec3 fragPos, int lightId) {
     for (int i = 0; i < samples; ++i)
     {
         float closestDepth = texture(samplerCubeArray(depthMap, shadowSampler),
-            vec4(fragToLight + sampleOffsetDirections[i] * diskRadius, lightId)).r;
+        vec4(fragToLight + sampleOffsetDirections[i] * diskRadius, lightId)).r;
 
         closestDepth *= farPlane;// undo mapping [0;1]
         if (currentDepth - bias > closestDepth) {
@@ -86,30 +128,50 @@ void main()
     vec3 norm = normalize(inNormal);
     vec3 resultColor = vec3(0.0, 0.0, 0.0);
 
+    vec3 V = normalize(viewport.viewPos - inPosition);
+    vec3 F0 = vec3(0.04);
+    F0 = mix(F0, material.albedo, material.metallic);
+
     for (int i = 0; i != maxLightCount; ++i) {
         PointLight light = viewport.pointLights[i];
         vec3 lightDir = normalize(light.position - inPosition);
+        vec3 H = normalize(V + lightDir);
 
         float attenuation = 1.f;
         if (light.distance != -1 && light.intensity != 0) {
             float distance  = length(light.position - inPosition);
+
             float constant = constantFactor * light.intensity;
             float linear = linearFactor / light.distance;
             float quadratic = linearFactor / (light.distance * light.distance) * light.intensity;
             attenuation /= (constant + linear * distance + quadratic * (distance * distance));
 
-            resultColor += max(dot(norm, lightDir), 0.0) * attenuation * light.diffuse
-            * light.intensity;
+            vec3 radiance     = light.diffuse * attenuation;
+
+            float NDF = DistributionGGX(norm, H, material.roughness);
+            float G   = GeometrySmith(norm, V, lightDir, material.roughness);
+            vec3 F    = fresnelSchlick(max(dot(H, V), 0.0), F0);
+
+            vec3 kS = F;
+            vec3 kD = vec3(1.0) - kS;
+            kD *= 1.0 - material.metallic;
+
+            vec3 numerator    = NDF * G * F;
+            float denominator = 4.0 * max(dot(norm, V), 0.0) * max(dot(norm, lightDir), 0.0);
+            vec3 specular     = numerator / max(denominator, 0.001);
+
+            float NdotL = max(dot(norm, lightDir), 0.0);
+            resultColor += (kD * material.albedo / PI + specular) * radiance * NdotL;
 
             float shadow = shadowCalculation(inPosition, i);
             resultColor *= (1.0f - shadow);
         }
     }
 
-    vec3 ambient = 0.1 * (diffuseTex + material.diffuseColor.xyz);
+    vec3 ambient = 0.1 * (diffuseTex + material.albedo.xyz);
     resultColor += ambient;
     resultColor *= diffuseTex;
-    resultColor *= material.diffuseColor.xyz;
+    resultColor *= material.albedo.xyz;
 
     fragColor = vec4(resultColor, 1);
 }

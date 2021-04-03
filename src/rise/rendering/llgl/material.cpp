@@ -3,8 +3,9 @@
 
 namespace rise::rendering {
     void regMaterial(flecs::entity e) {
-        if (!e.has<Path>()) e.set<Path>({});
-        if (!e.has<DiffuseColor>()) e.set<DiffuseColor>({1.0, 1.0f, 1.0f});
+        if (!e.has<Albedo>()) e.set<Albedo>({1.0, 1.0f, 1.0f});
+        if (!e.has<Metallic>()) e.set<Metallic>({0.0f});
+        if (!e.has<Roughness>()) e.set<Roughness>({1.0f});
         e.set<MaterialId>({});
     }
 
@@ -36,8 +37,8 @@ namespace rise::rendering {
     }
 
     void catchMaterialUpdate(flecs::entity e, ApplicationRef app) {
-        auto &manager = app.ref->id->manager;
-        manager.material.toUpdate.push_back(e);
+            auto &manager = app.ref->id->manager;
+            manager.material.toUpdate.push_back(e);
     }
 
     void updateMaterial(flecs::entity, ApplicationId app) {
@@ -47,13 +48,18 @@ namespace rise::rendering {
             auto id = up.get<MaterialId>()->id;
             auto &material = std::get<eMaterialState>(manager.material.states.at(id)).get();
 
-            auto color = *up.get<DiffuseColor>();
+            auto color = *up.get<Albedo>();
             scenePipeline::PerMaterial data;
-            data.diffuseColor = glm::vec4(color.r, color.g, color.b, 1);
-            // костылище
+
+            data.albedo = glm::vec4(color.r, color.g, color.b, 1);
+            data.metallic = up.get<Metallic>()->val;
+            data.roughness = up.get<Roughness>()->val;
             if (id == app.id->presets.material.get<MaterialId>()->id) {
-                data.diffuseColor = glm::vec4(1.0f);
+                data.albedo = glm::vec4(1.0f);
+                data.metallic = 0.0;
+                data.roughness = 1.0;
             }
+
             updateUniformBuffer(app.id->core.renderer.get(), material.uniform, data);
         }
     }
@@ -89,7 +95,10 @@ namespace rise::rendering {
         ecs.system<const ApplicationRef, const MaterialId>("unregMaterialFromModel", "ModelId").
                 kind(EcsUnSet).each(unregMaterialFromModel);
         ecs.system<const ApplicationRef>("catchMaterialUpdate",
-                "Material, TRAIT | Initialized > MaterialId, [in] rise.rendering.DiffuseColor").
+                "Material, TRAIT | Initialized > ModelId,"
+                "[in] ANY:rise.rendering.Albedo,"
+                "[in] ANY:rise.rendering.Metallic,"
+                "[in] ANY:rise.rendering.Roughness").
                 kind(flecs::OnSet).each(catchMaterialUpdate);
     }
 }

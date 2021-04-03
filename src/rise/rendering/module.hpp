@@ -55,6 +55,20 @@ namespace rise::rendering {
         float b;
     };
 
+    struct Albedo {
+        float r;
+        float g;
+        float b;
+    };
+
+    struct Metallic {
+        float val;
+    };
+
+    struct Roughness {
+        float val;
+    };
+
     struct Distance {
         float meters;
     };
@@ -75,7 +89,15 @@ namespace rise::rendering {
         bool enabled;
     };
 
-    struct DiffuseTexture {
+    struct AlbedoTexture {
+        flecs::entity e;
+    };
+
+    struct MetallicTexture {
+        flecs::entity e;
+    };
+
+    struct RoughnessTexture {
         flecs::entity e;
     };
 

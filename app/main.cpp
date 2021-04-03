@@ -51,7 +51,7 @@ int main() {
     ecs.entity("Cube").
             set<rendering::RenderTo>({camera}).
             add_instanceof(mesh).
-            set<rendering::DiffuseTexture>({texture}).
+            set<rendering::AlbedoTexture>({texture}).
             set<rendering::Position3D>({0, 0, 0}).
             set<rendering::Scale3D>({20.f, 0.2f, 20.f}).
             add<rendering::Model>();
@@ -59,7 +59,7 @@ int main() {
     ecs.entity("Light").
             set<rendering::RenderTo>({camera}).
             add_instanceof(mesh).
-            set<rendering::DiffuseTexture>({texture}).
+            set<rendering::AlbedoTexture>({texture}).
             set<rendering::Position3D>({1, 4, 1}).
             set<rendering::Scale3D>({0.5f, 0.5f, 0.5f}).
             set<rendering::Distance>({50.f}).
@@ -69,7 +69,7 @@ int main() {
     ecs.entity("Light2").
             set<rendering::RenderTo>({camera}).
             add_instanceof(mesh).
-            set<rendering::DiffuseTexture>({texture}).
+            set<rendering::AlbedoTexture>({texture}).
             set<rendering::Position3D>({-1, 4, -1}).
             set<rendering::Scale3D>({0.5f, 0.5f, 0.5f}).
             set<rendering::Distance>({50.f}).
@@ -81,7 +81,6 @@ int main() {
             set<rendering::Path>({"sphere.obj"}).
             set<rendering::Position3D>({0, 1, 0}).
             set<rendering::Scale3D>({0.01, 0.01, 0.01}).
-            set<rendering::DiffuseColor>({0.8, 0, 0}).
             add<rendering::Mesh>().
             add<rendering::Shadow>().
             add<rendering::Model>();

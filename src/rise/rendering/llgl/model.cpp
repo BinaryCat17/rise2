@@ -21,7 +21,9 @@ namespace rise::rendering {
             auto const &presets = app->presets;
             if (!e.has<MaterialId>()) e.add_instanceof(presets.material);
             if (!e.has<MeshId>()) e.add_instanceof(presets.mesh);
-            if (!e.has<DiffuseTexture>()) e.set<DiffuseTexture>({presets.texture});
+            if (!e.has<AlbedoTexture>()) e.set<AlbedoTexture>({presets.texture});
+            if (!e.has<MetallicTexture>()) e.set<MetallicTexture>({presets.texture});
+            if (!e.has<RoughnessTexture>()) e.set<RoughnessTexture>({presets.texture});
 
             auto uniform = createUniformBuffer<scenePipeline::PerObject>(
                     app->core.renderer.get());
@@ -69,6 +71,19 @@ namespace rise::rendering {
         }
     }
 
+    template<typename T>
+    TextureId getTexId(flecs::entity up, flecs::entity e, ApplicationId app) {
+        auto diffuseE = up.get<T>()->e;
+        TextureId diffuseId;
+        if (auto p = diffuseE.template get<TextureId>()) {
+            diffuseId = *p;
+        } else {
+            diffuseId = *app.id->presets.texture.get<TextureId>();
+            up.mut(e).remove<T>();
+        }
+        return diffuseId;
+    }
+
     void recreateDescriptors(flecs::entity e, ApplicationId app) {
         auto &manager = app.id->manager;
         auto &core = app.id->core;
@@ -80,14 +95,10 @@ namespace rise::rendering {
             if (!model.heap) {
                 auto const &viewport = std::get<eViewportState>(
                         manager.viewport.states.at(getViewport(up).id)).get();
-                auto diffuseE = up.get<DiffuseTexture>()->e;
-                TextureId diffuseId;
-                if (auto p = diffuseE.get<TextureId>()) {
-                    diffuseId = *p;
-                } else {
-                    diffuseId = *app.id->presets.texture.get<TextureId>();
-                    up.mut(e).remove<DiffuseTexture>();
-                }
+                auto diffuseE = up.get<AlbedoTexture>()->e;
+                TextureId diffuseId = getTexId<AlbedoTexture>(up, e, app);
+                TextureId metallicId = getTexId<MetallicTexture>(up, e, app);
+                TextureId roughnessId = getTexId<RoughnessTexture>(up, e, app);
 
                 auto const &diffuse = std::get<eTextureState>(
                         manager.texture.states.at(diffuseId.id)).get();

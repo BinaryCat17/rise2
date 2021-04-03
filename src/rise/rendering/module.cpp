@@ -15,12 +15,17 @@ namespace rise::rendering {
         ecs.component<Scale3D>("Scale3D");
         ecs.component<Extent3D>("Extent3D");
         ecs.component<DiffuseColor>("DiffuseColor");
+        ecs.component<Albedo>("Albedo");
+        ecs.component<Metallic>("Metallic");
+        ecs.component<Roughness>("Roughness");
         ecs.component<Distance>("Distance");
         ecs.component<Intensity>("Intensity");
         ecs.component<Path>("Path");
         ecs.component<Relative>("Relative");
         ecs.component<Title>("Title");
-        ecs.component<DiffuseTexture>("DiffuseTexture");
+        ecs.component<AlbedoTexture>("AlbedoTexture");
+        ecs.component<MetallicTexture>("MetallicTexture");
+        ecs.component<RoughnessTexture>("RoughnessTexture");
         ecs.component<GuiContext>("GuiContext");
         ecs.component<Mesh>("Mesh");
         ecs.component<Texture>("Texture");
