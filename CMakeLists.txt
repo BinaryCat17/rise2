@@ -58,6 +58,8 @@ add_library(rise
         src/rise/rendering/module.cpp
         src/rise/rendering/editor.cpp
 
+        src/rise/physics/module.cpp
+
         src/rise/input/module.cpp
         src/rise/rendering/llgl/module.cpp
         src/rise/rendering/llgl/shadows.cpp

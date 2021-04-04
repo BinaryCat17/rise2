@@ -4,6 +4,7 @@
 #include "rise/rendering/imgui.hpp"
 #include "rise/rendering/module.hpp"
 #include <ImGuizmo.h>
+#include "rise/physics/module.hpp"
 
 namespace rise::editor {
     enum class GuiComponentType {
@@ -21,9 +22,26 @@ namespace rise::editor {
 
     struct GuiTag {};
 
-    struct GuiState {
+    struct GuiState : public rp3d::RaycastCallback {
+        GuiState(ImGuizmo::OPERATION currentOp, const flecs::entity &selectedEntity) : currentOp(
+                currentOp), selectedEntity(selectedEntity) {}
+
+        rp3d::decimal notifyRaycastHit(const rp3d::RaycastInfo &info) override {
+            auto e = reinterpret_cast<flecs::entity*>(info.body->getUserData());
+            if(*e == selectedEntity) {
+                return rp3d::decimal(1.0);
+            } else {
+                selectedEntity = *e;
+                return rp3d::decimal(0.0);
+            }
+        }
+
         ImGuizmo::OPERATION currentOp = ImGuizmo::TRANSLATE;
         flecs::entity selectedEntity;
+    };
+
+    struct GuiId {
+        GuiState* id;
     };
 
     struct Module {

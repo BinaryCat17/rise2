@@ -1,21 +1,46 @@
 #pragma once
-#include <LLGL/LLGL.h>
-#include <entt/entt.hpp>
-#include <glm/glm.hpp>
+#include "rise/rendering/glm.hpp"
+#include "rise/rendering/module.hpp"
 #include <reactphysics3d/reactphysics3d.h>
 
-namespace rise {
-    namespace physic = reactphysics3d;
+namespace rise::physics {
+    namespace rp = reactphysics3d;
+
+    struct PhysicsState {
+        rp::PhysicsCommon common;
+        rp::PhysicsWorld *world = nullptr;
+        uint32_t accumulator = 0; // ms
+    };
+
+    struct PhysicsId {
+        PhysicsState *id;
+    };
+
+    using BodyType = rp::BodyType;
 
     struct PhysicBody {
-        physic::BodyType type = physic::BodyType::STATIC;
+        rp::BodyType type = rp::BodyType::STATIC;
     };
 
     struct BoxCollision {
         glm::vec3 halfExtent = {};
     };
 
-    void initPhysic(entt::registry& r);
+    struct Velocity {
+        float x;
+        float y;
+        float z;
+    };
 
-    void updatePhysic(entt::registry& r);
+    struct Mass {
+        float kg;
+    };
+
+    struct SphereCollision {
+        float radius;
+    };
+
+    struct Module {
+        explicit Module(flecs::world &ecs);
+    };
 }

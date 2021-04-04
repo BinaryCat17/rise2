@@ -1,108 +1,175 @@
+#include <glm/gtx/euler_angles.hpp>
 #include "module.hpp"
-#include "platform.hpp"
-#include "rendering.hpp"
-#include "system.hpp"
 
-namespace rise {
-
+namespace rise::physics {
     using namespace std::chrono_literals;
-    const inline std::chrono::milliseconds timeStep = 17ms;
+    const uint32_t timeStep = 17; // ms
 
-    struct PhysicResources {
-        physic::PhysicsCommon common;
-        physic::PhysicsWorld *world = nullptr;
-        std::chrono::milliseconds accumulator = 0ms;
+    struct PhysicBodyId {
+        rp::RigidBody *id;
     };
 
-    physic::Vector3 convert(glm::vec3 v) {
-        return physic::Vector3(v.x, v.y, v.z);
+    struct BoxCollisionId {
+        rp::BoxShape *id;
+    };
+
+    struct SphereCollisionId {
+        rp::SphereShape *id;
+    };
+
+    rp::Vector3 convert(glm::vec3 v) {
+        return rp::Vector3(v.x, v.y, v.z);
     }
 
-    physic::Transform getTransform(entt::registry &r, entt::entity e) {
-        auto position = r.get<Position>(e);
-        auto rotation = r.get<Rotation>(e);
-        physic::Vector3 vector(convert(position.val));
+    rp::Transform getTransform(rendering::Position3D pos, rendering::Rotation3D rot) {
+        rp::Vector3 vector(convert(toGlm(pos)));
 
-        auto quaternion = physic::Quaternion::fromEulerAngles(
-                glm::radians(rotation.val.x),
-                glm::radians(rotation.val.y),
-                glm::radians(rotation.val.z));
+        float angle = std::max({rot.x, rot.y, rot.z});
+        rp::Quaternion qt;
+        if (angle != 0) {
+            auto q = glm::angleAxis(glm::radians(angle), glm::normalize(toGlm(rot)));
+            qt.x = q.x;
+            qt.y = q.y;
+            qt.z = q.z;
+            qt.w = q.w;
+        } else {
+            qt = rp::Quaternion::fromEulerAngles({0, 0, 0});
+        }
 
-        return {vector, quaternion};
+        return {vector, qt};
     }
 
-    void updatePhysicBody(entt::registry &r, entt::entity e) {
-        auto &resources = r.ctx<PhysicResources>();
-        if(auto physicBody = r.try_get<PhysicBody>(e)) {
-            auto type = physicBody->type;
-            if (auto pBody = r.try_get<physic::RigidBody *>(e)) {
-                auto body = *pBody;
-                body->setTransform(getTransform(r, e));
-            } else {
-                auto body = resources.world->createRigidBody(getTransform(r, e));
-                body->setType(type);
-                r.emplace<physic::RigidBody *>(e, body);
-            }
+    void updateRigidBody(flecs::entity e, rendering::RegTo app, PhysicBody body) {
+        auto state = app.e.get<PhysicsId>();
+        if (auto id = e.get<PhysicBodyId>()) {
+            id->id->setType(body.type);
+        } else {
+            rendering::Position3D pos{0, 0, 0};
+            if (auto pPos = e.get<rendering::Position3D>()) pos = *pPos;
+
+            rendering::Rotation3D rot{0, 0, 0};
+            if (auto pRot = e.get<rendering::Rotation3D>()) rot = *pRot;
+
+            auto rpBody = state->id->world->createRigidBody(getTransform(pos, rot));
+            rpBody->setLinearDamping(0.1);
+            rpBody->setAngularDamping(0.1);
+            rpBody->setType(body.type);
+            rpBody->setUserData(new flecs::entity(e));
+            e.set<PhysicBodyId>({rpBody});
         }
     }
 
-    void updateBoxCollision(entt::registry &r, entt::entity e) {
-        auto &resources = r.ctx<PhysicResources>();
-        if (auto pBody = r.try_get<physic::RigidBody *>(e)) {
-            auto body = *pBody;
-            auto collision = r.get<BoxCollision>(e);
+    void updateRigidBodyTransform(flecs::entity, PhysicBodyId body, rendering::Position3D pos,
+            rendering::Rotation3D rot) {
+        body.id->setTransform(getTransform(pos, rot));
+    }
 
-            if (auto pBox = r.try_get<physic::BoxShape *>(e)) {
-                auto box = *pBox;
-                box->setHalfExtents(convert(collision.halfExtent));
-            } else {
-                auto box = resources.common.createBoxShape(convert(collision.halfExtent));
-                auto transform = physic::Transform::identity();
-                body->addCollider(box, transform);
-                r.emplace<physic::BoxShape *>(e, box);
-            }
+    void updateVelocity(flecs::entity, PhysicBodyId body, Velocity velocity) {
+        body.id->setLinearVelocity({velocity.x, velocity.y, velocity.z});
+    }
+
+    void updateMass(flecs::entity, PhysicBodyId body, Mass mass) {
+        body.id->setMass(mass.kg);
+    }
+
+    void updateBoxCollision(flecs::entity e, rendering::RegTo app, PhysicBodyId body,
+            BoxCollision collision) {
+        auto state = app.e.get<PhysicsId>();
+        if (auto id = e.get<BoxCollisionId>()) {
+            id->id->setHalfExtents(convert(collision.halfExtent));
+        } else {
+            auto box = state->id->common.createBoxShape(convert(collision.halfExtent));
+            auto transform = rp::Transform::identity();
+            body.id->addCollider(box, transform)->getMaterial().setFrictionCoefficient(0.8);
+            e.set<BoxCollisionId>({box});
         }
     }
 
-    void initPhysic(entt::registry &r) {
-        auto &resources = r.set<PhysicResources>();
-        physic::PhysicsWorld::WorldSettings settings;
+    void updateSphereCollision(flecs::entity e, rendering::RegTo app, PhysicBodyId body,
+            SphereCollision collision) {
+        auto state = app.e.get<PhysicsId>();
+        if (auto id = e.get<SphereCollisionId>()) {
+            id->id->setRadius(collision.radius);
+        } else {
+            auto box = state->id->common.createSphereShape(collision.radius);
+            auto transform = rp::Transform::identity();
+            body.id->addCollider(box, transform)->getMaterial().setFrictionCoefficient(0.8);
+            e.set<SphereCollisionId>({box});
+        }
+    }
+
+    void updatePhysicsTime(flecs::entity e, PhysicsId id) {
+        auto &state = *id.id;
+        state.accumulator += static_cast<uint32_t>(e.delta_time() * 1000);
+        state.accumulator = std::min(500u, state.accumulator);
+
+        while (state.accumulator >= timeStep) {
+            state.world->update(static_cast<float>(timeStep) / 1000.f);
+            state.accumulator -= timeStep;
+        }
+    }
+
+    void updatePhysic(flecs::entity e, PhysicBodyId body) {
+        auto const &transform = body.id->getTransform();
+        auto position = transform.getPosition();
+
+        float angle;
+        rp::Vector3 rotation;
+        transform.getOrientation().getRotationAngleAxis(angle, rotation);
+
+        e.set<rendering::Position3D>({position.x, position.y, position.z});
+        e.set<rendering::Rotation3D>({
+                glm::degrees(rotation.x * angle),
+                glm::degrees(rotation.y * angle),
+                glm::degrees(rotation.z * angle)});
+    }
+
+    void initPhysicState(flecs::entity e) {
+        rp::PhysicsWorld::WorldSettings settings;
         settings.defaultVelocitySolverNbIterations = 20;
         settings.isSleepingEnabled = false;
-        settings.gravity = physic::Vector3(0, -9.81, 0);
-        resources.world = resources.common.createPhysicsWorld(settings);
+        settings.gravity = rp::Vector3(0, -9.81, 0);
 
-        r.on_construct<PhysicBody>().connect<&updatePhysicBody>();
-        r.on_update<Position>().connect<&updatePhysicBody>();
-        r.on_update<Rotation>().connect<&updatePhysicBody>();
-        r.on_construct<BoxCollision>().connect<&updateBoxCollision>();
-        r.on_update<BoxCollision>().connect<&updateBoxCollision>();
+        auto state = new PhysicsState{};
+        state->world = state->common.createPhysicsWorld(settings);
+        e.set<PhysicsId>({state});
     }
 
-    void updatePhysic(entt::registry &r) {
-        auto &resources = r.ctx<PhysicResources>();
+    Module::Module(flecs::world &ecs) {
+        ecs.module<Module>("rise::physics");
+        ecs.import<rise::rendering::Module>();
+        ecs.component<PhysicsId>("PhysicsId");
+        ecs.component<PhysicBody>("PhysicBody");
+        ecs.component<PhysicBodyId>("PhysicBodyId");
+        ecs.component<BoxCollision>("BoxCollision");
+        ecs.component<BoxCollisionId>("BoxCollisionId");
+        ecs.component<SphereCollision>("SphereCollision");
+        ecs.component<SphereCollisionId>("SphereCollisionId");
 
-        resources.accumulator += events::pullTime();
-        resources.accumulator = std::min(500ms, resources.accumulator);
+        ecs.system<>("initPhysicState", "rise.rendering.llgl.Application").kind(flecs::OnAdd).
+                each(initPhysicState);
 
-        while (resources.accumulator >= timeStep) {
-            resources.world->update(static_cast<float>(timeStep.count()) / 1000.f);
-            resources.accumulator -= timeStep;
-        }
+        ecs.system<const rendering::RegTo, const PhysicBody>("updateRigidBody").
+                kind(flecs::OnSet).each(updateRigidBody);
 
-        for(auto e : r.view<physic::RigidBody*>())  {
-            auto body = r.get<physic::RigidBody*>(e);
-            auto const& transform = body->getTransform();
-            auto position = transform.getPosition();
+        ecs.system<const PhysicBodyId, const rendering::Position3D, const rendering::Rotation3D>(
+                "updateRigidBodyTransform").kind(flecs::OnSet).each(updateRigidBodyTransform);
 
-            float angle;
-            physic::Vector3 rotation;
-            transform.getOrientation().getRotationAngleAxis(angle, rotation);
-            angle = glm::degrees(angle);
+        ecs.system<const rendering::RegTo, const PhysicBodyId, const BoxCollision>(
+                "updateBoxCollision").kind(flecs::OnSet).each(updateBoxCollision);
 
-            r.replace<Position>(e, glm::vec3(position.x, position.y, position.z));
-            r.replace<Rotation>(e, glm::vec3(rotation.x * angle, rotation.y * angle,
-                    rotation.z * angle));
-        }
+        ecs.system<const rendering::RegTo, const PhysicBodyId, const SphereCollision>(
+                "updateSphereCollision").kind(flecs::OnSet).each(updateSphereCollision);
+
+        ecs.system<const PhysicBodyId, const Velocity>(
+                "updateVelocity").kind(flecs::OnSet).each(updateVelocity);
+
+        ecs.system<const PhysicBodyId, const Mass>(
+                "updateMass").kind(flecs::OnSet).each(updateMass);
+
+        ecs.system<const PhysicsId>("updatePhysicsTime").each(updatePhysicsTime).
+                each(updatePhysicsTime);
+
+        ecs.system<PhysicBodyId>("updatePhysics", "[in] OWNED:PhysicBody").each(updatePhysic);
     }
 }

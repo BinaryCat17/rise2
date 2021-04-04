@@ -4,7 +4,6 @@
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/ext/matrix_clip_space.hpp>
 #include "rendering/llgl/math.hpp"
-#include <iostream>
 
 namespace rise::editor {
     struct GuiQuery {
@@ -104,21 +103,74 @@ namespace rise::editor {
         }
     }
 
+    void tryPick(flecs::entity e, rendering::RegTo app) {
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
+            auto mouseX = ImGui::GetMousePos().x;
+            auto mouseY = ImGui::GetMousePos().y;
+            auto screenWidth = ImGui::GetIO().DisplaySize.x;
+            auto screenHeight = ImGui::GetIO().DisplaySize.y;
+
+            glm::vec4 lRayStart_NDC(
+                    (mouseX / screenWidth - 0.5f) * 2.0f, // [0,1024] -> [-1,1]
+                    (mouseY / screenHeight - 0.5f) * 2.0f, // [0, 768] -> [-1,1]
+                    -1.0, // The near plane maps to Z=-1 in Normalized Device Coordinates
+                    1.0f
+            );
+            glm::vec4 lRayEnd_NDC(
+                    (mouseX / screenWidth - 0.5f) * 2.0f,
+                    (mouseY / screenHeight - 0.5f) * 2.0f,
+                    0.0,
+                    1.0f
+            );
+
+            auto vPosition = *e.get<rendering::Position3D>();
+            auto vRotation = *e.get<rendering::Rotation3D>();
+            glm::vec3 origin = calcCameraOrigin(toGlm(vPosition), toGlm(vRotation));
+            vPosition.y = -vPosition.y;
+            origin.y = -origin.y;
+            auto view = glm::lookAt(toGlm(vPosition), origin, glm::vec3(0, 1, 0));
+            auto projection = glm::perspective(glm::radians(45.0f),
+                    screenWidth / screenHeight, 0.1f, 100.f);
+
+            glm::mat4 InverseProjectionMatrix = glm::inverse(projection);
+            glm::mat4 InverseViewMatrix = glm::inverse(view);
+
+            glm::vec4 lRayStart_camera = InverseProjectionMatrix * lRayStart_NDC;
+            lRayStart_camera /= lRayStart_camera.w;
+            glm::vec4 lRayStart_world = InverseViewMatrix * lRayStart_camera;
+            lRayStart_world /= lRayStart_world.w;
+            glm::vec4 lRayEnd_camera = InverseProjectionMatrix * lRayEnd_NDC;
+            lRayEnd_camera /= lRayEnd_camera.w;
+            glm::vec4 lRayEnd_world = InverseViewMatrix * lRayEnd_camera;
+            lRayEnd_world /= lRayEnd_world.w;
+
+            glm::vec3 lRayDir_world(lRayEnd_world - lRayStart_world);
+            lRayDir_world = glm::normalize(lRayDir_world);
+
+            glm::vec3 out_end = glm::vec3(lRayStart_world) + lRayDir_world * 1000.0f;
+
+            auto &physics = *app.e.get<physics::PhysicsId>();
+            rp3d::Ray ray(
+                    {lRayStart_world.x, -lRayStart_world.y, lRayStart_world.z},
+                    {out_end.x, -out_end.y, out_end.z});
+
+            auto state = app.e.get<GuiId>();
+            physics.id->world->raycast(ray, state->id);
+        }
+    }
+
     void imGuizmoSubmodule(flecs::entity e, rendering::RegTo app, rendering::RenderTo viewport,
             rendering::Position3D position, rendering::Rotation3D rotation,
             rendering::Scale3D scale) {
 
         ImGuizmo::OPERATION *currentImGuizmoOp = nullptr;
 
-        if (!app.e.get<GuiState>()) {
-            return;
-        }
-        auto state = app.e.mut(e).get_mut<GuiState>();
-        if (state->selectedEntity.id() != e.id()) {
+        auto state = app.e.get<GuiId>();
+        if (state->id->selectedEntity.id() != e.id()) {
             return;
         }
 
-        currentImGuizmoOp = &state->currentOp;
+        currentImGuizmoOp = &state->id->currentOp;
 
         ImGuizmo::Enable(true);
         ImGuizmo::BeginFrame();
@@ -135,8 +187,12 @@ namespace rise::editor {
         if (ImGui::RadioButton("Scale", *currentImGuizmoOp == ImGuizmo::SCALE))
             *currentImGuizmoOp = ImGuizmo::SCALE;
         ImGui::SameLine();
+        ImGui::Text("Selected: ");
+        ImGui::SameLine();
+        ImGui::Text("%s", state->id->selectedEntity.name().c_str());
+        ImGui::SameLine();
         if (ImGui::Button("Deselect")) {
-            state->selectedEntity = flecs::entity(0);
+            state->id->selectedEntity = flecs::entity(0);
         }
 
         ImGuiIO &io = ImGui::GetIO();
@@ -170,12 +226,14 @@ namespace rise::editor {
         ecs.component<GuiComponentDefault>("GuiComponentDefault");
         ecs.component<GuiQuery>("GuiQuery");
         ecs.component<GuiTag>("GuiTag");
-        ecs.component<GuiState>("GuiState");
+        ecs.component<GuiId>("GuiId");
         ecs.set<GuiQuery>({ecs.query<GuiComponentDefault>(), ecs.query<>("GuiTag")});
         ecs.system<>("setGuiState", "rise.rendering.llgl.ApplicationId").kind(flecs::OnSet).
                 each([](flecs::entity e) {
-            e.set<GuiState>({ImGuizmo::TRANSLATE, flecs::entity(0)});
+            e.set<GuiId>({new GuiState{ImGuizmo::TRANSLATE, flecs::entity(0)}});
         });
+        ecs.system<rendering::RegTo>("tryPick", "rise.rendering.Viewport").kind(
+                flecs::OnStore).each(tryPick);
     }
 
     void guiSubmodule(flecs::entity e, rendering::RegTo app) {
@@ -185,11 +243,9 @@ namespace rise::editor {
         auto name = e.name();
         if (name.size() && ImGui::TreeNode(name.c_str())) {
             auto ecs = e.world();
-            if (app.e.get<GuiState>()) {
-                auto state = app.e.mut(e).get_mut<GuiState>();
-
+            if (auto state = app.e.get<GuiId>()) {
                 if (ImGui::Button("Select")) {
-                    state->selectedEntity = e;
+                    state->id->selectedEntity = e;
                 }
             }
 

@@ -48,7 +48,7 @@ void main()
 {
 	gl_Position = viewport.projection * viewport.view * model.transform * vec4(position, 1);
 	outPosition = vec3(model.transform * vec4(position, 1.0));
-	outNormal = normal;
+	outNormal = mat3(transpose(inverse(model.transform))) * normal;
 	outColor = color;
 	outTexCoord = texCoord;
 }

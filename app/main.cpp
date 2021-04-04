@@ -3,6 +3,7 @@
 #include <rise/rendering/glm.hpp>
 #include <rise/input/module.hpp>
 #include <rise/util/flecs_os.hpp>
+#include <rise/physics/module.hpp>
 #include <rise/editor/gui.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 
@@ -12,10 +13,9 @@ struct RotateAroundCenter {
     bool enabled = true;
 };
 
-void rotateAroundCenter(flecs::entity e, RotateAroundCenter v, rendering::Position3D pos,
-        rendering::Rotation3D rotation) {
+void rotateAroundCenter(flecs::entity e, RotateAroundCenter v, rendering::Position3D pos) {
     if (v.enabled) {
-        auto rt = glm::rotate(glm::vec2(pos.x, pos.z), e.delta_time());
+        auto rt = glm::rotate(glm::vec2(pos.x, pos.z), e.delta_time() * 2);
         e.set<rendering::Position3D>({rt.x, pos.y, rt.y});
     }
 }
@@ -28,25 +28,98 @@ flecs::world initWorld() {
     ecs.import<rise::input::Module>();
     ecs.import<rise::rendering::LLGLModule>();
     ecs.import<rise::editor::Module>();
+    ecs.import<rise::physics::Module>();
     ecs.import<rise::rendering::EditorComponents>();
     ecs.component<RotateAroundCenter>("RotateAroundCenter");
     editor::regGuiComponent<RotateAroundCenter>(ecs, editor::GuiComponentType::BoolFlag);
-    ecs.system<const RotateAroundCenter, rendering::Position3D,
-            rendering::Rotation3D>("rotateBalls").each(rotateAroundCenter);
+    ecs.system<const RotateAroundCenter, rendering::Position3D>("rotateBalls").
+            each(rotateAroundCenter);
 
     return ecs;
 }
 
+flecs::entity makeModelPreset(flecs::world &ecs, flecs::entity application, std::string const &name,
+        flecs::entity mesh, std::string const &texturesFolder,
+        rendering::Scale3D scale = {1.0f, 1.0f, 1.0f},
+        rendering::Albedo albedo = {1.0, 1.0, 1.0}) {
+
+    auto panelAlbedo = ecs.entity().
+            set<rendering::RegTo>({application}).
+            set<rendering::Path>({texturesFolder + "/albedo.png"}).
+            add<rendering::Texture>();
+
+    auto panelRoughness = ecs.entity().
+            set<rendering::RegTo>({application}).
+            set<rendering::Path>({texturesFolder + "/roughness.png"}).
+            add<rendering::Texture>();
+
+    auto panelAo = ecs.entity().
+            set<rendering::RegTo>({application}).
+            set<rendering::Path>({texturesFolder + "/ao.png"}).
+            add<rendering::Texture>();
+
+    auto panelMetallic = ecs.entity().
+            set<rendering::RegTo>({application}).
+            set<rendering::Path>({texturesFolder + "/metallic.png"}).
+            add<rendering::Texture>();
+
+    return ecs.entity(name.c_str()).
+            set<rendering::RegTo>({application}).
+            add_instanceof(mesh).
+            set<rendering::AlbedoTexture>({panelAlbedo}).
+            set<rendering::RoughnessTexture>({panelRoughness}).
+            set<rendering::MetallicTexture>({panelMetallic}).
+            set<rendering::AoTexture>({panelAo}).
+            set<rendering::Scale3D>(scale).
+            set<rendering::Albedo>(albedo).
+            add<rendering::Material>();
+}
+
+flecs::entity makeModelChild(flecs::world &ecs, flecs::entity parent, flecs::entity camera,
+        std::string const &name, rendering::Position3D position) {
+    return ecs.entity(name.c_str()).
+            add_instanceof(parent).
+            set<rendering::RenderTo>({camera}).
+            set<rendering::Position3D>(position).
+            add<rendering::Model>();
+}
+
+flecs::entity makeLight(flecs::world &ecs, std::string const &name,
+        flecs::entity mesh, flecs::entity camera, rendering::Position3D position) {
+    return ecs.entity(name.c_str()).
+            set<rendering::RenderTo>({camera}).
+            add_instanceof(mesh).
+            set<rendering::Position3D>({position}).
+            set<rendering::Albedo>({1.0, 0.0, 0.0}).
+            set<rendering::Scale3D>({0.5f, 0.5f, 0.5f}).
+            set<rendering::Distance>({3000.f}).
+            set<rendering::Intensity>({0.01f}).
+            add<rendering::PointLight>().
+            add<rendering::Model>();
+}
+
+auto boxCollision(flecs::entity e, physics::BodyType type) {
+    e.set<physics::PhysicBody>({type});
+    auto size = *e.get<rendering::Scale3D>();
+    e.set<physics::BoxCollision>({{size.x / 2, size.y / 2, size.z / 2}});
+    return e;
+}
+
+auto sphereCollision(flecs::entity e, physics::BodyType type) {
+    e.set<physics::PhysicBody>({type});
+    auto size = *e.get<rendering::Scale3D>();
+    e.set<physics::SphereCollision>({size.x * 2});
+    return e;
+}
+
 int main() {
     auto ecs = initWorld();
-
 
     auto windowSize = ecs.entity("WindowSize").set<rendering::Extent2D>({1600, 1000});
 
     auto application = ecs.entity("Minecraft2").
             add_instanceof(windowSize).
             add<rendering::LLGLApplication>();
-
 
     rendering::guiSubmodule<const rendering::RenderTo, rendering::Position3D, rendering::Rotation3D,
             rendering::Scale3D>(ecs, "drawImGuizmo", application, editor::imGuizmoSubmodule);
@@ -55,277 +128,124 @@ int main() {
     auto camera = ecs.entity("Viewport").
             set<rendering::RegTo>({application}).
             add_instanceof(windowSize).
-            set<rendering::Position3D>({-10, 14, 14}).
+            set<rendering::Position3D>({-15, 20, -10}).
             set<rendering::Distance>({50.f}).
             add<input::Controllable>().
             add<rendering::Viewport>();
 
-    auto mesh = ecs.entity("GroundMesh").
+    auto cube = ecs.entity("CubeMesh").
             set<rendering::RegTo>({application}).
             set<rendering::Path>({"cube.obj"}).
             add<rendering::Mesh>();
 
-    auto panelAlbedo = ecs.entity("PanelAlbedoTex").
+    auto panel = makeModelPreset(ecs, application, "Panel", cube, "panel",
+            {10.0, 0.2, 10.0}, {0.220, 0.280, 0.330});
+
+    boxCollision(makeModelChild(ecs, panel, camera, "Panel1", {0, -1, -10}),
+            physics::BodyType::STATIC);
+    boxCollision(makeModelChild(ecs, panel, camera, "Panel2", {0, 0, 0}),
+            physics::BodyType::STATIC);
+    boxCollision(makeModelChild(ecs, panel, camera, "Panel3", {0, 1.290, 10}),
+            physics::BodyType::STATIC).set<rendering::Rotation3D>({176.725, 0.0, 0.0});
+
+    auto title = makeModelPreset(ecs, application, "Title", cube, "title",
+            {10.0, 0.2, 10.0}, {0.550, 0.420, 0.290});
+
+    boxCollision(makeModelChild(ecs, title, camera, "Title1", {-10, 0.406, 1.597}).
+            set<rendering::Scale3D>({3.0, 0.2, 7.0}).
+            set<rendering::Rotation3D>({170, 0.0, 0.0}).
+            add<rendering::Shadow>(), physics::BodyType::STATIC);
+
+    boxCollision(makeModelChild(ecs, title, camera, "Title2", {10, 0.406, 1.597}).
+            set<rendering::Scale3D>({3.0, 0.2, 7.0}).
+            set<rendering::Rotation3D>({170, 0.0, 0.0}).
+            add<rendering::Shadow>(), physics::BodyType::STATIC);
+
+    boxCollision(makeModelChild(ecs, title, camera, "Title3", {-10, -0.510, -8.449}).
+            set<rendering::Scale3D>({3.0, 0.2, 7.0}).
+            set<rendering::Rotation3D>({170, 0.0, 0.0}).
+            add<rendering::Shadow>(), physics::BodyType::STATIC);
+
+    boxCollision(makeModelChild(ecs, title, camera, "Title4", {10, -0.510, -8.449}).
+            set<rendering::Scale3D>({3.0, 0.2, 7.0}).
+            set<rendering::Rotation3D>({170, 0.0, 0.0}).
+            add<rendering::Shadow>(), physics::BodyType::STATIC);
+
+    auto ground = makeModelPreset(ecs, application, "Ground", cube, "ground",
+            {10.0, 0.2, 10.0}, {0.2, 0.2, 0.2});
+
+    boxCollision(makeModelChild(ecs, ground, camera, "Ground1", {10, -1, -10}),
+            physics::BodyType::STATIC);
+    boxCollision(makeModelChild(ecs, ground, camera, "Ground2", {10, 0, 0}),
+            physics::BodyType::STATIC);
+    boxCollision(makeModelChild(ecs, ground, camera, "Ground3", {10, 1.290, 10}),
+            physics::BodyType::STATIC).set<rendering::Rotation3D>({176.725, 0.0, 0.0});
+
+    auto grass = makeModelPreset(ecs, application, "Grass", cube, "grass",
+            {10.0, 0.2, 10.0}, {0.2, 0.2, 0.2});
+
+    boxCollision(makeModelChild(ecs, grass, camera, "Grass1", {-10, -1, -10}),
+            physics::BodyType::STATIC);
+    boxCollision(makeModelChild(ecs, grass, camera, "Grass2", {-10, 0, 0}),
+            physics::BodyType::STATIC);
+    boxCollision(makeModelChild(ecs, grass, camera, "Grass3", {-10, 1.290, 10}),
+            physics::BodyType::STATIC).set<rendering::Rotation3D>({176.725, 0.0, 0.0});
+
+    makeLight(ecs, "RotationLight", cube, camera, {20, 100, 20}).set<RotateAroundCenter>({true});
+    makeLight(ecs, "StaticLight", cube, camera, {40, 100, 40});
+
+    auto robotMesh = ecs.entity().
             set<rendering::RegTo>({application}).
-            set<rendering::Path>({"panel/albedo.png"}).
-            add<rendering::Texture>();
-
-    auto panelRoughness = ecs.entity("PanelRoughnessTex").
-            set<rendering::RegTo>({application}).
-            set<rendering::Path>({"ground/roughness.png"}).
-            add<rendering::Texture>();
-
-    auto panelAo = ecs.entity("PanelAoTex").
-            set<rendering::RegTo>({application}).
-            set<rendering::Path>({"panel/ao.png"}).
-            add<rendering::Texture>();
-
-    auto panelMetallic = ecs.entity("PanelMetallicTex").
-            set<rendering::RegTo>({application}).
-            set<rendering::Path>({"panel/metallic.png"}).
-            add<rendering::Texture>();
-
-    auto panel = ecs.entity("Panel").
-            set<rendering::RegTo>({application}).
-            add_instanceof(mesh).
-            set<rendering::AlbedoTexture>({panelAlbedo}).
-            set<rendering::RoughnessTexture>({panelRoughness}).
-            set<rendering::MetallicTexture>({panelMetallic}).
-            set<rendering::AoTexture>({panelAo}).
-            set<rendering::Albedo>({0.2, 0.2, 0.2}).
-            set<rendering::Position3D>({0, 0, 0}).
-            set<rendering::Scale3D>({10.f, 0.2f, 10.f}).
-            set<rendering::Albedo>({0.220, 0.280, 0.330}).
-            add<rendering::Material>();
-
-    ecs.entity("Panel1").
-            add_instanceof(panel).
-            set<rendering::RenderTo>({camera}).
-            set<rendering::Position3D>({0, -1, -10}).
-            add<rendering::Model>();
-
-    ecs.entity("Panel2").
-            add_instanceof(panel).
-            set<rendering::RenderTo>({camera}).
-            set<rendering::Position3D>({0, 0, 0}).
-            add<rendering::Model>();
-
-    ecs.entity("Panel3").
-            add_instanceof(panel).
-            set<rendering::RenderTo>({camera}).
-            set<rendering::Position3D>({0, 1, 10}).
-            add<rendering::Model>();
-
-    auto groundAlbedo = ecs.entity("GroundAlbedoTex").
-            set<rendering::RegTo>({application}).
-            set<rendering::Path>({"ground/albedo.png"}).
-            add<rendering::Texture>();
-
-    auto groundRoughness = ecs.entity("GroundRoughnessTex").
-            set<rendering::RegTo>({application}).
-            set<rendering::Path>({"ground/roughness.png"}).
-            add<rendering::Texture>();
-
-    auto groundAo = ecs.entity("GroundAoTex").
-            set<rendering::RegTo>({application}).
-            set<rendering::Path>({"ground/ao.png"}).
-            add<rendering::Texture>();
-
-    auto groundMetallic = ecs.entity("GroundMetallicTex").
-            set<rendering::RegTo>({application}).
-            set<rendering::Path>({"ground/metallic.png"}).
-            add<rendering::Texture>();
-
-    auto cube1 = ecs.entity("CubePreset1").
-            set<rendering::RegTo>({application}).
-            add_instanceof(mesh).
-            set<rendering::AlbedoTexture>({groundAlbedo}).
-            set<rendering::RoughnessTexture>({groundRoughness}).
-            set<rendering::MetallicTexture>({groundMetallic}).
-            set<rendering::AoTexture>({groundAo}).
-            set<rendering::Albedo>({0.2, 0.2, 0.2}).
-            set<rendering::Scale3D>({10.f, 0.2f, 10.f}).
-            add<rendering::Material>();
-
-    ecs.entity("Cube1").
-            add_instanceof(cube1).
-            set<rendering::Position3D>({10, -1, -10}).
-            set<rendering::RenderTo>({camera}).
-            add<rendering::Model>();
-
-    ecs.entity("Cube2").
-            add_instanceof(cube1).
-            set<rendering::Position3D>({10, 0, 0}).
-            set<rendering::RenderTo>({camera}).
-            add<rendering::Model>();
-
-    ecs.entity("Cube3").
-            add_instanceof(cube1).
-            set<rendering::Position3D>({10, 1, 10}).
-            set<rendering::RenderTo>({camera}).
-            add<rendering::Model>();
-
-    auto grassAlbedo = ecs.entity("GrassAlbedoTex").
-            set<rendering::RegTo>({application}).
-            set<rendering::Path>({"grass/albedo.png"}).
-            add<rendering::Texture>();
-
-    auto grassRoughness = ecs.entity("GrassRoughnessTex").
-            set<rendering::RegTo>({application}).
-            set<rendering::Path>({"grass/roughness.png"}).
-            add<rendering::Texture>();
-
-    auto grassAo = ecs.entity("GrassAoTex").
-            set<rendering::RegTo>({application}).
-            set<rendering::Path>({"grass/ao.png"}).
-            add<rendering::Texture>();
-
-    auto grassMetallic = ecs.entity("GrassMetallicTex").
-            set<rendering::RegTo>({application}).
-            set<rendering::Path>({"grass/metallic.png"}).
-            add<rendering::Texture>();
-
-    auto cube2 = ecs.entity("CubePreset2").
-            set<rendering::RegTo>({application}).
-            add_instanceof(mesh).
-            set<rendering::AlbedoTexture>({grassAlbedo}).
-            set<rendering::RoughnessTexture>({grassRoughness}).
-            set<rendering::MetallicTexture>({grassMetallic}).
-            set<rendering::AoTexture>({grassAo}).
-            set<rendering::Albedo>({0.2, 0.2, 0.2}).
-            set<rendering::Scale3D>({10.f, 0.2f, 10.f}).
-            add<rendering::Material>();
-
-    ecs.entity("Ave1").
-            add_instanceof(cube2).
-            set<rendering::Position3D>({-10, -1, -10}).
-            set<rendering::RenderTo>({camera}).
-            add<rendering::Model>();
-
-    ecs.entity("Ave2").
-            add_instanceof(cube2).
-            set<rendering::Position3D>({-10, 0, 0}).
-            set<rendering::RenderTo>({camera}).
-            add<rendering::Model>();
-
-    ecs.entity("Ave3").
-            add_instanceof(cube2).
-            set<rendering::Position3D>({-10, 1, 10}).
-            set<rendering::RenderTo>({camera}).
-            add<rendering::Model>();
-
-    ecs.entity("Light").
-            set<rendering::RenderTo>({camera}).
-            add_instanceof(mesh).
-            set<rendering::Albedo>({1.0, 0.0, 0.0}).
-            set<rendering::Position3D>({20, 100, 20}).
-            set<rendering::Scale3D>({0.5f, 0.5f, 0.5f}).
-            set<rendering::Distance>({3000.f}).
-            set<rendering::Intensity>({0.01f}).
-            add<rendering::PointLight>().
-            add<rendering::Model>().
-            add<RotateAroundCenter>();
-
-    ecs.entity("Light2").
-            set<rendering::RenderTo>({camera}).
-            add_instanceof(mesh).
-            set<rendering::Albedo>({1.0, 0.0, 0.0}).
-            set<rendering::Position3D>({-15, 80, -15}).
-            set<rendering::Scale3D>({0.5f, 0.5f, 0.5f}).
-            set<rendering::Distance>({3000.f}).
-            set<rendering::Intensity>({0.01f}).
-            add<rendering::PointLight>().
-            add<rendering::Model>();
-
-    auto robotAlbedo = ecs.entity("RobotAlbedoTex").
-            set<rendering::RegTo>({application}).
-            set<rendering::Path>({"robot/albedo.png"}).
-            add<rendering::Texture>();
-
-    auto robotMetallic = ecs.entity("RobotMetallicTex").
-            set<rendering::RegTo>({application}).
-            set<rendering::Path>({"robot/metallic.png"}).
-            add<rendering::Texture>();
-
-    auto robotAo = ecs.entity("RobotAoTex").
-            set<rendering::RegTo>({application}).
-            set<rendering::Path>({"robot/ao.png"}).
-            add<rendering::Texture>();
-
-    ecs.entity("Robot").
-            set<rendering::RenderTo>({camera}).
             set<rendering::Path>({"robot.obj"}).
-            set<rendering::Position3D>({0, 0, 0}).
-            set<rendering::Scale3D>({0.5, 0.5, 0.5}).
-            set<rendering::Ao>({20.0}).
+            add<rendering::Mesh>();
+
+    auto robot = makeModelPreset(ecs, application, "Robot", robotMesh, "robot",
+            {0.5, 0.5, 0.5}, {0.5, 0.5, 0.5});
+
+    robot.set<rendering::Ao>({20.0}).
             set<rendering::Roughness>({0.5}).
             set<rendering::Albedo>({0.5, 0.5, 0.5}).
             set<rendering::Metallic>({0.340}).
-            set<rendering::AlbedoTexture>({robotAlbedo}).
-            set<rendering::MetallicTexture>({robotMetallic}).
-            set<rendering::AoTexture>({robotAo}).
-            add<rendering::Material>().
-            add<rendering::Mesh>().
             add<rendering::Shadow>().
+            set<rendering::RenderTo>({camera}).
             add<rendering::Model>();
 
-    auto ballAlbedo = ecs.entity("BallAlbedoTex").
-            set<rendering::RegTo>({application}).
-            set<rendering::Path>({"ball/albedo.png"}).
-            add<rendering::Texture>();
-
-    auto ballMetallic = ecs.entity("BallMetallicTex").
-            set<rendering::RegTo>({application}).
-            set<rendering::Path>({"ball/metallic.png"}).
-            add<rendering::Texture>();
-
-    auto ballRoughness = ecs.entity("BallRoughnessTex").
-            set<rendering::RegTo>({application}).
-            set<rendering::Path>({"ball/roughness.png"}).
-            add<rendering::Texture>();
-
-    auto ball = ecs.entity("Ball").
+    auto ballMesh = ecs.entity("BallMesh").
             set<rendering::RegTo>({application}).
             set<rendering::Path>({"sphere.obj"}).
-            set<rendering::Scale3D>({0.5, 0.5, 0.5}).
-            set<rendering::Albedo>({0.2, 0.2, 0.2}).
-            set<rendering::AlbedoTexture>({ballAlbedo}).
-            set<rendering::MetallicTexture>({ballMetallic}).
-            set<rendering::RoughnessTexture>({ballRoughness}).
-            add<rendering::Mesh>().
-            add<rendering::Material>();
+            add<rendering::Mesh>();
 
-    ecs.entity("Ball1").
-            add_instanceof(ball).
-            set<rendering::RenderTo>({camera}).
-            set<rendering::Position3D>({0, 2, -5}).
-            add<RotateAroundCenter>().
-            add<rendering::Model>().
-            add<rendering::Shadow>();
+    auto ball = makeModelPreset(ecs, application, "Ball", ballMesh, "ball",
+            {0.5, 0.5, 0.5}, {0.2, 0.2, 0.2});
 
-    ecs.entity("Ball2").
-            add_instanceof(ball).
-            set<rendering::RenderTo>({camera}).
-            set<rendering::Position3D>({0, 3, 5}).
-            add<RotateAroundCenter>().
-            add<rendering::Model>().
-            add<rendering::Shadow>();
+    sphereCollision(makeModelChild(ecs, ball, camera, "Ball1", {0, 2, -8}).
+            add<rendering::Shadow>().add<RotateAroundCenter>(), physics::BodyType::STATIC);
+    sphereCollision(makeModelChild(ecs, ball, camera, "Ball2", {0, 3, 8}).
+            add<rendering::Shadow>().add<RotateAroundCenter>(), physics::BodyType::STATIC);
+    sphereCollision(makeModelChild(ecs, ball, camera, "Ball3", {-12, 4, 0}).
+            add<rendering::Shadow>().add<RotateAroundCenter>(), physics::BodyType::STATIC);
+    sphereCollision(makeModelChild(ecs, ball, camera, "Ball4", {5, 8, 0}).
+            add<rendering::Shadow>().add<RotateAroundCenter>(), physics::BodyType::STATIC);
+    sphereCollision(makeModelChild(ecs, ball, camera, "Ball5", {-10, 4, 10}).
+            add<rendering::Shadow>(), physics::BodyType::DYNAMIC).
+            set<physics::Velocity>({0.0, 0.0, -5.0}).set<physics::Mass>({100.0});
+    sphereCollision(makeModelChild(ecs, ball, camera, "Ball6", {10, 4, 10}).
+            add<rendering::Shadow>(), physics::BodyType::DYNAMIC).
+            set<physics::Velocity>({0.0, 0.0, -5.0}).set<physics::Mass>({100.0});
 
-    ecs.entity("Ball3").
-            add_instanceof(ball).
-            set<rendering::RenderTo>({camera}).
-            set<rendering::Position3D>({-10, 4, 0}).
-            add<RotateAroundCenter>().
-            add<rendering::Model>().
-            add<rendering::Shadow>();
+    auto stone = makeModelPreset(ecs, application, "Stone", cube, "brick",
+            {2.0, 2.0, 2.0}, {0.5, 0.5, 0.5});
 
-    ecs.entity("Ball4").
-            add_instanceof(ball).
-            set<rendering::RenderTo>({camera}).
-            set<rendering::Position3D>({3, 8, 0}).
-            add<RotateAroundCenter>().
-            add<rendering::Model>().
-            add<rendering::Shadow>();
+    for (int i = 0; i != 16; ++i) {
+        for (int j = 0; j != 5; ++j) {
+            boxCollision(makeModelChild(ecs, stone, camera,
+                    "StoneR" + std::to_string(i) + std::to_string(j), {
+                            static_cast<float>(-14 + i * 2),
+                            static_cast<float>(0.1 + j * 2),
+                            static_cast<float>(-12)}).
+                    add<rendering::Shadow>(), physics::BodyType::DYNAMIC);
+        }
+    }
 
     ecs.set_target_fps(60);
     while (ecs.progress()) {}

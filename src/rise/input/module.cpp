@@ -36,7 +36,7 @@ namespace rise::input {
         glm::vec3 up = glm::cross(direction, right);
         glm::vec3 front = glm::cross(up, right);
 
-        float const speed = 0.1;
+        float const speed = 0.2;
 
 
         if (ImGui::IsKeyDown(SDL_SCANCODE_D)) {
