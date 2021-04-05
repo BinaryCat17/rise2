@@ -75,7 +75,7 @@ namespace rise::rendering::guiPipeline {
 namespace rise::rendering::shadowPipeline {
     using Vertex = scenePipeline::Vertex;
 
-    const LLGL::Extent2D resolution = {2048, 2048};
+    const LLGL::Extent2D resolution = {1048, 1048};
 
     struct PerObject {
         alignas(16) glm::mat4 transform = {};

@@ -138,7 +138,7 @@ namespace rise::physics {
     Module::Module(flecs::world &ecs) {
         ecs.module<Module>("rise::physics");
         ecs.import<rise::rendering::Module>();
-        ecs.component<PhysicsId>("PhysicsId");
+        ecs.component<PhysicsId>();
         ecs.component<PhysicBody>("PhysicBody");
         ecs.component<PhysicBodyId>("PhysicBodyId");
         ecs.component<BoxCollision>("BoxCollision");
@@ -167,7 +167,7 @@ namespace rise::physics {
         ecs.system<const PhysicBodyId, const Mass>(
                 "updateMass").kind(flecs::OnSet).each(updateMass);
 
-        ecs.system<const PhysicsId>("updatePhysicsTime").each(updatePhysicsTime).
+        ecs.system<const PhysicsId>().each(updatePhysicsTime).
                 each(updatePhysicsTime);
 
         ecs.system<PhysicBodyId>("updatePhysics", "[in] OWNED:PhysicBody").each(updatePhysic);

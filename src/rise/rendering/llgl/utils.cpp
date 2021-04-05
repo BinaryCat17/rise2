@@ -16,6 +16,10 @@ namespace rise::rendering {
             imageDesc.dataSize = width * height * 3;
         } else if (format == LLGL::ImageFormat::RGBA) {
             imageDesc.dataSize = width * height * 4;
+        } else if (format == LLGL::ImageFormat::RG) {
+            imageDesc.dataSize = width * height * 2;
+        } else if (format == LLGL::ImageFormat::R) {
+            imageDesc.dataSize = width * height * 1;
         } else {
             throw std::runtime_error("undefined image format");
         }

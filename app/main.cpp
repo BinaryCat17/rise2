@@ -27,8 +27,8 @@ flecs::world initWorld() {
     ecs.import<rise::rendering::Module>();
     ecs.import<rise::input::Module>();
     ecs.import<rise::rendering::LLGLModule>();
-    ecs.import<rise::editor::Module>();
     ecs.import<rise::physics::Module>();
+    ecs.import<rise::editor::Module>();
     ecs.import<rise::rendering::EditorComponents>();
     ecs.component<RotateAroundCenter>("RotateAroundCenter");
     editor::regGuiComponent<RotateAroundCenter>(ecs, editor::GuiComponentType::BoolFlag);
@@ -115,7 +115,7 @@ auto sphereCollision(flecs::entity e, physics::BodyType type) {
 int main() {
     auto ecs = initWorld();
 
-    auto windowSize = ecs.entity("WindowSize").set<rendering::Extent2D>({1600, 1000});
+    auto windowSize = ecs.entity("WindowSize").set<rendering::Extent2D>({1000, 800});
 
     auto application = ecs.entity("Minecraft2").
             add_instanceof(windowSize).

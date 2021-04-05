@@ -43,7 +43,23 @@ namespace rise::rendering {
 
         if (image) {
             TextureState state;
-            auto format = components == 4 ? LLGL::ImageFormat::RGBA : LLGL::ImageFormat::RGB;
+            LLGL::ImageFormat format;
+            switch (components) {
+            case 1:
+                format = LLGL::ImageFormat::R;
+                break;
+            case 2:
+                format = LLGL::ImageFormat::RG;
+                break;
+            case 3:
+                format = LLGL::ImageFormat::RGB;
+                break;
+            case 4:
+                format = LLGL::ImageFormat::RGBA;
+                break;
+            default:
+                throw std::runtime_error("undefined format");
+            }
             state.val = createTextureFromData(renderer, format, image, width, height);
 
             manager.texture.toInit.emplace_back(state, texture);
