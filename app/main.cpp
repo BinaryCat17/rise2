@@ -115,7 +115,7 @@ auto sphereCollision(flecs::entity e, physics::BodyType type) {
 int main() {
     auto ecs = initWorld();
 
-    auto windowSize = ecs.entity("WindowSize").set<rendering::Extent2D>({1000, 800});
+    auto windowSize = ecs.entity("WindowSize").set<rendering::Extent2D>({1920, 1080});
 
     auto application = ecs.entity("Minecraft2").
             add_instanceof(windowSize).
@@ -128,7 +128,8 @@ int main() {
     auto camera = ecs.entity("Viewport").
             set<rendering::RegTo>({application}).
             add_instanceof(windowSize).
-            set<rendering::Position3D>({-15, 20, -10}).
+            set<rendering::Position3D>({-20, 33, 22}).
+            set<rendering::Rotation3D>({-45, 0, -45}).
             set<rendering::Distance>({50.f}).
             add<input::Controllable>().
             add<rendering::Viewport>();
@@ -222,8 +223,9 @@ int main() {
             add<rendering::Shadow>().add<RotateAroundCenter>(), physics::BodyType::STATIC);
     sphereCollision(makeModelChild(ecs, ball, camera, "Ball2", {0, 3, 8}).
             add<rendering::Shadow>().add<RotateAroundCenter>(), physics::BodyType::STATIC);
-    sphereCollision(makeModelChild(ecs, ball, camera, "Ball3", {-12, 4, 0}).
-            add<rendering::Shadow>().add<RotateAroundCenter>(), physics::BodyType::STATIC);
+    sphereCollision(makeModelChild(ecs, ball, camera, "Ball3", {-12, 3, 0}).
+            set<physics::Mass>({3.f}).add<rendering::Shadow>().
+            add<RotateAroundCenter>(), physics::BodyType::STATIC);
     sphereCollision(makeModelChild(ecs, ball, camera, "Ball4", {5, 8, 0}).
             add<rendering::Shadow>().add<RotateAroundCenter>(), physics::BodyType::STATIC);
     sphereCollision(makeModelChild(ecs, ball, camera, "Ball5", {-10, 4, 10}).
@@ -240,7 +242,7 @@ int main() {
         for (int j = 0; j != 5; ++j) {
             boxCollision(makeModelChild(ecs, stone, camera,
                     "StoneR" + std::to_string(i) + std::to_string(j), {
-                            static_cast<float>(-14 + i * 2),
+                            static_cast<float>(-13 + i * 2),
                             static_cast<float>(0.1 + j * 2),
                             static_cast<float>(-12)}).
                     add<rendering::Shadow>(), physics::BodyType::DYNAMIC);

@@ -61,6 +61,8 @@ vec3(1, 0, 1), vec3(-1, 0, 1), vec3(1, 0, -1), vec3(-1, 0, -1),
 vec3(0, 1, 1), vec3(0, -1, 1), vec3(0, -1, -1), vec3(0, 1, -1)
 );
 
+// функция нормального распределения - относительная площадь микрограней, точно ориентированных
+// в сторону медианного вектора - тут будет наибольший блик
 float DistributionGGX(vec3 N, vec3 H, float roughness)
 {
     float a      = roughness*roughness;
@@ -75,6 +77,7 @@ float DistributionGGX(vec3 N, vec3 H, float roughness)
     return num / denom;
 }
 
+// часть микрограней, который перекрылись
 float GeometrySchlickGGX(float NdotV, float roughness)
 {
     float r = (roughness + 1.0);
@@ -86,16 +89,21 @@ float GeometrySchlickGGX(float NdotV, float roughness)
     return num / denom;
 }
 
+// относительная площадь поверхности, где микрограни перекрывают друг друга
+// чем больше шероховатость - тем больше шанс затенения микрограней
 float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
 {
     float NdotV = max(dot(N, V), 0.0);
     float NdotL = max(dot(N, L), 0.0);
+    // от наблюдателя
     float ggx2  = GeometrySchlickGGX(NdotV, roughness);
+    // от света
     float ggx1  = GeometrySchlickGGX(NdotL, roughness);
 
     return ggx1 * ggx2;
 }
 
+// коэффициент, определяющий отражаемость поверхности, в зависимости от угла обзора
 vec3 fresnelSchlick(float cosTheta, vec3 F0)
 {
     return F0 + (1.0 - F0) * pow(max(1.0 - cosTheta, 0.0), 5.0);
@@ -141,39 +149,56 @@ void main()
     vec3 norm = normalize(inNormal);
     vec3 resultColor = vec3(0.0, 0.0, 0.0);
 
-    vec3 V = normalize(viewport.viewPos - inPosition);
+    // направление к наблюдателю
+    vec3 viewDir = normalize(viewport.viewPos - inPosition);
+
+    // Базовая отражательная способность - коэффициет отраженного света при прямом угле
     vec3 F0 = vec3(0.04);
+    // 'Подкрашиваем' в зависимости от металличности поверхности и коэффициента поглощения
     F0 = mix(F0, albedo, metallic);
 
     for (int i = 0; i != maxLightCount; ++i) {
         PointLight light = viewport.pointLights[i];
+        // направление к свету
         vec3 lightDir = normalize(light.position - inPosition);
-        vec3 H = normalize(V + lightDir);
+        // медианный вектор
+        vec3 medianVector = normalize(viewDir + lightDir);
 
-        float attenuation = 1.f;
         if (light.distance != -1 && light.intensity != 0) {
+            // расстояние от источника света до позиции фрагмента
             float distance  = length(light.position - inPosition);
 
+            // факторы затухания света
             float constant = constantFactor * light.intensity;
             float linear = linearFactor / light.distance;
             float quadratic = linearFactor / (light.distance * light.distance) * light.intensity;
+
+            // коэффециент затухания
+            float attenuation = 1.f;
             attenuation /= (constant + linear * distance + quadratic * (distance * distance));
 
-            vec3 radiance     = light.diffuse * attenuation;
+            // энергетическая яркость света после угасания
+            vec3 radiance = light.diffuse * attenuation;
 
-            float NDF = DistributionGGX(norm, H, roughness);
-            float G   = GeometrySmith(norm, V, lightDir, roughness);
-            vec3 F    = fresnelSchlick(max(dot(H, V), 0.0), F0);
+            float NDF = DistributionGGX(norm, medianVector, roughness);
+            float G   = GeometrySmith(norm, viewDir, lightDir, roughness);
+            vec3 F    = fresnelSchlick(max(dot(medianVector, viewDir), 0.0), F0);
 
+            // колличество отраженной световой энергии
             vec3 kS = F;
+            // остаточная энергия - по закону сохранения энергии
             vec3 kD = vec3(1.0) - kS;
+            // металлы не приломляют свет, грубо учитываем это
             kD *= 1.0 - metallic;
 
+            // Cook-Torrance BRDF - уравнение отражения - подставляем в него все значения
+            // для вычисления вклада луча в конечный отраженный свет
             vec3 numerator    = NDF * G * F;
-            float denominator = 4.0 * max(dot(norm, V), 0.0) * max(dot(norm, lightDir), 0.0);
+            float denominator = 4.0 * max(dot(norm, viewDir), 0.0) * max(dot(norm, lightDir), 0.0);
             vec3 specular     = numerator / max(denominator, 0.001);
 
             float NdotL = max(dot(norm, lightDir), 0.0);
+
             resultColor += (kD * albedo / PI + specular) * radiance * NdotL;
 
             float shadow = shadowCalculation(inPosition, i);
